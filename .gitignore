@@ -18,6 +18,8 @@ pnpm-debug.log*
 .env.test.local
 .env.production.local
 
+# Note: .env.development and .env.production are tracked for deployment configs
+
 # IDEs and editors
 .vscode/settings.json
 .vscode/launch.json
