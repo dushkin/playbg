@@ -84,6 +84,14 @@ jspm_packages/
 # Vite cache
 .vite/
 
+# Android build outputs (APKs are copied to public/ but not committed)
+**/android/app/build/
+**/android/.gradle/
+**/android/gradle/
+
+# APK files in public directory (generated but not committed)
+public/*.apk
+
 # Test results
 test-results/
 test-output/
