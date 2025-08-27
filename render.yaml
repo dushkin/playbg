@@ -31,9 +31,9 @@ services:
         value: 100
 
   # Frontend Static Site
-  - type: static
+  - type: web
     name: playbg-frontend
-    env: node
+    env: static
     region: oregon
     buildCommand: npm run build:frontend
     staticPublishPath: apps/frontend/dist
