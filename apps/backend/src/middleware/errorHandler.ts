@@ -90,6 +90,9 @@ export class AppError extends Error {
     this.code = code;
     this.name = 'AppError';
 
-    Error.captureStackTrace(this, this.constructor);
+    // Only use captureStackTrace if available (Node.js environment)
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, this.constructor);
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { Request } from 'express';
+import { Request as ExpressRequest } from 'express';
 
 declare global {
   namespace Express {
@@ -8,22 +8,17 @@ declare global {
   }
 }
 
-export interface AuthenticatedRequest extends Request {
+export interface AuthenticatedRequest extends ExpressRequest {
   user?: any;
 }
 
 export interface ValidatedRequest extends AuthenticatedRequest {
   validatedData?: any;
   file?: any; // Multer file type
-  body: any;
-  params: any;
 }
 
-export interface TimedRequest extends Request {
+export interface TimedRequest extends ExpressRequest {
   startTime?: number;
   operationType?: 'cache' | 'database' | 'api';
   cacheKey?: string;
-  method: string;
-  path: string;
-  get(header: string): string | undefined;
 }

@@ -14,9 +14,18 @@
     "declarationMap": true,
     "sourceMap": true,
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "types": ["node"],
+    "typeRoots": ["./node_modules/@types", "../../node_modules/@types"],
+    "baseUrl": ".",
+    "paths": {
+      "@playbg/shared": ["../../packages/shared/dist"],
+      "@playbg/game-logic": ["../../packages/game-logic/dist"]
+    }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "src/types/**/*"],
   "exclude": ["node_modules", "dist", "**/*.test.ts"],
   "ts-node": {
     "esm": false
