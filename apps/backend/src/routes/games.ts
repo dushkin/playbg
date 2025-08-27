@@ -5,7 +5,7 @@ import { GameModel } from '../models/Game';
 import { User } from '../models/User';
 import { BackgammonEngine } from '@playbg/game-logic';
 import { gameStateManager } from '../services/gameStateManager';
-import { redisService } from '../services/redisService';
+import { getRedisService } from '../services/redisService';
 import { logger } from '../utils/logger';
 import {
   ApiResponse,

@@ -1,6 +1,6 @@
 import { BackgammonEngine } from '@playbg/game-logic';
 import { GameModel, IGameDocument } from '../models/Game';
-import { redisService } from './redisService';
+import { getRedisService } from './redisService';
 import { logger } from '../utils/logger';
 import {
   GameState,
@@ -78,7 +78,7 @@ export class GameStateManager {
       this.engines.set(gameId, engine);
 
       // Cache in Redis
-      await redisService.setGameSession({
+      await getRedisService().setGameSession({
         gameId,
         players: [options.player1Id, options.player2Id].filter(Boolean) as string[],
         spectators: options.spectators || [],
@@ -87,7 +87,7 @@ export class GameStateManager {
       });
 
       // Cache game state
-      await redisService.cacheGameState(gameId, initialState);
+      await getRedisService().cacheGameState(gameId, initialState);
 
       logger.info(`Created new game: ${gameId} with players: ${options.player1Id}, ${options.player2Id}`);
       return gameDoc;
@@ -165,8 +165,8 @@ export class GameStateManager {
         moves: [...gameDoc.moves, move]
       };
       
-      await redisService.cacheGameState(gameId, newState);
-      await redisService.updateGameSession(gameId, {
+      await getRedisService().cacheGameState(gameId, newState);
+      await getRedisService().updateGameSession(gameId, {
         state: newState,
         lastActivity: Date.now()
       });
@@ -182,7 +182,7 @@ export class GameStateManager {
       };
 
       // Publish game event
-      await redisService.publishGameEvent(gameId, 'move', stateUpdate);
+      await getRedisService().publishGameEvent(gameId, 'move', stateUpdate);
 
       logger.info(`Processed move for game ${gameId}: ${JSON.stringify(move)}`);
       return stateUpdate;
@@ -223,8 +223,8 @@ export class GameStateManager {
         moves: gameDoc.moves
       };
       
-      await redisService.cacheGameState(gameId, newState);
-      await redisService.updateGameSession(gameId, {
+      await getRedisService().cacheGameState(gameId, newState);
+      await getRedisService().updateGameSession(gameId, {
         state: newState,
         lastActivity: Date.now()
       });
@@ -235,7 +235,7 @@ export class GameStateManager {
       };
 
       // Publish game event
-      await redisService.publishGameEvent(gameId, 'dice_roll', stateUpdate);
+      await getRedisService().publishGameEvent(gameId, 'dice_roll', stateUpdate);
 
       logger.info(`Player ${playerId} rolled dice in game ${gameId}: [${dice.join(', ')}]`);
       return stateUpdate;
@@ -274,7 +274,7 @@ export class GameStateManager {
       await gameDoc.addChatMessage(chatMessage);
 
       // Update cache
-      await redisService.updateGameSession(gameId, {
+      await getRedisService().updateGameSession(gameId, {
         lastActivity: Date.now()
       });
 
@@ -284,7 +284,7 @@ export class GameStateManager {
       };
 
       // Publish game event
-      await redisService.publishGameEvent(gameId, 'chat', stateUpdate);
+      await getRedisService().publishGameEvent(gameId, 'chat', stateUpdate);
 
       logger.info(`Chat message added to game ${gameId} by player ${playerId}`);
       return stateUpdate;
@@ -328,13 +328,13 @@ export class GameStateManager {
         await gameDoc.save();
 
         // Update cache
-        await redisService.updateGameSession(gameId, {
+        await getRedisService().updateGameSession(gameId, {
           spectators: gameDoc.spectators,
           lastActivity: Date.now()
         });
 
         // Publish game event
-        await redisService.publishGameEvent(gameId, 'spectator_joined', {
+        await getRedisService().publishGameEvent(gameId, 'spectator_joined', {
           gameId,
           spectatorId
         });
@@ -365,13 +365,13 @@ export class GameStateManager {
         await gameDoc.save();
 
         // Update cache
-        await redisService.updateGameSession(gameId, {
+        await getRedisService().updateGameSession(gameId, {
           spectators: gameDoc.spectators,
           lastActivity: Date.now()
         });
 
         // Publish game event
-        await redisService.publishGameEvent(gameId, 'spectator_left', {
+        await getRedisService().publishGameEvent(gameId, 'spectator_left', {
           gameId,
           spectatorId
         });
@@ -393,9 +393,9 @@ export class GameStateManager {
       this.engines.delete(gameId);
 
       // Clear from Redis
-      await redisService.deleteGameSession(gameId);
-      await redisService.invalidateGameStateCache(gameId);
-      await redisService.unsubscribeFromGameEvents(gameId);
+      await getRedisService().deleteGameSession(gameId);
+      await getRedisService().invalidateGameStateCache(gameId);
+      await getRedisService().unsubscribeFromGameEvents(gameId);
 
       logger.info(`Cleaned up game resources for: ${gameId}`);
     } catch (error) {
@@ -410,7 +410,7 @@ export class GameStateManager {
   public async getGameState(gameId: string): Promise<GameState | null> {
     try {
       // Try cache first
-      let state = await redisService.getCachedGameState(gameId);
+      let state = await getRedisService().getCachedGameState(gameId);
       
       if (!state) {
         // Load from database
@@ -427,7 +427,7 @@ export class GameStateManager {
         };
         
         // Cache for future use
-        await redisService.cacheGameState(gameId, state);
+        await getRedisService().cacheGameState(gameId, state);
       }
 
       return state;
@@ -455,7 +455,7 @@ export class GameStateManager {
 
     for (const [gameId, engine] of this.engines.entries()) {
       try {
-        const session = await redisService.getGameSession(gameId);
+        const session = await getRedisService().getGameSession(gameId);
         if (!session || session.lastActivity < cutoffTime) {
           await this.cleanupGame(gameId);
           cleaned++;

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import { redisService } from '../services/redisService';
+import { getRedisService } from '../services/redisService';
 import { cacheService, LeaderboardEntry } from '../services/cacheService';
 import { statisticsService } from '../services/statisticsService';
 import { cacheInvalidationService } from '../services/cacheInvalidationService';
@@ -18,7 +18,7 @@ describe('Cache Service Tests', () => {
 
     // Setup Redis (assuming Redis is running locally for tests)
     try {
-      await redisService.connect();
+      await getRedisService().connect();
     } catch (error) {
       console.log('Redis not available for tests, skipping Redis-dependent tests');
     }
@@ -28,7 +28,7 @@ describe('Cache Service Tests', () => {
     await mongoose.disconnect();
     await mongoServer.stop();
     try {
-      await redisService.disconnect();
+      await getRedisService().disconnect();
     } catch (error) {
       // Redis might not be connected
     }

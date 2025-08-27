@@ -1,5 +1,5 @@
 import { cacheService } from './cacheService';
-import { redisService } from './redisService';
+import { getRedisService } from './redisService';
 import { logger } from '../utils/logger';
 
 export interface InvalidationEvent {
@@ -161,7 +161,7 @@ export class CacheInvalidationService {
       for (const userId of userIds) {
         const user = await User.findById(userId).select('rating');
         if (user) {
-          await redisService.updateLeaderboard(userId, user.rating);
+          await getRedisService().updateLeaderboard(userId, user.rating);
         }
       }
     } catch (error) {
@@ -285,7 +285,7 @@ export class CacheInvalidationService {
     lastInvalidation?: Date;
   }> {
     try {
-      const redis = redisService.getRedisClient();
+      const redis = getRedisService().getRedisClient();
       
       // Get invalidation counters
       const stats = await redis.hgetall('cache:invalidation:stats');
@@ -319,7 +319,7 @@ export class CacheInvalidationService {
   // Track invalidation statistics
   private async trackInvalidation(eventType: string): Promise<void> {
     try {
-      const redis = redisService.getRedisClient();
+      const redis = getRedisService().getRedisClient();
       
       // Increment total counter
       await redis.hincrby('cache:invalidation:stats', 'total', 1);

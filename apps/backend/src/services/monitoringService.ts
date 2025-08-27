@@ -1,4 +1,4 @@
-import { redisService } from './redisService';
+import { getRedisService } from './redisService';
 import { cacheService } from './cacheService';
 import { cacheInvalidationService } from './cacheInvalidationService';
 import { User } from '../models/User';

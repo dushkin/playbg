@@ -1,4 +1,4 @@
-import { redisService } from './redisService';
+import { getRedisService } from './redisService';
 import { logger } from '../utils/logger';
 
 export interface RateLimitConfig {
@@ -173,7 +173,7 @@ export class RateLimitService {
    */
   public async resetLimit(identifier: string, action: string): Promise<void> {
     const key = this.generateKey(identifier, action);
-    await redisService.getRedisClient().del(key);
+    await getRedisService().getRedisClient().del(key);
     logger.info(`Rate limit reset for ${identifier}:${action}`);
   }
 
@@ -193,7 +193,7 @@ export class RateLimitService {
 
   private async getCurrentCount(key: string, windowStart: number, now: number): Promise<number> {
     // Get Redis client
-    const redis = redisService.getRedisClient();
+    const redis = getRedisService().getRedisClient();
     
     // Remove expired entries
     await redis.zremrangebyscore(key, '-inf', windowStart);
@@ -205,7 +205,7 @@ export class RateLimitService {
 
   private async recordRequest(key: string, timestamp: number, windowMs: number): Promise<void> {
     // Get Redis client
-    const redis = redisService.getRedisClient();
+    const redis = getRedisService().getRedisClient();
     
     // Add current request with timestamp as score
     await redis.zadd(key, timestamp, `${timestamp}-${Math.random()}`);
@@ -216,7 +216,7 @@ export class RateLimitService {
 
   private async getResetTime(key: string, windowMs: number): Promise<number> {
     // Get the oldest entry to determine when window resets
-    const oldestEntries = await redisService.getRedisClient().zrange(key, 0, 0, 'WITHSCORES');
+    const oldestEntries = await getRedisService().getRedisClient().zrange(key, 0, 0, 'WITHSCORES');
     
     if (oldestEntries.length === 0) {
       return Date.now() + windowMs;
@@ -277,23 +277,23 @@ export class RateLimitService {
    */
   public async cleanup(): Promise<number> {
     const pattern = 'rate_limit:*';
-    const keys = await redisService.getRedisClient().keys(pattern);
+    const keys = await getRedisService().getRedisClient().keys(pattern);
     let cleaned = 0;
 
     for (const key of keys) {
-      const ttl = await redisService.getRedisClient().ttl(key);
+      const ttl = await getRedisService().getRedisClient().ttl(key);
       if (ttl === -1) {
         // Key without expiry, clean old entries
         const cutoff = Date.now() - (24 * 60 * 60 * 1000); // 24 hours ago
-        const removed = await redisService.getRedisClient().zremrangebyscore(key, '-inf', cutoff);
+        const removed = await getRedisService().getRedisClient().zremrangebyscore(key, '-inf', cutoff);
         if (removed > 0) {
           cleaned += removed;
         }
         
         // Check if key is now empty and delete if so
-        const count = await redisService.getRedisClient().zcard(key);
+        const count = await getRedisService().getRedisClient().zcard(key);
         if (count === 0) {
-          await redisService.getRedisClient().del(key);
+          await getRedisService().getRedisClient().del(key);
           cleaned++;
         }
       }

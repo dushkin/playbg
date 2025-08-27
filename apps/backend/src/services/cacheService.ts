@@ -1,4 +1,4 @@
-import { redisService } from './redisService';
+import { getRedisService } from './redisService';
 import { User } from '../models/User';
 import { GameModel } from '../models/Game';
 import { UserStatistics, PaginatedResponse } from '@playbg/shared';
@@ -63,7 +63,7 @@ export class CacheService {
     limit: number = 20
   ): Promise<PaginatedResponse<LeaderboardEntry> | null> {
     try {
-      const redis = redisService.getRedisClient();
+      const redis = getRedisService().getRedisClient();
       const key = CacheService.KEYS.LEADERBOARD(type, page, limit);
       const cached = await redis.get(key);
 
@@ -86,7 +86,7 @@ export class CacheService {
     data: PaginatedResponse<LeaderboardEntry>
   ): Promise<void> {
     try {
-      const redis = redisService.getRedisClient();
+      const redis = getRedisService().getRedisClient();
       const key = CacheService.KEYS.LEADERBOARD(type, page, limit);
       
       await redis.setex(
@@ -103,7 +103,7 @@ export class CacheService {
 
   public async invalidateLeaderboard(type?: string): Promise<void> {
     try {
-      const redis = redisService.getRedisClient();
+      const redis = getRedisService().getRedisClient();
       const pattern = type ? `leaderboard:${type}:*` : 'leaderboard:*';
       const keys = await redis.keys(pattern);
 
@@ -119,7 +119,7 @@ export class CacheService {
   // User Statistics Caching
   public async getUserStatistics(userId: string): Promise<UserStatistics | null> {
     try {
-      const redis = redisService.getRedisClient();
+      const redis = getRedisService().getRedisClient();
       const key = CacheService.KEYS.USER_STATS(userId);
       const cached = await redis.get(key);
 
@@ -137,7 +137,7 @@ export class CacheService {
 
   public async setUserStatistics(userId: string, stats: UserStatistics): Promise<void> {
     try {
-      const redis = redisService.getRedisClient();
+      const redis = getRedisService().getRedisClient();
       const key = CacheService.KEYS.USER_STATS(userId);
       
       await redis.setex(
@@ -154,7 +154,7 @@ export class CacheService {
 
   public async invalidateUserStatistics(userId: string): Promise<void> {
     try {
-      const redis = redisService.getRedisClient();
+      const redis = getRedisService().getRedisClient();
       const key = CacheService.KEYS.USER_STATS(userId);
       await redis.del(key);
       logger.info(`Invalidated user statistics cache: ${userId}`);
@@ -166,7 +166,7 @@ export class CacheService {
   // Global Statistics Caching
   public async getGlobalStatistics(): Promise<GlobalStats | null> {
     try {
-      const redis = redisService.getRedisClient();
+      const redis = getRedisService().getRedisClient();
       const key = CacheService.KEYS.GLOBAL_STATS;
       const cached = await redis.get(key);
 
@@ -184,7 +184,7 @@ export class CacheService {
 
   public async setGlobalStatistics(stats: GlobalStats): Promise<void> {
     try {
-      const redis = redisService.getRedisClient();
+      const redis = getRedisService().getRedisClient();
       const key = CacheService.KEYS.GLOBAL_STATS;
       
       await redis.setex(
@@ -201,7 +201,7 @@ export class CacheService {
 
   public async invalidateGlobalStatistics(): Promise<void> {
     try {
-      const redis = redisService.getRedisClient();
+      const redis = getRedisService().getRedisClient();
       const key = CacheService.KEYS.GLOBAL_STATS;
       await redis.del(key);
       logger.info('Invalidated global statistics cache');
@@ -213,7 +213,7 @@ export class CacheService {
   // User Profile Caching (extended profile with stats)
   public async getUserProfile(userId: string): Promise<any | null> {
     try {
-      const redis = redisService.getRedisClient();
+      const redis = getRedisService().getRedisClient();
       const key = CacheService.KEYS.USER_PROFILE(userId);
       const cached = await redis.get(key);
 
@@ -231,7 +231,7 @@ export class CacheService {
 
   public async setUserProfile(userId: string, profile: any): Promise<void> {
     try {
-      const redis = redisService.getRedisClient();
+      const redis = getRedisService().getRedisClient();
       const key = CacheService.KEYS.USER_PROFILE(userId);
       
       await redis.setex(
@@ -248,7 +248,7 @@ export class CacheService {
 
   public async invalidateUserProfile(userId: string): Promise<void> {
     try {
-      const redis = redisService.getRedisClient();
+      const redis = getRedisService().getRedisClient();
       const key = CacheService.KEYS.USER_PROFILE(userId);
       await redis.del(key);
       logger.info(`Invalidated user profile cache: ${userId}`);
@@ -264,7 +264,7 @@ export class CacheService {
     limit: number = 10
   ): Promise<PaginatedResponse<any> | null> {
     try {
-      const redis = redisService.getRedisClient();
+      const redis = getRedisService().getRedisClient();
       const key = CacheService.KEYS.RECENT_GAMES(userId, page, limit);
       const cached = await redis.get(key);
 
@@ -287,7 +287,7 @@ export class CacheService {
     data: PaginatedResponse<any>
   ): Promise<void> {
     try {
-      const redis = redisService.getRedisClient();
+      const redis = getRedisService().getRedisClient();
       const key = CacheService.KEYS.RECENT_GAMES(userId, page, limit);
       
       await redis.setex(
@@ -304,7 +304,7 @@ export class CacheService {
 
   public async invalidateUserGames(userId: string): Promise<void> {
     try {
-      const redis = redisService.getRedisClient();
+      const redis = getRedisService().getRedisClient();
       const pattern = `user:games:${userId}:*`;
       const keys = await redis.keys(pattern);
 
@@ -406,7 +406,7 @@ export class CacheService {
   // Bulk cache invalidation
   public async invalidateAll(): Promise<void> {
     try {
-      const redis = redisService.getRedisClient();
+      const redis = getRedisService().getRedisClient();
       const patterns = [
         'leaderboard:*',
         'user:stats:*',
@@ -434,7 +434,7 @@ export class CacheService {
     memoryUsage?: string;
   }> {
     try {
-      const redis = redisService.getRedisClient();
+      const redis = getRedisService().getRedisClient();
       const info = await redis.info('memory');
       const keyCount = await redis.dbsize();
       

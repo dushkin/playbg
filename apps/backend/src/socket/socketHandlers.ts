@@ -4,7 +4,7 @@ import { User } from '../models/User';
 import { TournamentModel } from '../models/Tournament';
 import { SocketEvents, GameSpeed, GameType, MatchStatus } from '@playbg/shared';
 import { gameStateManager } from '../services/gameStateManager';
-import { redisService, MatchmakingQueue } from '../services/redisService';
+import { getRedisService, MatchmakingQueue } from '../services/redisService';
 import { rateLimitService } from '../services/rateLimitService';
 import { validationService } from '../services/validationService';
 import { logger } from '../utils/logger';
@@ -138,13 +138,13 @@ export const setupSocketHandlers = (io: SocketIOServer): void => {
         };
 
         // Add to matchmaking queue
-        await redisService.addToMatchmakingQueue(queue);
+        await getRedisService().addToMatchmakingQueue(queue);
         
         // Store user's socket ID for matchmaking notifications
-        await redisService.setUserSocketId(socket.userId!, socket.id);
+        await getRedisService().setUserSocketId(socket.userId!, socket.id);
 
         // Try to find an opponent immediately
-        const opponent = await redisService.findMatchmakingOpponent(
+        const opponent = await getRedisService().findMatchmakingOpponent(
           socket.userId!,
           user.rating,
           queue.gameSpeed,
@@ -164,7 +164,7 @@ export const setupSocketHandlers = (io: SocketIOServer): void => {
           const gameId = (game._id as any).toString();
 
           // Notify both players
-          const opponentSocketId = await redisService.getUserSocketId(opponent.userId);
+          const opponentSocketId = await getRedisService().getUserSocketId(opponent.userId);
           if (opponentSocketId) {
             io.to(opponentSocketId).emit('matchmaking:found', {
               gameId,
@@ -200,8 +200,8 @@ export const setupSocketHandlers = (io: SocketIOServer): void => {
       try {
         if (!socket.userId) return;
         
-        await redisService.removeFromMatchmakingQueue(socket.userId);
-        await redisService.removeUserSocketId(socket.userId);
+        await getRedisService().removeFromMatchmakingQueue(socket.userId);
+        await getRedisService().removeUserSocketId(socket.userId);
         
         socket.emit('matchmaking:left');
         logger.info(`${socket.username} left matchmaking`);
