@@ -1,13 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import { AuthenticatedRequest } from './auth';
+import { AuthenticatedRequest, ValidatedRequest } from '../types/express';
 import { validationService, ValidationResult } from '../services/validationService';
 import { logger } from '../utils/logger';
 import { ApiResponse } from '@playbg/shared';
-
-export interface ValidatedRequest extends AuthenticatedRequest {
-  validatedData?: any;
-  file?: any; // Multer file type
-}
 
 /**
  * Generic validation middleware factory

@@ -1,5 +1,6 @@
-import { Server as SocketIOServer, Socket } from 'socket.io';
+import { Server as SocketIOServer } from 'socket.io';
 import jwt from 'jsonwebtoken';
+import { AuthenticatedSocket } from '../types/socket';
 import { User } from '../models/User';
 import { TournamentModel } from '../models/Tournament';
 import { SocketEvents, GameSpeed, GameType, MatchStatus } from '@playbg/shared';
@@ -8,11 +9,6 @@ import { getRedisService, MatchmakingQueue } from '../services/redisService';
 import { rateLimitService } from '../services/rateLimitService';
 import { validationService } from '../services/validationService';
 import { logger } from '../utils/logger';
-
-interface AuthenticatedSocket extends Socket {
-  userId?: string;
-  username?: string;
-}
 
 // Rate limit helper for socket events
 const checkSocketRateLimit = async (

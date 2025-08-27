@@ -1,13 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
+import { TimedRequest } from '../types/express';
 import { monitoringService } from '../services/monitoringService';
 import { logger } from '../utils/logger';
-
-// Extend Request interface to include timing data
-interface TimedRequest extends Request {
-  startTime?: number;
-  operationType?: 'cache' | 'database' | 'api';
-  cacheKey?: string;
-}
 
 /**
  * Middleware to track request metrics

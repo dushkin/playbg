@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ApiResponse, ApiError } from '@playbg/shared';
-import { logger } from '../server';
+import { logger } from '../utils/logger';
 
 export const errorHandler = (
   err: any,

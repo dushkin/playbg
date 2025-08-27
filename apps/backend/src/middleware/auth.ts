@@ -1,11 +1,11 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
+import { AuthenticatedRequest } from '../types/express';
 import { User } from '../models/User';
 import { TokenService } from '../services/tokenService';
 import { ApiResponse } from '@playbg/shared';
 
-export interface AuthenticatedRequest extends Request {
-  user?: any;
-}
+// Re-export for backward compatibility
+export { AuthenticatedRequest } from '../types/express';
 
 export const authMiddleware = async (
   req: AuthenticatedRequest,
