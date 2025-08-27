@@ -34,7 +34,6 @@ services:
   - type: web
     name: playbg-frontend
     env: static
-    region: oregon
     buildCommand: npm run build:frontend
     staticPublishPath: apps/frontend/dist
     rootDir: .
