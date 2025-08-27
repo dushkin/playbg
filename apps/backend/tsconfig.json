@@ -17,8 +17,6 @@
     "emitDecoratorMetadata": true,
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
-    "types": ["node"],
-    "typeRoots": ["./node_modules/@types", "../../node_modules/@types"],
     "baseUrl": ".",
     "paths": {
       "@playbg/shared": ["../../packages/shared/dist"],
