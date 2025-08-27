@@ -20,7 +20,7 @@ import healthRoutes from './routes/health';
 import { setupSocketHandlers } from './socket/socketHandlers';
 
 // Import services
-import { redisService } from './services/redisService';
+import { getRedisService } from './services/redisService';
 import { gameStateManager } from './services/gameStateManager';
 import { rateLimitService } from './services/rateLimitService';
 import { cacheInvalidationService } from './services/cacheInvalidationService';
@@ -32,7 +32,8 @@ import { authMiddleware } from './middleware/auth';
 import { requestMetricsMiddleware, errorTrackingMiddleware } from './middleware/monitoring';
 
 // Load environment variables
-dotenv.config();
+import path from 'path';
+dotenv.config({ path: path.join(__dirname, '../.env') });
 
 // Create Express app
 const app = express();
@@ -169,7 +170,7 @@ const connectDB = async () => {
 // Redis connection
 const connectRedis = async () => {
   try {
-    await redisService.connect();
+    await getRedisService().connect();
     logger.info('Redis connected successfully');
   } catch (error) {
     logger.error('Redis connection error:', error);
@@ -182,7 +183,7 @@ const setupCleanupTasks = () => {
   setInterval(async () => {
     try {
       await gameStateManager.cleanupInactiveGames(60); // Clean games inactive for 60+ minutes
-      await redisService.cleanupExpiredSessions();
+      await getRedisService().cleanupExpiredSessions();
       await rateLimitService.cleanup(); // Clean expired rate limit data
     } catch (error) {
       logger.error('Cleanup task error:', error);
@@ -233,7 +234,7 @@ const gracefulShutdown = async () => {
     
     // Disconnect from databases
     await mongoose.connection.close();
-    await redisService.disconnect();
+    await getRedisService().disconnect();
     
     logger.info('Process terminated');
     process.exit(0);

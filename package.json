@@ -20,7 +20,8 @@
     "lint": "npm run lint --workspaces",
     "clean": "npm run clean --workspaces && rm -rf node_modules",
     "install:all": "npm install",
-    "start": "npm run start --workspace=apps/backend"
+    "start": "npm run start --workspace=apps/backend",
+    "start:backend": "npm run start --workspace=apps/backend"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",

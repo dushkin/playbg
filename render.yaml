@@ -1,0 +1,49 @@
+services:
+  # Backend API Server
+  - type: web
+    name: playbg-backend
+    env: node
+    region: oregon
+    plan: starter
+    buildCommand: npm run build:backend
+    startCommand: npm run start:backend
+    rootDir: .
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRE
+        value: 7d
+      - key: FRONTEND_URL
+        value: https://playbg-frontend.onrender.com
+      - key: LOG_LEVEL
+        value: info
+      - key: RATE_LIMIT_WINDOW_MS
+        value: 900000
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: 100
+
+  # Frontend Static Site
+  - type: static
+    name: playbg-frontend
+    env: node
+    region: oregon
+    buildCommand: npm run build:frontend
+    staticPublishPath: apps/frontend/dist
+    rootDir: .
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        value: https://playbg-backend.onrender.com/api
+      - key: VITE_WS_URL
+        value: https://playbg-backend.onrender.com
