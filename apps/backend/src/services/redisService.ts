@@ -311,6 +311,3 @@ export class RedisService {
 
 // Export a function to get the instance after environment is loaded
 export const getRedisService = () => RedisService.getInstance();
-
-// Re-export the interfaces
-export { MatchmakingQueue, GameSession };
