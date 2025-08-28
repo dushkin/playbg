@@ -1,28 +1,26 @@
 {
   "name": "playbg-platform",
-  "version": "1.0.0", 
+  "version": "1.0.0",
   "description": "Online Backgammon Platform - Full-stack application with real-time gameplay",
   "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:backend": "cd apps/backend && npm run dev",
-    "dev:frontend": "cd apps/frontend && npm run dev",
-    "dev:mobile": "cd apps/mobile && npm run dev", 
-    "build": "npm run build:shared && npm run build:game-logic && npm run build:backend && npm run build:frontend",
-    "build:shared": "cd packages/shared && npm install && npm run build",
-    "build:game-logic": "cd packages/game-logic && npm install && npm run build", 
-    "build:backend": "npm run build:shared && npm run build:game-logic && cd apps/backend && npm install && npm run build",
-    "build:frontend": "cd apps/frontend && npm install && npm run build",
-    "build:mobile": "cd apps/mobile && npm install && npm run build",
-    "test": "npm run test:backend && npm run test:frontend",
-    "test:backend": "cd apps/backend && npm run test",
-    "test:frontend": "cd apps/frontend && npm run test",
-    "lint": "npm run lint:backend && npm run lint:frontend",
-    "lint:backend": "cd apps/backend && npm run lint",
-    "lint:frontend": "cd apps/frontend && npm run lint",
-    "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules",
-    "start": "cd apps/backend && npm start",
-    "start:backend": "cd apps/backend && npm start"
+    "dev:backend": "npm run dev --workspace=apps/backend",
+    "dev:frontend": "npm run dev --workspace=apps/frontend",
+    "dev:mobile": "npm run dev --workspace=apps/mobile",
+    "build": "npm run build --workspaces --if-present",
+    "build:backend": "npm install && npm run build --workspace=packages/shared && npm run build --workspace=packages/game-logic && npm run build --workspace=apps/backend",
+    "build:frontend": "npm install && npm run build --workspace=packages/shared && npm run build --workspace=packages/game-logic && npm run build --workspace=apps/frontend",
+    "build:mobile": "npm run build --workspace=apps/mobile",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "clean": "npm run clean --workspaces --if-present",
+    "start": "npm run start --workspace=apps/backend",
+    "start:backend": "npm run start --workspace=apps/backend"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
@@ -34,13 +32,13 @@
     "npm": ">=9.0.0"
   },
   "repository": {
-    "type": "git", 
+    "type": "git",
     "url": "https://github.com/your-username/playbg-platform.git"
   },
   "keywords": [
     "backgammon",
     "online-game",
-    "real-time", 
+    "real-time",
     "tournament",
     "elo-rating",
     "react",
