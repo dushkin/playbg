@@ -8,14 +8,26 @@
         "REPLACE_WITH_YOUR_MONGODB_CONNECTION_STRING"
       ]
     },
-    "render-playbg-dev": {
+    "render-playbg-backend": {
       "command": "npx",
       "args": [
         "@modelcontextprotocol/server-fetch",
         "https://mcp.render.com/mcp"
       ],
       "env": {
-        "RENDER_API_KEY": "REPLACE_WITH_YOUR_RENDER_API_KEY"
+        "RENDER_API_KEY": "rnd_rynYqd4eyXou6lV85BzRjuQLcR4r",
+        "RENDER_SERVICE_ID": "srv-d2nkutodl3ps73egj94g"
+      }
+    },
+    "render-playbg-frontend": {
+      "command": "npx",
+      "args": [
+        "@modelcontextprotocol/server-fetch",
+        "https://mcp.render.com/mcp"
+      ],
+      "env": {
+        "RENDER_API_KEY": "rnd_rynYqd4eyXou6lV85BzRjuQLcR4r",
+        "RENDER_SERVICE_ID": "srv-d2nkutodl3ps73egj950"
       }
     }
   }
