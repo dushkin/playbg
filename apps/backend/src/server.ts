@@ -31,9 +31,10 @@ import { errorHandler } from './middleware/errorHandler';
 import { authMiddleware } from './middleware/auth';
 import { requestMetricsMiddleware, errorTrackingMiddleware } from './middleware/monitoring';
 
-// Load environment variables
-import path from 'path';
-dotenv.config({ path: path.join(__dirname, '../.env') });
+// Load environment variables - try multiple paths for deployment compatibility
+dotenv.config(); // First try default .env locations
+dotenv.config({ path: '.env' }); // Try root .env
+dotenv.config({ path: path.join(__dirname, '../.env') }); // Try relative to dist
 
 // Create Express app
 const app = express();
@@ -47,9 +48,9 @@ const io = new SocketIOServer(server, {
   }
 });
 
-// Setup logging
+// Setup logging - production-friendly configuration
 const logger = winston.createLogger({
-  level: 'info',
+  level: process.env.LOG_LEVEL || 'info',
   format: winston.format.combine(
     winston.format.timestamp(),
     winston.format.errors({ stack: true }),
@@ -57,11 +58,17 @@ const logger = winston.createLogger({
   ),
   defaultMeta: { service: 'playbg-backend' },
   transports: [
-    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'logs/combined.log' }),
+    // In production, log to console instead of files for better cloud deployment support
+    new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.json()
+      )
+    })
   ],
 });
 
+// Additional console transport for development
 if (process.env.NODE_ENV !== 'production') {
   logger.add(new winston.transports.Console({
     format: winston.format.simple()
@@ -167,13 +174,20 @@ const connectDB = async () => {
   }
 };
 
-// Redis connection
+// Redis connection - optional for deployment flexibility
 const connectRedis = async () => {
   try {
+    // Skip Redis if REDIS_URL is not provided
+    if (!process.env.REDIS_URL) {
+      logger.warn('REDIS_URL not configured - running without Redis cache');
+      return;
+    }
+    
     await getRedisService().connect();
     logger.info('Redis connected successfully');
   } catch (error) {
     logger.error('Redis connection error:', error);
+    logger.warn('Continuing without Redis - some features may be limited');
     // Don't exit on Redis failure - app can work without it but with limited functionality
   }
 };
@@ -183,7 +197,16 @@ const setupCleanupTasks = () => {
   setInterval(async () => {
     try {
       await gameStateManager.cleanupInactiveGames(60); // Clean games inactive for 60+ minutes
-      await getRedisService().cleanupExpiredSessions();
+      
+      // Only attempt Redis cleanup if Redis is available
+      if (process.env.REDIS_URL) {
+        try {
+          await getRedisService().cleanupExpiredSessions();
+        } catch (redisError) {
+          logger.warn('Redis cleanup failed:', redisError);
+        }
+      }
+      
       await rateLimitService.cleanup(); // Clean expired rate limit data
     } catch (error) {
       logger.error('Cleanup task error:', error);
