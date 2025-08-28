@@ -5,7 +5,7 @@ services:
     env: node
     region: oregon
     plan: starter
-    buildCommand: npm run build:backend
+    buildCommand: chmod +x build-backend.sh && ./build-backend.sh
     startCommand: npm run start:backend
     rootDir: .
     envVars:
