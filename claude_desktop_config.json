@@ -9,9 +9,16 @@
       ]
     },
     "render-playbg-backend": {
-      "command": "npx",
+      "command": "docker",
       "args": [
-        "@renderinc/mcp-server-render"
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "RENDER_API_KEY",
+        "-e", 
+        "RENDER_SERVICE_ID",
+        "ghcr.io/render-oss/render-mcp-server"
       ],
       "env": {
         "RENDER_API_KEY": "rnd_rynYqd4eyXou6lV85BzRjuQLcR4r",
@@ -19,9 +26,16 @@
       }
     },
     "render-playbg-frontend": {
-      "command": "npx",
+      "command": "docker",
       "args": [
-        "@renderinc/mcp-server-render"
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "RENDER_API_KEY",
+        "-e",
+        "RENDER_SERVICE_ID",
+        "ghcr.io/render-oss/render-mcp-server"
       ],
       "env": {
         "RENDER_API_KEY": "rnd_rynYqd4eyXou6lV85BzRjuQLcR4r",
