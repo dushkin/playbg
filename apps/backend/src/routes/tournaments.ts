@@ -1,5 +1,5 @@
 import express from 'express';
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import '../types/express-augmentation';
 import Joi from 'joi';
 import { TournamentModel } from '../models/Tournament';
@@ -45,7 +45,7 @@ const createTournamentSchema = Joi.object({
 router.get('/', 
   validateQueryParams(['status', 'limit', 'page']),
   validatePagination,
-  async (req: Request, res: Response): Promise<void> => {
+  async (req: express.Request, res: Response): Promise<void> => {
   try {
     const { status, limit = 10, page = 1 } = req.query;
 
@@ -88,7 +88,7 @@ router.post('/',
   rateLimitService.createExpressMiddleware('api:tournament_create'),
   sanitizeInput,
   validateRequest('tournament-creation'),
-  async (req: Request, res: Response): Promise<void> => {
+  async (req: express.Request, res: Response): Promise<void> => {
   try {
     // Use validated data from middleware
     const validatedData = (req as any).validatedData;

@@ -1,5 +1,5 @@
 import express from 'express';
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import '../types/express-augmentation';
 import Joi from 'joi';
 import { GameModel } from '../models/Game';
@@ -69,7 +69,7 @@ const addChatSchema = Joi.object({
 router.get('/', 
   validateQueryParams(['status', 'limit', 'page']),
   validatePagination,
-  async (req: Request, res: Response): Promise<void> => {
+  async (req: express.Request, res: Response): Promise<void> => {
   try {
     const userId = req.user._id.toString();
     const { status, limit = 10, page = 1 } = req.query;
@@ -114,7 +114,7 @@ router.get('/',
 router.post('/', 
   sanitizeInput,
   validateRequest('game-creation'),
-  async (req: Request, res: Response): Promise<void> => {
+  async (req: express.Request, res: Response): Promise<void> => {
   try {
     // Use validated data from middleware
     const validatedData = (req as any).validatedData;
@@ -164,7 +164,7 @@ router.post('/',
 // @access  Private
 router.get('/:id', 
   validateObjectId('id'),
-  async (req: Request, res: Response): Promise<void> => {
+  async (req: express.Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const userId = req.user._id.toString();
@@ -216,7 +216,7 @@ router.get('/:id',
 router.put('/:id/move', 
   validateObjectId('id'),
   validateGameMove,
-  async (req: Request, res: Response): Promise<void> => {
+  async (req: express.Request, res: Response): Promise<void> => {
   try {
     // Use validated data from middleware
     const validatedData = (req as any).validatedData;
@@ -247,7 +247,7 @@ router.put('/:id/move',
 // @route   PUT /api/games/:id/join
 // @desc    Join a game as the second player
 // @access  Private
-router.put('/:id/join', async (req: Request, res: Response): Promise<void> => {
+router.put('/:id/join', async (req: express.Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const userId = req.user._id.toString();
@@ -328,7 +328,7 @@ router.post('/:id/chat',
   validateObjectId('id'),
   sanitizeInput,
   validateChatMessage,
-  async (req: Request, res: Response): Promise<void> => {
+  async (req: express.Request, res: Response): Promise<void> => {
   try {
     // Use validated data from middleware
     const validatedData = (req as any).validatedData;
@@ -387,7 +387,7 @@ router.post('/:id/chat',
 // @route   POST /api/games/:id/spectate
 // @desc    Join as spectator
 // @access  Private
-router.post('/:id/spectate', async (req: Request, res: Response): Promise<void> => {
+router.post('/:id/spectate', async (req: express.Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const userId = req.user._id.toString();

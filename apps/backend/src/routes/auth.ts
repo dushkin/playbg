@@ -1,5 +1,5 @@
 import express from 'express';
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import '../types/express-augmentation';
 import Joi from 'joi';
 import { User } from '../models/User';
@@ -32,7 +32,7 @@ router.post('/register',
   rateLimitService.createExpressMiddleware('api:auth'),
   sanitizeInput,
   validateRequest('user-registration'),
-  async (req: Request, res: Response): Promise<void> => {
+  async (req: express.Request, res: Response): Promise<void> => {
   try {
     // Use validated data from middleware
     const validatedData = (req as any).validatedData;
@@ -105,7 +105,7 @@ router.post('/login',
   rateLimitService.createExpressMiddleware('api:auth'),
   sanitizeInput,
   validateRequest('user-login'),
-  async (req: Request, res: Response): Promise<void> => {
+  async (req: express.Request, res: Response): Promise<void> => {
   try {
     // Use validated data from middleware
     const validatedData = (req as any).validatedData;
@@ -177,7 +177,7 @@ router.post('/login',
 // @route   POST /api/auth/logout
 // @desc    Logout user and revoke refresh token
 // @access  Private
-router.post('/logout', async (req: Request, res: Response): Promise<void> => {
+router.post('/logout', async (req: express.Request, res: Response): Promise<void> => {
   try {
     const { refreshToken } = req.body;
     
@@ -216,7 +216,7 @@ router.post('/logout', async (req: Request, res: Response): Promise<void> => {
 // @route   POST /api/auth/refresh
 // @desc    Refresh access token using refresh token
 // @access  Public
-router.post('/refresh', async (req: Request, res: Response): Promise<void> => {
+router.post('/refresh', async (req: express.Request, res: Response): Promise<void> => {
   try {
     const { refreshToken } = req.body;
     

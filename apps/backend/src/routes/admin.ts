@@ -1,5 +1,5 @@
 import express from 'express';
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import '../types/express-augmentation';
 import { ApiResponse } from '@playbg/shared';
 import { cacheService } from '../services/cacheService';
@@ -11,7 +11,7 @@ const router = express.Router();
 // @route   GET /api/admin/cache/health
 // @desc    Get cache health status
 // @access  Private (Admin)
-router.get('/cache/health', async (req: Request, res: Response): Promise<void> => {
+router.get('/cache/health', async (req: express.Request, res: Response): Promise<void> => {
   try {
     const health = await cacheService.getCacheHealth();
 
@@ -30,7 +30,7 @@ router.get('/cache/health', async (req: Request, res: Response): Promise<void> =
 // @route   POST /api/admin/cache/warm
 // @desc    Manually warm caches
 // @access  Private (Admin)
-router.post('/cache/warm', async (req: Request, res: Response): Promise<void> => {
+router.post('/cache/warm', async (req: express.Request, res: Response): Promise<void> => {
   try {
     const { type } = req.body;
 
@@ -62,7 +62,7 @@ router.post('/cache/warm', async (req: Request, res: Response): Promise<void> =>
 // @route   DELETE /api/admin/cache/invalidate
 // @desc    Invalidate caches
 // @access  Private (Admin)
-router.delete('/cache/invalidate', async (req: Request, res: Response): Promise<void> => {
+router.delete('/cache/invalidate', async (req: express.Request, res: Response): Promise<void> => {
   try {
     const { type, userId } = req.body;
 
@@ -103,7 +103,7 @@ router.delete('/cache/invalidate', async (req: Request, res: Response): Promise<
 // @route   POST /api/admin/cache/invalidate/event
 // @desc    Trigger cache invalidation via event
 // @access  Private (Admin)
-router.post('/cache/invalidate/event', async (req: Request, res: Response): Promise<void> => {
+router.post('/cache/invalidate/event', async (req: express.Request, res: Response): Promise<void> => {
   try {
     const { eventType, userId, gameId, affectedUsers, reason } = req.body;
 
@@ -130,7 +130,7 @@ router.post('/cache/invalidate/event', async (req: Request, res: Response): Prom
 // @route   GET /api/admin/cache/stats
 // @desc    Get cache invalidation statistics
 // @access  Private (Admin)
-router.get('/cache/stats', async (req: Request, res: Response): Promise<void> => {
+router.get('/cache/stats', async (req: express.Request, res: Response): Promise<void> => {
   try {
     const stats = await cacheInvalidationService.getInvalidationStats();
 
@@ -149,7 +149,7 @@ router.get('/cache/stats', async (req: Request, res: Response): Promise<void> =>
 // @route   GET /api/admin/statistics/overview
 // @desc    Get comprehensive statistics overview
 // @access  Private (Admin)
-router.get('/statistics/overview', async (req: Request, res: Response): Promise<void> => {
+router.get('/statistics/overview', async (req: express.Request, res: Response): Promise<void> => {
   try {
     const [globalStats, cacheHealth, invalidationStats] = await Promise.all([
       statisticsService.getGlobalStatistics(),
@@ -176,7 +176,7 @@ router.get('/statistics/overview', async (req: Request, res: Response): Promise<
 // @route   POST /api/admin/cache/rebuild
 // @desc    Rebuild all caches from scratch
 // @access  Private (Admin)
-router.post('/cache/rebuild', async (req: Request, res: Response): Promise<void> => {
+router.post('/cache/rebuild', async (req: express.Request, res: Response): Promise<void> => {
   try {
     // Invalidate all caches first
     await cacheService.invalidateAll();

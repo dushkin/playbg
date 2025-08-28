@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import express, { Response, NextFunction } from 'express';
 import { User } from '../models/User';
 import { TokenService } from '../services/tokenService';
 import { ApiResponse } from '@playbg/shared';
@@ -7,10 +7,10 @@ import { ApiResponse } from '@playbg/shared';
 import '../types/express-augmentation';
 
 // Type alias for clarity
-export type AuthenticatedRequest = Request;
+export type AuthenticatedRequest = express.Request;
 
 export const authMiddleware = async (
-  req: Request,
+  req: express.Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -48,7 +48,7 @@ export const authMiddleware = async (
 };
 
 export const optionalAuth = async (
-  req: Request,
+  req: express.Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {

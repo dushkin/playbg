@@ -1,11 +1,11 @@
-import { Request, Response, NextFunction } from 'express';
+import express, { Response, NextFunction } from 'express';
 import '../types/express-augmentation';
 import { ApiResponse, ApiError } from '@playbg/shared';
 import { logger } from '../utils/logger';
 
 export const errorHandler = (
   err: any,
-  req: Request,
+  req: express.Request,
   res: Response,
   next: NextFunction
 ): void => {
