@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "mongodb-playbg": {
+      "command": "npx",
+      "args": [
+        "mongodb-mcp-server",
+        "--connection-string",
+        "REPLACE_WITH_YOUR_MONGODB_CONNECTION_STRING"
+      ]
+    }
+  }
+}

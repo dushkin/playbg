@@ -1,0 +1,50 @@
+{
+  "name": "playbg-platform",
+  "version": "1.0.0",
+  "description": "Online Backgammon Platform - Full-stack application with real-time gameplay",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "npm run dev --workspace=apps/backend",
+    "dev:frontend": "npm run dev --workspace=apps/frontend",
+    "dev:mobile": "npm run dev --workspace=apps/mobile",
+    "build": "npm run build --workspaces --if-present",
+    "build:backend": "npm install && npm run build --workspace=packages/shared && npm run build --workspace=packages/game-logic && npm run build --workspace=apps/backend",
+    "build:frontend": "npm install && npm run build --workspace=packages/shared && npm run build --workspace=packages/game-logic && npm run build --workspace=apps/frontend",
+    "build:mobile": "npm run build --workspace=apps/mobile",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "clean": "npm run clean --workspaces --if-present",
+    "start": "npm run start --workspace=apps/backend",
+    "start:backend": "npm run start --workspace=apps/backend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/playbg-platform.git"
+  },
+  "keywords": [
+    "backgammon",
+    "online-game",
+    "real-time",
+    "tournament",
+    "elo-rating",
+    "react",
+    "nodejs",
+    "mongodb"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}

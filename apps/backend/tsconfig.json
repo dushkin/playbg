@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020", "DOM"],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "noImplicitAny": false,
+    "baseUrl": ".",
+    "paths": {
+      "@playbg/shared": ["../../packages/shared/dist", "../../packages/shared/src"],
+      "@playbg/game-logic": ["../../packages/game-logic/dist", "../../packages/game-logic/src"]
+    },
+    "typeRoots": [
+      "./node_modules/@types",
+      "../../node_modules/@types",
+      "./src/types"
+    ],
+    "types": ["node"]
+  },
+  "include": ["src/**/*", "src/types/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts"],
+  "ts-node": {
+    "esm": false,
+    "transpileOnly": true
+  }
+}
