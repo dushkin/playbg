@@ -11,8 +11,7 @@
     "render-playbg-backend": {
       "command": "npx",
       "args": [
-        "@modelcontextprotocol/server-fetch",
-        "https://mcp.render.com/mcp"
+        "@renderinc/mcp-server-render"
       ],
       "env": {
         "RENDER_API_KEY": "rnd_rynYqd4eyXou6lV85BzRjuQLcR4r",
@@ -22,8 +21,7 @@
     "render-playbg-frontend": {
       "command": "npx",
       "args": [
-        "@modelcontextprotocol/server-fetch",
-        "https://mcp.render.com/mcp"
+        "@renderinc/mcp-server-render"
       ],
       "env": {
         "RENDER_API_KEY": "rnd_rynYqd4eyXou6lV85BzRjuQLcR4r",
