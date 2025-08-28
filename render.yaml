@@ -5,8 +5,8 @@ services:
     env: node
     region: oregon
     plan: starter
-    buildCommand: cd packages/shared && npm install && npm run build && cd ../../packages/game-logic && npm install && npm run build && cd ../../apps/backend && npm install && npm run build
-    startCommand: cd apps/backend && npm start
+    buildCommand: npm run build:backend
+    startCommand: npm start
     rootDir: .
     envVars:
       - key: NODE_ENV
@@ -34,7 +34,7 @@ services:
   - type: web
     name: playbg-frontend
     env: static
-    buildCommand: cd packages/shared && npm install && npm run build && cd ../../packages/game-logic && npm install && npm run build && cd ../../apps/frontend && npm install && npm run build
+    buildCommand: npm run build:frontend
     staticPublishPath: apps/frontend/dist
     rootDir: .
     routes:
