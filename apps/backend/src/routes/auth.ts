@@ -1,12 +1,12 @@
 import express from 'express';
-import { Request, Response } from '../types/custom-express';
+import { Request, Response, NextFunction } from 'express';
+import '../types/express-augmentation';
 import Joi from 'joi';
 import { User } from '../models/User';
 import { TokenService } from '../services/tokenService';
 import { RefreshTokenModel } from '../models/RefreshToken';
 import { ApiResponse, AuthResponse, LoginRequest, RegisterRequest } from '@playbg/shared';
 import { AppError } from '../middleware/errorHandler';
-import { AuthenticatedRequest } from '../middleware/auth';
 import { rateLimitService } from '../services/rateLimitService';
 import { validateRequest, sanitizeInput } from '../middleware/validation';
 

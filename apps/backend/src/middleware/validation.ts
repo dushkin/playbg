@@ -1,4 +1,5 @@
-import { AuthenticatedRequest, ValidatedRequest, Request, Response, NextFunction } from '../types/custom-express';
+import { Request, Response, NextFunction } from 'express';
+import '../types/express-augmentation';
 import { validationService, ValidationResult } from '../services/validationService';
 import { logger } from '../utils/logger';
 import { ApiResponse } from '@playbg/shared';
@@ -7,7 +8,7 @@ import { ApiResponse } from '@playbg/shared';
  * Generic validation middleware factory
  */
 export const validateRequest = (validationType: string) => {
-  return async (req: ValidatedRequest, res: Response, next: NextFunction) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
     try {
       let validationResult: ValidationResult;
 
@@ -58,7 +59,7 @@ export const validateRequest = (validationType: string) => {
 /**
  * Game move validation middleware
  */
-export const validateGameMove = async (req: ValidatedRequest, res: Response, next: NextFunction) => {
+export const validateGameMove = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { gameId } = req.params;
     const move = req.body;
@@ -112,7 +113,7 @@ export const validateGameMove = async (req: ValidatedRequest, res: Response, nex
 /**
  * Chat message validation middleware
  */
-export const validateChatMessage = async (req: ValidatedRequest, res: Response, next: NextFunction) => {
+export const validateChatMessage = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { message, type } = req.body;
     const userId = req.user?.id || req.user?._id?.toString();

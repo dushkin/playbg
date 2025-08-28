@@ -1,13 +1,16 @@
-import { AuthenticatedRequest, Response, NextFunction } from '../types/custom-express';
+import { Request, Response, NextFunction } from 'express';
 import { User } from '../models/User';
 import { TokenService } from '../services/tokenService';
 import { ApiResponse } from '@playbg/shared';
 
-// Re-export for backward compatibility
-export { AuthenticatedRequest } from '../types/custom-express';
+// Import our type augmentations
+import '../types/express-augmentation';
+
+// Type alias for clarity
+export type AuthenticatedRequest = Request;
 
 export const authMiddleware = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -45,7 +48,7 @@ export const authMiddleware = async (
 };
 
 export const optionalAuth = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {

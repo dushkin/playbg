@@ -1,4 +1,5 @@
-import { Request, Response, NextFunction } from '../types/custom-express';
+import { Request, Response, NextFunction } from 'express';
+import '../types/express-augmentation';
 import { ApiResponse, ApiError } from '@playbg/shared';
 import { logger } from '../utils/logger';
 

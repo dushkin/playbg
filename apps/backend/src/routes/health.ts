@@ -1,7 +1,7 @@
 import express from 'express';
-import { Response } from '../types/custom-express';
+import { Request, Response, NextFunction } from 'express';
+import '../types/express-augmentation';
 import { ApiResponse } from '@playbg/shared';
-import { AuthenticatedRequest } from '../middleware/auth';
 import { monitoringService } from '../services/monitoringService';
 import { cacheService } from '../services/cacheService';
 import { cacheInvalidationService } from '../services/cacheInvalidationService';
@@ -76,7 +76,7 @@ router.get('/detailed', async (req, res: Response): Promise<void> => {
 // @route   GET /health/metrics
 // @desc    Get system metrics
 // @access  Private (Admin)
-router.get('/metrics', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+router.get('/metrics', async (req: Request, res: Response): Promise<void> => {
   try {
     const health = await monitoringService.performHealthCheck();
     
@@ -101,7 +101,7 @@ router.get('/metrics', async (req: AuthenticatedRequest, res: Response): Promise
 // @route   GET /health/cache
 // @desc    Cache-specific health check
 // @access  Private (Admin)
-router.get('/cache', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+router.get('/cache', async (req: Request, res: Response): Promise<void> => {
   try {
     const cacheHealth = await cacheService.getCacheHealth();
     const invalidationStats = await cacheInvalidationService.getInvalidationStats();
@@ -131,7 +131,7 @@ router.get('/cache', async (req: AuthenticatedRequest, res: Response): Promise<v
 // @route   GET /health/alerts
 // @desc    Get system alerts
 // @access  Private (Admin)
-router.get('/alerts', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+router.get('/alerts', async (req: Request, res: Response): Promise<void> => {
   try {
     const limit = parseInt(req.query.limit as string) || 50;
     const activeOnly = req.query.active === 'true';
@@ -168,7 +168,7 @@ router.get('/alerts', async (req: AuthenticatedRequest, res: Response): Promise<
 // @route   POST /health/alerts/:alertId/resolve
 // @desc    Resolve a specific alert
 // @access  Private (Admin)
-router.post('/alerts/:alertId/resolve', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+router.post('/alerts/:alertId/resolve', async (req: Request, res: Response): Promise<void> => {
   try {
     const { alertId } = req.params;
     const resolved = monitoringService.resolveAlert(alertId);
@@ -195,7 +195,7 @@ router.post('/alerts/:alertId/resolve', async (req: AuthenticatedRequest, res: R
 // @route   GET /health/performance
 // @desc    Get performance metrics
 // @access  Private (Admin)  
-router.get('/performance', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+router.get('/performance', async (req: Request, res: Response): Promise<void> => {
   try {
     const health = await monitoringService.performHealthCheck();
     const systemStats = monitoringService.getSystemStats();
@@ -225,7 +225,7 @@ router.get('/performance', async (req: AuthenticatedRequest, res: Response): Pro
 // @route   POST /health/test
 // @desc    Run comprehensive system test
 // @access  Private (Admin)
-router.post('/test', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+router.post('/test', async (req: Request, res: Response): Promise<void> => {
   try {
     const testResults: any = {
       timestamp: new Date(),
@@ -347,7 +347,7 @@ router.post('/test', async (req: AuthenticatedRequest, res: Response): Promise<v
 // @route   GET /health/dashboard
 // @desc    Get dashboard data for monitoring UI
 // @access  Private (Admin)
-router.get('/dashboard', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+router.get('/dashboard', async (req: Request, res: Response): Promise<void> => {
   try {
     const health = await monitoringService.performHealthCheck();
     const systemStats = monitoringService.getSystemStats();

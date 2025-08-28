@@ -1,11 +1,15 @@
-import { TimedRequest, Request, Response, NextFunction } from '../types/custom-express';
+import { Request, Response, NextFunction } from 'express';
+// Import our type augmentations
+import '../types/express-augmentation';
+
+export type TimedRequest = Request;
 import { monitoringService } from '../services/monitoringService';
 import { logger } from '../utils/logger';
 
 /**
  * Middleware to track request metrics
  */
-export const requestMetricsMiddleware = (req: TimedRequest, res: Response, next: NextFunction): void => {
+export const requestMetricsMiddleware = (req: Request, res: Response, next: NextFunction): void => {
   req.startTime = Date.now();
   
   // Track request count
@@ -32,7 +36,7 @@ export const requestMetricsMiddleware = (req: TimedRequest, res: Response, next:
  * Middleware specifically for cache operations
  */
 export const cacheMetricsMiddleware = (operation: string) => {
-  return (req: TimedRequest, res: Response, next: NextFunction): void => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     req.startTime = Date.now();
     req.operationType = 'cache';
     req.cacheKey = `${req.method}:${req.path}`;
