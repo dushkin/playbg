@@ -7,6 +7,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import winston from 'winston';
+import path from 'path';
 
 // Import routes
 import authRoutes from './routes/auth';

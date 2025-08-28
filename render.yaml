@@ -5,9 +5,10 @@ services:
     env: node
     region: oregon
     plan: starter
-    buildCommand: npm run build:backend
+    buildCommand: npm ci && npm run build:backend
     startCommand: npm start
     rootDir: .
+    healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
@@ -34,7 +35,7 @@ services:
   - type: web
     name: playbg-frontend
     env: static
-    buildCommand: npm run build:frontend
+    buildCommand: npm ci && npm run build:frontend
     staticPublishPath: apps/frontend/dist
     rootDir: .
     routes:
