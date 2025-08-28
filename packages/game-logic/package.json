@@ -11,7 +11,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@playbg/shared": "^1.0.0"
+    "@playbg/shared": "file:../shared"
   },
   "devDependencies": {
     "typescript": "^5.3.0",
