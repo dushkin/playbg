@@ -66,7 +66,7 @@ export const cacheMetricsMiddleware = (operation: string) => {
 /**
  * Error handling middleware that tracks errors
  */
-export const errorTrackingMiddleware = (error: Error, req: TimedRequest, res: Response, next: NextFunction): void => {
+export const errorTrackingMiddleware = (error: Error, req: Request, res: Response, next: NextFunction): void => {
   const responseTime = Date.now() - (req.startTime || Date.now());
   
   // Track error in monitoring service
@@ -97,7 +97,7 @@ export const errorTrackingMiddleware = (error: Error, req: TimedRequest, res: Re
  * Middleware to track database operation metrics
  */
 export const databaseMetricsMiddleware = (operation: string) => {
-  return (req: TimedRequest, res: Response, next: NextFunction): void => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     req.startTime = Date.now();
     req.operationType = 'database';
     
@@ -171,7 +171,7 @@ export const alertMiddleware = (req: Request, res: Response, next: NextFunction)
 
 // Helper Functions
 
-function trackResponseMetrics(req: TimedRequest, res: Response): void {
+function trackResponseMetrics(req: Request, res: Response): void {
   const responseTime = Date.now() - (req.startTime || Date.now());
   const statusCode = res.statusCode;
   

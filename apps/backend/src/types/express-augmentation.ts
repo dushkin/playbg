@@ -34,5 +34,8 @@ export interface TimedRequest extends Request {
   cacheKey?: string;
 }
 
+// Type alias to ensure compatibility
+export type BaseRequest = Request;
+
 // Re-export Express types for convenience
 export { Request, Response, NextFunction } from 'express';
