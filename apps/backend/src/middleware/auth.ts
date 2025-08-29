@@ -1,20 +1,18 @@
 /// <reference path="../types/express-augmentation.ts" />
 
-import express, { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { User } from '../models/User';
 import { TokenService } from '../services/tokenService';
 import { ApiResponse } from '@playbg/shared';
-
-// Type alias for clarity
-export type AuthenticatedRequest = express.Request;
+import { AuthenticatedRequest } from '../types/express-augmentation';
 
 export const authMiddleware = async (
-  req: express.Request,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
+    const token = req.get('Authorization')?.replace('Bearer ', '');
 
     if (!token) {
       res.status(401).json({
@@ -47,12 +45,12 @@ export const authMiddleware = async (
 };
 
 export const optionalAuth = async (
-  req: express.Request,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
+    const token = req.get('Authorization')?.replace('Bearer ', '');
 
     if (token) {
       try {

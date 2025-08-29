@@ -1,15 +1,14 @@
 /// <reference path="../types/express-augmentation.ts" />
 
-import express, { Response, NextFunction } from 'express';
-
-export type TimedRequest = express.Request;
+import { Request, Response, NextFunction } from 'express';
+import { TimedRequest } from '../types/express-augmentation';
 import { monitoringService } from '../services/monitoringService';
 import { logger } from '../utils/logger';
 
 /**
  * Middleware to track request metrics
  */
-export const requestMetricsMiddleware = (req: express.Request, res: Response, next: NextFunction): void => {
+export const requestMetricsMiddleware = (req: Request, res: Response, next: NextFunction): void => {
   req.startTime = Date.now();
   
   // Track request count
@@ -36,7 +35,7 @@ export const requestMetricsMiddleware = (req: express.Request, res: Response, ne
  * Middleware specifically for cache operations
  */
 export const cacheMetricsMiddleware = (operation: string) => {
-  return (req: express.Request, res: Response, next: NextFunction): void => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     req.startTime = Date.now();
     req.operationType = 'cache';
     req.cacheKey = `${req.method}:${req.path}`;
@@ -109,7 +108,7 @@ export const databaseMetricsMiddleware = (operation: string) => {
 /**
  * Health check middleware that adds monitoring headers
  */
-export const healthCheckMiddleware = (req: express.Request, res: Response, next: NextFunction): void => {
+export const healthCheckMiddleware = (req: Request, res: Response, next: NextFunction): void => {
   // Add monitoring headers to response
   res.setHeader('X-Service-Status', 'operational');
   res.setHeader('X-Service-Version', process.env.npm_package_version || '1.0.0');
@@ -153,7 +152,7 @@ export const withCacheMonitoring = <T extends any[], R>(
 /**
  * Alert middleware that creates alerts for specific conditions
  */
-export const alertMiddleware = (req: express.Request, res: Response, next: NextFunction): void => {
+export const alertMiddleware = (req: Request, res: Response, next: NextFunction): void => {
   const originalSend = res.send;
   const originalJson = res.json;
   
@@ -220,7 +219,7 @@ function trackResponseMetrics(req: TimedRequest, res: Response): void {
   }
 }
 
-function checkForAlertConditions(req: express.Request, res: Response): void {
+function checkForAlertConditions(req: Request, res: Response): void {
   const statusCode = res.statusCode;
   
   // Check for high error rates

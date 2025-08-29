@@ -1,6 +1,6 @@
 /// <reference path="../types/express-augmentation.ts" />
 
-import express, { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { validationService, ValidationResult } from '../services/validationService';
 import { logger } from '../utils/logger';
 import { ApiResponse } from '@playbg/shared';
@@ -9,7 +9,7 @@ import { ApiResponse } from '@playbg/shared';
  * Generic validation middleware factory
  */
 export const validateRequest = (validationType: string) => {
-  return async (req: express.Request, res: Response, next: NextFunction) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
     try {
       let validationResult: ValidationResult;
 
@@ -60,7 +60,7 @@ export const validateRequest = (validationType: string) => {
 /**
  * Game move validation middleware
  */
-export const validateGameMove = async (req: express.Request, res: Response, next: NextFunction) => {
+export const validateGameMove = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { gameId } = req.params;
     const move = req.body;
@@ -114,7 +114,7 @@ export const validateGameMove = async (req: express.Request, res: Response, next
 /**
  * Chat message validation middleware
  */
-export const validateChatMessage = async (req: express.Request, res: Response, next: NextFunction) => {
+export const validateChatMessage = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { message, type } = req.body;
     const userId = req.user?.id || req.user?._id?.toString();
@@ -150,7 +150,7 @@ export const validateChatMessage = async (req: express.Request, res: Response, n
  * MongoDB ObjectId validation middleware
  */
 export const validateObjectId = (paramName: string) => {
-  return (req: express.Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction) => {
     const id = req.params[paramName];
     
     if (!id) {
@@ -177,7 +177,7 @@ export const validateObjectId = (paramName: string) => {
  * Query parameter validation middleware
  */
 export const validateQueryParams = (allowedParams: string[]) => {
-  return (req: express.Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction) => {
     const queryKeys = Object.keys(req.query);
     const invalidParams = queryKeys.filter(key => !allowedParams.includes(key));
 
@@ -202,7 +202,7 @@ export const validateQueryParams = (allowedParams: string[]) => {
 /**
  * Pagination validation middleware
  */
-export const validatePagination = (req: express.Request, res: Response, next: NextFunction) => {
+export const validatePagination = (req: Request, res: Response, next: NextFunction) => {
   const { page, limit } = req.query;
 
   if (page) {
@@ -262,7 +262,7 @@ export const validateFileUpload = (allowedTypes: string[], maxSize: number = 5 *
  * Request body size validation middleware
  */
 export const validateBodySize = (maxSize: number = 1024 * 1024) => {
-  return (req: express.Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction) => {
     const contentLength = req.get('content-length');
     
     if (contentLength && parseInt(contentLength) > maxSize) {
@@ -280,7 +280,7 @@ export const validateBodySize = (maxSize: number = 1024 * 1024) => {
  * Content type validation middleware
  */
 export const validateContentType = (allowedTypes: string[]) => {
-  return (req: express.Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction) => {
     const contentType = req.get('content-type');
     
     if (!contentType || !allowedTypes.some(type => contentType.includes(type))) {
@@ -297,7 +297,7 @@ export const validateContentType = (allowedTypes: string[]) => {
 /**
  * Input sanitization middleware (runs after validation)
  */
-export const sanitizeInput = (req: express.Request, res: Response, next: NextFunction) => {
+export const sanitizeInput = (req: Request, res: Response, next: NextFunction) => {
   // Recursively sanitize all string inputs
   const sanitizeObject = (obj: any): any => {
     if (typeof obj === 'string') {

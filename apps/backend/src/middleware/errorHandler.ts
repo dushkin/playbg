@@ -1,12 +1,12 @@
 /// <reference path="../types/express-augmentation.ts" />
 
-import express, { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { ApiResponse, ApiError } from '@playbg/shared';
 import { logger } from '../utils/logger';
 
 export const errorHandler = (
   err: any,
-  req: express.Request,
+  req: Request,
   res: Response,
   next: NextFunction
 ): void => {
