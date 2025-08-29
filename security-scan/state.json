@@ -2,8 +2,8 @@
   "scanDate": "2025-08-29",
   "project": "PlayBG",
   "totalVulnerabilities": 8,
-  "fixed": 4,
-  "remaining": 4,
+  "fixed": 8,
+  "remaining": 0,
   "riskBreakdown": {
     "critical": 1,
     "high": 2,
@@ -36,31 +36,31 @@
       "risk": "medium"
     },
     "MED-002": {
-      "status": "pending",
+      "status": "fixed",
       "priority": 5,
       "title": "Sensitive Configuration File in Repository",
       "risk": "medium"
     },
     "MED-003": {
-      "status": "pending",
+      "status": "fixed",
       "priority": 6,
       "title": "Error Message Information Disclosure",
       "risk": "medium"
     },
     "LOW-001": {
-      "status": "pending",
+      "status": "fixed",
       "priority": 7,
       "title": "Production Debug Settings in Environment Files",
       "risk": "low"
     },
     "LOW-002": {
-      "status": "pending",
+      "status": "fixed",
       "priority": 8,
       "title": "Potential Path Traversal in Logging",
       "risk": "low"
     }
   },
-  "nextVulnerability": "MED-002",
+  "nextVulnerability": null,
   "sessionStarted": "2025-08-29",
-  "lastUpdate": "2025-08-29T14:30:00"
+  "lastUpdate": "2025-08-29T20:45:00"
 }

@@ -1,8 +1,16 @@
 import winston from 'winston';
 import path from 'path';
+import fs from 'fs';
 
-// Create logs directory if it doesn't exist
-const logDir = path.join(process.cwd(), 'logs');
+// Create logs directory securely if it doesn't exist
+const logDir = path.resolve(process.cwd(), 'logs');
+try {
+  if (!fs.existsSync(logDir)) {
+    fs.mkdirSync(logDir, { mode: 0o755, recursive: false });
+  }
+} catch (error) {
+  console.warn('Failed to create logs directory:', error);
+}
 
 // Configure logger
 export const logger = winston.createLogger({
@@ -30,19 +38,25 @@ export const logger = winston.createLogger({
   ]
 });
 
-// Add file transports in production
+// Add file transports in production with rotation
 if (process.env.NODE_ENV === 'production') {
+  // Error log with rotation (max 5MB per file, keep 5 files)
   logger.add(new winston.transports.File({
-    filename: path.join(logDir, 'error.log'),
+    filename: path.resolve(logDir, 'error.log'),
     level: 'error',
+    maxsize: 5242880, // 5MB
+    maxFiles: 5,
     format: winston.format.combine(
       winston.format.timestamp(),
       winston.format.json()
     )
   }));
 
+  // Combined log with rotation
   logger.add(new winston.transports.File({
-    filename: path.join(logDir, 'combined.log'),
+    filename: path.resolve(logDir, 'combined.log'),
+    maxsize: 5242880, // 5MB 
+    maxFiles: 5,
     format: winston.format.combine(
       winston.format.timestamp(),
       winston.format.json()

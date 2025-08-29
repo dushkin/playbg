@@ -37,9 +37,14 @@ export const authMiddleware = async (
     req.user = user;
     next();
   } catch (error: any) {
+    // In production, sanitize error messages to prevent information disclosure
+    const sanitizedError = process.env.NODE_ENV === 'production' 
+      ? 'Authentication failed.' 
+      : error.message || 'Invalid token.';
+    
     res.status(401).json({
       success: false,
-      error: error.message || 'Invalid token.'
+      error: sanitizedError
     } as ApiResponse);
   }
 };
