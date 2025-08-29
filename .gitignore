@@ -11,14 +11,18 @@ pnpm-debug.log*
 /apps/*/build/
 /packages/*/build/
 
-# Environment variables
+# Environment variables - ALL excluded for security
+.env*
+!.env.example
 .env
 .env.local
+.env.development
+.env.production
 .env.development.local
 .env.test.local
 .env.production.local
 
-# Note: .env.development and .env.production are tracked for deployment configs
+# Note: Environment files contain sensitive data and must not be tracked
 
 # IDEs and editors
 .vscode/settings.json
