@@ -1,7 +1,6 @@
 /// <reference path="../types/express-augmentation.ts" />
 
-import { Request, Response, NextFunction } from 'express';
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import Joi from 'joi';
 import { User } from '../models/User';
 import { TokenService } from '../services/tokenService';
