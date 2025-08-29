@@ -1,6 +1,7 @@
+/// <reference path="../types/express-augmentation.ts" />
+
 import express from 'express';
 import { Response, NextFunction } from 'express';
-import '../types/express-augmentation';
 import { User } from '../models/User';
 import { ApiResponse, PaginatedResponse } from '@playbg/shared';
 import { statisticsService } from '../services/statisticsService';

@@ -1,6 +1,7 @@
+/// <reference path="../types/express-augmentation.ts" />
+
 import express from 'express';
 import { Response, NextFunction } from 'express';
-import '../types/express-augmentation';
 import Joi from 'joi';
 import { TournamentModel } from '../models/Tournament';
 import { MatchModel } from '../models/Match';

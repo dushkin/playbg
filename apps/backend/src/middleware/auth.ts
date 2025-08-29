@@ -1,10 +1,9 @@
+/// <reference path="../types/express-augmentation.ts" />
+
 import express, { Response, NextFunction } from 'express';
 import { User } from '../models/User';
 import { TokenService } from '../services/tokenService';
 import { ApiResponse } from '@playbg/shared';
-
-// Import our type augmentations
-import '../types/express-augmentation';
 
 // Type alias for clarity
 export type AuthenticatedRequest = express.Request;

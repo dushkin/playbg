@@ -1,6 +1,6 @@
+/// <reference path="../types/express-augmentation.ts" />
+
 import express, { Response, NextFunction } from 'express';
-// Import our type augmentations
-import '../types/express-augmentation';
 
 export type TimedRequest = express.Request;
 import { monitoringService } from '../services/monitoringService';
