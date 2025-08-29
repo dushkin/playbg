@@ -9,6 +9,7 @@ import { ApiResponse, AuthResponse, LoginRequest, RegisterRequest } from '@playb
 import { AppError } from '../middleware/errorHandler';
 import { rateLimitService } from '../services/rateLimitService';
 import { validateRequest, sanitizeInput } from '../middleware/validation';
+import logger from '../utils/logger';
 
 const router = express.Router();
 
@@ -205,7 +206,10 @@ router.post('/logout', async (req: Request, res: Response): Promise<void> => {
       message: 'Logged out successfully'
     } as ApiResponse);
   } catch (error) {
-    console.error('Logout error:', error);
+    logger.error('Logout error', { 
+      error: error instanceof Error ? error.message : String(error), 
+      userId: req.user?.id 
+    });
     res.status(500).json({
       success: false,
       error: 'Server error during logout'
@@ -245,7 +249,9 @@ router.post('/refresh', async (req: Request, res: Response): Promise<void> => {
       }
     } as ApiResponse);
   } catch (error: any) {
-    console.error('Token refresh error:', error);
+    logger.error('Token refresh error', { 
+      error: error instanceof Error ? error.message : String(error) 
+    });
     res.status(401).json({
       success: false,
       error: error.message || 'Invalid refresh token'

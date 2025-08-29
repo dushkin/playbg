@@ -103,7 +103,7 @@ export const setupSocketHandlers = (io: SocketIOServer): void => {
   });
 
   io.on('connection', (socket: AuthenticatedSocket) => {
-    console.log(`User ${socket.username} connected with socket ID: ${socket.id}`);
+    logger.info('User connected', { username: socket.username, socketId: socket.id });
 
     // Join user to their personal room
     if (socket.userId) {
@@ -635,7 +635,7 @@ export const setupSocketHandlers = (io: SocketIOServer): void => {
 
     // Handle disconnection
     socket.on('disconnect', async () => {
-      console.log(`User ${socket.username} disconnected`);
+      logger.info('User disconnected', { username: socket.username, socketId: socket.id });
       
       try {
         if (socket.userId) {
@@ -652,7 +652,11 @@ export const setupSocketHandlers = (io: SocketIOServer): void => {
           });
         }
       } catch (error) {
-        console.error('Error updating user offline status:', error);
+        logger.error('Error updating user offline status', { 
+          error: error instanceof Error ? error.message : String(error), 
+          userId: socket.userId, 
+          socketId: socket.id 
+        });
       }
     });
   });

@@ -19,6 +19,7 @@ import {
   validatePagination,
   sanitizeInput
 } from '../middleware/validation';
+import logger from '../utils/logger';
 
 const router = express.Router();
 
@@ -73,7 +74,10 @@ router.get('/',
       }
     } as ApiResponse);
   } catch (error) {
-    console.error('Error retrieving tournaments:', error);
+    logger.error('Error retrieving tournaments', { 
+      error: error instanceof Error ? error.message : String(error), 
+      userId: req.user?.id 
+    });
     res.status(500).json({
       success: false,
       error: 'Server error retrieving tournaments'
@@ -108,7 +112,10 @@ router.post('/',
       message: 'Tournament created successfully'
     } as ApiResponse);
   } catch (error) {
-    console.error('Error creating tournament:', error);
+    logger.error('Error creating tournament', { 
+      error: error instanceof Error ? error.message : String(error), 
+      userId: req.user?.id 
+    });
     res.status(500).json({
       success: false,
       error: 'Server error creating tournament'

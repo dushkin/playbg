@@ -1,0 +1,66 @@
+{
+  "scanDate": "2025-08-29",
+  "project": "PlayBG",
+  "totalVulnerabilities": 8,
+  "fixed": 4,
+  "remaining": 4,
+  "riskBreakdown": {
+    "critical": 1,
+    "high": 2,
+    "medium": 3,
+    "low": 2
+  },
+  "vulnerabilities": {
+    "CRIT-001": {
+      "status": "fixed",
+      "priority": 1,
+      "title": "Weak Production JWT Secret",
+      "risk": "critical"
+    },
+    "HIGH-001": {
+      "status": "fixed", 
+      "priority": 2,
+      "title": "Information Disclosure via Console Logging",
+      "risk": "high"
+    },
+    "HIGH-002": {
+      "status": "fixed",
+      "priority": 3,
+      "title": "Weak Development JWT Secret", 
+      "risk": "high"
+    },
+    "MED-001": {
+      "status": "fixed",
+      "priority": 4,
+      "title": "Missing Security Headers Configuration",
+      "risk": "medium"
+    },
+    "MED-002": {
+      "status": "pending",
+      "priority": 5,
+      "title": "Sensitive Configuration File in Repository",
+      "risk": "medium"
+    },
+    "MED-003": {
+      "status": "pending",
+      "priority": 6,
+      "title": "Error Message Information Disclosure",
+      "risk": "medium"
+    },
+    "LOW-001": {
+      "status": "pending",
+      "priority": 7,
+      "title": "Production Debug Settings in Environment Files",
+      "risk": "low"
+    },
+    "LOW-002": {
+      "status": "pending",
+      "priority": 8,
+      "title": "Potential Path Traversal in Logging",
+      "risk": "low"
+    }
+  },
+  "nextVulnerability": "MED-002",
+  "sessionStarted": "2025-08-29",
+  "lastUpdate": "2025-08-29T14:30:00"
+}

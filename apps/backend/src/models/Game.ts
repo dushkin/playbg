@@ -10,6 +10,7 @@ import {
   GameSpeed,
   INITIAL_BOARD_STATE
 } from '@playbg/shared';
+import logger from '../utils/logger';
 
 export interface IGameDocument extends Document, Omit<Game, 'id'> {
   _id: mongoose.Types.ObjectId;
@@ -264,7 +265,10 @@ gameSchema.post('save', async function(this: IGameDocument) {
       });
     } catch (error) {
       // Don't fail the save if cache invalidation fails
-      console.error('Cache invalidation failed for game completion:', error);
+      logger.error('Cache invalidation failed for game completion', { 
+        error: error instanceof Error ? error.message : String(error), 
+        gameId: this._id.toString() 
+      });
     }
   }
 });
@@ -285,7 +289,11 @@ gameSchema.post('findOneAndUpdate', async function(doc: IGameDocument | null) {
         reason: `Rating update for game ${doc._id}`
       });
     } catch (error) {
-      console.error('Cache invalidation failed for rating change:', error);
+      logger.error('Cache invalidation failed for rating change', { 
+        error: error instanceof Error ? error.message : String(error), 
+        gameId: doc._id.toString(), 
+        userId: doc.winner 
+      });
     }
   }
 });
