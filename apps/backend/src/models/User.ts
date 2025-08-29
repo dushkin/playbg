@@ -98,9 +98,7 @@ const userSchema = new Schema<IUserDocument>({
   }
 });
 
-// Indexes
-userSchema.index({ username: 1 });
-userSchema.index({ email: 1 });
+// Indexes (username and email already have unique indexes from schema definition)
 userSchema.index({ rating: -1 });
 userSchema.index({ isOnline: 1 });
 

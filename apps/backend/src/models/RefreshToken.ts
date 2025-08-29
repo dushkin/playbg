@@ -50,24 +50,20 @@ const refreshTokenSchema = new Schema<IRefreshTokenDocument>({
   token: {
     type: String,
     required: true,
-    unique: true,
-    index: true
+    unique: true
   },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     required: true,
-    ref: 'User',
-    index: true
+    ref: 'User'
   },
   expiresAt: {
     type: Date,
-    required: true,
-    index: true
+    required: true
   },
   isRevoked: {
     type: Boolean,
-    default: false,
-    index: true
+    default: false
   },
   replacedByToken: {
     type: String,
