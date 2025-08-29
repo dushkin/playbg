@@ -1,6 +1,8 @@
 // This file augments the Express Request interface with custom properties
 // It contains only type definitions and no runtime code
 
+import { Request, Response, NextFunction } from 'express';
+
 declare global {
   namespace Express {
     interface Request {
@@ -14,17 +16,23 @@ declare global {
   }
 }
 
-// Import Express types for type aliases
-import { Request as ExpressRequest } from 'express-serve-static-core';
-
-// Type aliases to ensure proper Express Request type inheritance
-export interface AuthenticatedRequest extends ExpressRequest {
+// Type aliases for enhanced request types
+export interface AuthenticatedRequest extends Request {
   user: any;
 }
 
-export interface TimedRequest extends ExpressRequest {
-  startTime?: number;
+export interface ValidatedRequest extends Request {
+  user?: any;
+  validatedData?: any;
+  file?: any;
 }
 
-// This empty export makes this file a module
-export {};
+export interface TimedRequest extends Request {
+  user?: any;
+  startTime?: number;
+  operationType?: 'cache' | 'database' | 'api';
+  cacheKey?: string;
+}
+
+// Re-export Express types for convenience
+export { Request, Response, NextFunction } from 'express';
