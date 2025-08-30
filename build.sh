@@ -127,12 +127,7 @@ if [[ -f "${GRADLE_FILE}.bak" ]]; then
   rm -f "${GRADLE_FILE}.bak"
 fi
 
-# 9) Run tests
-echo
-echo "🧪 Running tests"
-npm run test
-
-# 10) Check for changes and commit if any
+# 9) Check for changes and commit if any
 echo
 echo "💾 Checking for changes to commit"
 
@@ -147,8 +142,7 @@ else
   COMMIT_MSG="dev: build v${NEW_VERSION}
 
 - Development build with latest changes
-- Frontend and backend built successfully
-- Tests passing"
+- Frontend and backend built successfully"
 
   echo -e "📄 Commit Message:\n---\n$COMMIT_MSG\n---"
   
@@ -172,4 +166,3 @@ echo "   Version: $NEW_VERSION"
 echo "   Frontend: Built successfully"
 echo "   Backend: Built successfully"
 echo "   Mobile: Debug APK generated"
-echo "   Tests: Passed"

@@ -46,6 +46,7 @@ export declare class BackgammonEngine {
     private executeMove;
     private updateUsedDice;
     private allDiceUsed;
+    private getAvailableDiceValues;
     private endTurn;
 }
 export declare class EloRating {

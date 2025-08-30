@@ -92,6 +92,7 @@ jspm_packages/
 **/android/app/build/
 **/android/.gradle/
 **/android/gradle/
+**/android/local.properties
 
 # APK files in public directory (generated but not committed)
 public/*.apk

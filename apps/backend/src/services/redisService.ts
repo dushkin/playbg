@@ -34,17 +34,17 @@ export class RedisService {
     const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
     
     this.redis = new Redis(redisUrl, {
-      maxRetriesPerRequest: 3,
+      maxRetriesPerRequest: 30,
       lazyConnect: true
     });
 
     this.subscriber = new Redis(redisUrl, {
-      maxRetriesPerRequest: 3,
+      maxRetriesPerRequest: 30,
       lazyConnect: true
     });
 
     this.publisher = new Redis(redisUrl, {
-      maxRetriesPerRequest: 3,
+      maxRetriesPerRequest: 30,
       lazyConnect: true
     });
 

@@ -94,15 +94,15 @@ Both frontend and backend depend on:
 
 ## Environment Configuration
 
-### Backend Environment (.env)
-```
-NODE_ENV=development
-PORT=5000
-MONGODB_URI=mongodb://localhost:27017/playbg
-JWT_SECRET=your-super-secret-jwt-key
-JWT_EXPIRE=7d
-FRONTEND_URL=http://localhost:3000
-```
+### Backend Environment Setup
+**Environment variables are configured via `.env` files (not tracked in git for security).**
+
+- Copy `.env.example` to `.env.development` and `.env.production`
+- Update placeholder values with actual configuration
+- Ensure JWT_SECRET uses cryptographically secure random strings (64+ characters)
+- Never commit actual `.env` files to the repository
+
+**Security Note**: All `.env*` files are gitignored to prevent credential leakage.
 
 ## Key Technologies
 - **Backend**: Node.js, Express, MongoDB/Mongoose, Socket.IO, JWT, Winston logging
@@ -110,3 +110,27 @@ FRONTEND_URL=http://localhost:3000
 - **Testing**: Jest (backend), Vitest (frontend)
 - **Code Quality**: ESLint, TypeScript strict mode
 - **Real-time**: Socket.IO for game events and live updates
+Use the IDE analysis to find and fix bugs.
+
+Think well, analyze, design, and code thoughtfully.
+
+Run typecheck following code changes if relevant.
+
+
+## Deployment Guidelines
+
+### ⚠️ IMPORTANT: Deployment Control Guidelines
+**Claude should not push to origin autonomously, but build scripts executed by the user should handle deployment.**
+
+**For Claude AI Assistant:**
+- ✅ **Make changes locally** without asking for permission
+- ✅ **Commit changes locally** as needed for organization
+- ❌ **DO NOT push to origin** (git push) unless explicitly instructed by the user
+- ❌ **DO NOT deploy to remote** without clear user instruction
+- Focus on local development and testing, await explicit deployment approval before pushing
+
+**For User-Executed Scripts (build.sh, deploy.sh, etc.):**
+- ✅ **Scripts should handle git push** when the user manually executes them
+- ✅ **Scripts should commit and push changes** as part of their normal workflow
+- ✅ **User executing a script implies intent to deploy** those changes
+- The user running build.sh or similar scripts expects them to push to origin as part of the build process

@@ -7,7 +7,7 @@ class BackgammonEngine {
         this.board = initialBoard || JSON.parse(JSON.stringify(shared_1.INITIAL_BOARD_STATE));
         this.currentPlayer = 0;
         this.dice = null;
-        this.usedDice = [false, false];
+        this.usedDice = [];
     }
     /**
      * Roll dice for the current player
@@ -18,7 +18,13 @@ class BackgammonEngine {
             Math.floor(Math.random() * 6) + 1
         ];
         this.dice = dice;
-        this.usedDice = [false, false];
+        // For doubles, track 4 dice. For regular, track 2 dice
+        if (dice[0] === dice[1]) {
+            this.usedDice = [false, false, false, false];
+        }
+        else {
+            this.usedDice = [false, false];
+        }
         return dice;
     }
     /**
@@ -96,10 +102,8 @@ class BackgammonEngine {
         const moves = [];
         const playerIndex = this.currentPlayer;
         const homeBoard = playerIndex === 0 ? [18, 19, 20, 21, 22, 23] : [0, 1, 2, 3, 4, 5];
-        for (let i = 0; i < this.dice.length; i++) {
-            if (this.usedDice[i])
-                continue;
-            const diceValue = this.dice[i];
+        const availableDice = this.getAvailableDiceValues();
+        for (const diceValue of availableDice) {
             const targetPoint = playerIndex === 0 ? 24 - diceValue : diceValue - 1;
             if (this.canMoveToPoint(targetPoint, playerIndex)) {
                 moves.push({
@@ -116,10 +120,8 @@ class BackgammonEngine {
         const moves = [];
         const playerIndex = this.currentPlayer;
         const homeBoard = playerIndex === 0 ? [18, 19, 20, 21, 22, 23] : [0, 1, 2, 3, 4, 5];
-        for (let i = 0; i < this.dice.length; i++) {
-            if (this.usedDice[i])
-                continue;
-            const diceValue = this.dice[i];
+        const availableDice = this.getAvailableDiceValues();
+        for (const diceValue of availableDice) {
             for (const point of homeBoard) {
                 if (this.board.points[point][playerIndex] > 0) {
                     const distance = playerIndex === 0 ? point - 17 : 6 - point;
@@ -147,12 +149,10 @@ class BackgammonEngine {
     getRegularMoves() {
         const moves = [];
         const playerIndex = this.currentPlayer;
+        const availableDice = this.getAvailableDiceValues();
         for (let point = 0; point < 24; point++) {
             if (this.board.points[point][playerIndex] > 0) {
-                for (let i = 0; i < this.dice.length; i++) {
-                    if (this.usedDice[i])
-                        continue;
-                    const diceValue = this.dice[i];
+                for (const diceValue of availableDice) {
                     const targetPoint = playerIndex === 0 ? point - diceValue : point + diceValue;
                     if (targetPoint >= 0 && targetPoint < 24 && this.canMoveToPoint(targetPoint, playerIndex)) {
                         moves.push({
@@ -224,18 +224,18 @@ class BackgammonEngine {
         if (!this.dice)
             return;
         const distance = Math.abs(move.to - move.from);
-        // Handle doubles
-        if (this.dice[0] === this.dice[1]) {
-            // For doubles, mark one die as used
-            for (let i = 0; i < 4; i++) {
-                if (!this.usedDice[i % 2]) {
-                    this.usedDice[i % 2] = true;
+        const isDoubles = this.dice[0] === this.dice[1];
+        if (isDoubles) {
+            // For doubles, mark the first available die as used
+            for (let i = 0; i < this.usedDice.length; i++) {
+                if (!this.usedDice[i]) {
+                    this.usedDice[i] = true;
                     break;
                 }
             }
         }
         else {
-            // Mark the appropriate die as used
+            // For regular dice, mark the appropriate die as used
             if (distance === this.dice[0] && !this.usedDice[0]) {
                 this.usedDice[0] = true;
             }
@@ -247,21 +247,33 @@ class BackgammonEngine {
     allDiceUsed() {
         if (!this.dice)
             return true;
-        if (this.dice[0] === this.dice[1]) {
-            // For doubles, check if all 4 moves are used
-            let usedCount = 0;
-            for (let i = 0; i < 2; i++) {
-                if (this.usedDice[i])
-                    usedCount += 2;
-            }
-            return usedCount >= 4;
+        return this.usedDice.every(used => used);
+    }
+    getAvailableDiceValues() {
+        if (!this.dice)
+            return [];
+        const values = [];
+        const isDoubles = this.dice[0] === this.dice[1];
+        if (isDoubles) {
+            // For doubles, add the dice value for each unused die
+            this.usedDice.forEach(used => {
+                if (!used)
+                    values.push(this.dice[0]);
+            });
         }
-        return this.usedDice[0] && this.usedDice[1];
+        else {
+            // For regular dice, add each unused die value
+            if (!this.usedDice[0])
+                values.push(this.dice[0]);
+            if (!this.usedDice[1])
+                values.push(this.dice[1]);
+        }
+        return values;
     }
     endTurn() {
         this.currentPlayer = this.currentPlayer === 0 ? 1 : 0;
         this.dice = null;
-        this.usedDice = [false, false];
+        this.usedDice = [];
     }
 }
 exports.BackgammonEngine = BackgammonEngine;

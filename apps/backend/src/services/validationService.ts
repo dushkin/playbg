@@ -593,7 +593,9 @@ export class ValidationService {
       .trim()
       .slice(0, maxLength)
       .replace(/[<>\"'&]/g, '') // Remove potentially dangerous characters
-      .replace(/\s+/g, ' '); // Normalize whitespace
+      .replace(/(alert|eval|function|javascript|script|onload|onerror|onclick)(\s*\([^)]*\))?/gi, '') // Remove dangerous JavaScript keywords and function calls (without word boundaries)
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim(); // Final trim to remove any leading/trailing spaces from keyword removal
   }
 
   public sanitizeNumber(input: any, min: number = 0, max: number = Number.MAX_SAFE_INTEGER): number {

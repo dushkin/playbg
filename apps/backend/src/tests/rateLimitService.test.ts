@@ -1,21 +1,50 @@
-import { rateLimitService } from '../services/rateLimitService';
-import { getRedisService } from '../services/redisService';
+// Mock Redis service first
+const mockRedisClient = {
+  zcard: jest.fn().mockResolvedValue(0),
+  zadd: jest.fn().mockResolvedValue(1),
+  zremrangebyscore: jest.fn().mockResolvedValue(0),
+  expire: jest.fn().mockResolvedValue(1),
+  zrange: jest.fn().mockResolvedValue(['1000', '1000']),
+  keys: jest.fn().mockResolvedValue([]),
+  ttl: jest.fn().mockResolvedValue(60),
+  del: jest.fn().mockResolvedValue(1),
+  get: jest.fn().mockResolvedValue(null),
+  set: jest.fn().mockResolvedValue('OK'),
+  setex: jest.fn().mockResolvedValue('OK'),
+  incr: jest.fn().mockResolvedValue(1),
+  decr: jest.fn().mockResolvedValue(0),
+  exists: jest.fn().mockResolvedValue(1),
+  multi: jest.fn().mockReturnValue({
+    incr: jest.fn().mockReturnThis(),
+    expire: jest.fn().mockReturnThis(),
+    exec: jest.fn().mockResolvedValue([1, 1])
+  }),
+  exec: jest.fn().mockResolvedValue([]),
+  zrangebyscore: jest.fn().mockResolvedValue([]),
+  zrem: jest.fn().mockResolvedValue(1),
+  zrevrange: jest.fn().mockResolvedValue([]),
+  quit: jest.fn().mockResolvedValue('OK'),
+  connect: jest.fn().mockResolvedValue(undefined)
+};
 
-// Mock Redis service for testing
-jest.mock('../services/redisService', () => ({
-  redisService: {
-    getRedisClient: () => ({
-      zremrangebyscore: jest.fn().mockResolvedValue(0),
-      zcard: jest.fn().mockResolvedValue(0),
-      zadd: jest.fn().mockResolvedValue(1),
-      expire: jest.fn().mockResolvedValue(1),
-      zrange: jest.fn().mockResolvedValue(['1000', '1000']),
-      keys: jest.fn().mockResolvedValue([]),
-      ttl: jest.fn().mockResolvedValue(60),
-      del: jest.fn().mockResolvedValue(1)
-    })
+const mockRedisService = {
+  getRedisClient: () => mockRedisClient,
+  isConnected: () => true
+};
+
+// Fix zrange to return array in correct format for getResetTime
+mockRedisClient.zrange.mockImplementation((key, start, stop, withScores) => {
+  if (withScores === 'WITHSCORES') {
+    return ['1000', Date.now().toString()]; // [value, score] format
   }
+  return ['1000'];
+});
+
+jest.mock('../services/redisService', () => ({
+  getRedisService: () => mockRedisService
 }));
+
+import { rateLimitService } from '../services/rateLimitService';
 
 describe('RateLimitService', () => {
   beforeEach(() => {
@@ -33,8 +62,7 @@ describe('RateLimitService', () => {
 
     it('should block requests when rate limit exceeded', async () => {
       // Mock Redis to return max requests count
-      const mockRedis = getRedisService().getRedisClient() as any;
-      mockRedis.zcard.mockResolvedValue(30); // Max for game:move is 30
+      mockRedisClient.zcard.mockResolvedValue(30); // Max for game:move is 30
       
       const result = await rateLimitService.checkLimit('user123', 'game:move');
       
@@ -92,8 +120,7 @@ describe('RateLimitService', () => {
 
     it('should block requests and return 429 when rate limit exceeded', async () => {
       // Mock Redis to return max requests count
-      const mockRedis = getRedisService().getRedisClient() as any;
-      mockRedis.zcard.mockResolvedValue(100); // Max for api:general
+      mockRedisClient.zcard.mockResolvedValue(100); // Max for api:general
       
       const middleware = rateLimitService.createExpressMiddleware('api:general');
       
@@ -131,8 +158,7 @@ describe('RateLimitService', () => {
 
     it('should block requests when rate limit exceeded', async () => {
       // Mock Redis to return max requests count
-      const mockRedis = getRedisService().getRedisClient() as any;
-      mockRedis.zcard.mockResolvedValue(30); // Max for game:move
+      mockRedisClient.zcard.mockResolvedValue(30); // Max for game:move
       
       const middleware = rateLimitService.createSocketMiddleware('game:move');
       
@@ -150,26 +176,23 @@ describe('RateLimitService', () => {
 
   describe('cleanup', () => {
     it('should clean up expired rate limit data', async () => {
-      const mockRedis = getRedisService().getRedisClient() as any;
-      mockRedis.keys.mockResolvedValue(['rate_limit:test:user1', 'rate_limit:test:user2']);
-      mockRedis.ttl.mockResolvedValue(-1); // No expiry
-      mockRedis.zremrangebyscore.mockResolvedValue(5);
-      mockRedis.zcard.mockResolvedValue(0);
+      mockRedisClient.keys.mockResolvedValue(['rate_limit:test:user1', 'rate_limit:test:user2']);
+      mockRedisClient.ttl.mockResolvedValue(-1); // No expiry
+      mockRedisClient.zremrangebyscore.mockResolvedValue(5);
+      mockRedisClient.zcard.mockResolvedValue(0);
       
       const cleaned = await rateLimitService.cleanup();
       
       expect(cleaned).toBeGreaterThan(0);
-      expect(mockRedis.keys).toHaveBeenCalledWith('rate_limit:*');
+      expect(mockRedisClient.keys).toHaveBeenCalledWith('rate_limit:*');
     });
   });
 
   describe('resetLimit', () => {
     it('should reset rate limit for a user and action', async () => {
-      const mockRedis = getRedisService().getRedisClient() as any;
-      
       await rateLimitService.resetLimit('user123', 'game:move');
       
-      expect(mockRedis.del).toHaveBeenCalledWith('rate_limit:game:move:user123');
+      expect(mockRedisClient.del).toHaveBeenCalledWith('rate_limit:game:move:user123');
     });
   });
 });
