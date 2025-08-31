@@ -59,15 +59,39 @@ export class GameStateManager {
         moves: []
       };
 
+      // For now, create a game with the creator as player 1 and a placeholder for player 2
+      // This will be updated when a second player joins
+      const players = [
+        {
+          userId: options.player1Id,
+          username: 'Player 1', // This should be fetched from user service
+          rating: 1200, // This should be fetched from user service
+          color: 'white' as const,
+          timeRemaining: null,
+          isReady: true
+        },
+        {
+          userId: options.player2Id || 'waiting',
+          username: options.player2Id ? 'Player 2' : 'Waiting for player',
+          rating: options.player2Id ? 1200 : 0,
+          color: 'black' as const,
+          timeRemaining: null,
+          isReady: !!options.player2Id
+        }
+      ];
+
       // Create game document
       const gameDoc = new GameModel({
-        player1: options.player1Id,
-        player2: options.player2Id,
+        players,
+        board: initialState.board,
+        currentPlayer: initialState.currentPlayer,
+        dice: initialState.dice,
+        gameState: options.player2Id ? 'in_progress' : 'waiting',
         gameType: options.gameType,
         gameSpeed: options.gameSpeed,
-        isPrivate: options.isPrivate,
+        startTime: new Date(),
+        moves: initialState.moves,
         spectators: options.spectators || [],
-        state: initialState,
         chatMessages: []
       });
 
@@ -89,7 +113,7 @@ export class GameStateManager {
       // Cache game state
       await getRedisService().cacheGameState(gameId, initialState);
 
-      logger.info(`Created new game: ${gameId} with players: ${options.player1Id}, ${options.player2Id}`);
+      logger.info(`Created new game: ${gameId} with players: ${options.player1Id}, ${options.player2Id || 'waiting'}`);
       return gameDoc;
     } catch (error) {
       logger.error('Error creating game:', error);

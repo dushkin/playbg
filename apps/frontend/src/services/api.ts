@@ -130,6 +130,11 @@ export const gamesAPI = {
     return response.data
   },
 
+  getGame: async (gameId: string): Promise<ApiResponse<any>> => {
+    const response: AxiosResponse<ApiResponse<any>> = await api.get(`/games/${gameId}`)
+    return response.data
+  },
+
   createGame: async (gameData: any): Promise<ApiResponse<any>> => {
     const response: AxiosResponse<ApiResponse<any>> = await api.post('/games', gameData)
     return response.data

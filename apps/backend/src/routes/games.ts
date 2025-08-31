@@ -111,7 +111,7 @@ router.get('/',
 // @route   POST /api/games
 // @desc    Create a new game
 // @access  Private
-router.post('/', 
+router.post('/',
   sanitizeInput,
   validateRequest('game-creation'),
   async (req: Request, res: Response): Promise<void> => {
@@ -120,9 +120,10 @@ router.post('/',
     const validatedData = (req as any).validatedData;
     const { gameType, gameSpeed, opponentId } = validatedData;
     const userId = req.user._id.toString();
+    const user = req.user;
 
     let opponent: any = null;
-    
+
     if (opponentId && gameType === GameType.PRIVATE) {
       opponent = await User.findById(opponentId);
       if (!opponent) {
@@ -142,6 +143,19 @@ router.post('/',
       gameSpeed,
       isPrivate: gameType === GameType.PRIVATE
     });
+
+    // Update player information with actual user data
+    if (game.players && game.players[0]) {
+      game.players[0].username = user.username;
+      game.players[0].rating = user.rating;
+    }
+
+    if (opponent && game.players && game.players[1]) {
+      game.players[1].username = opponent.username;
+      game.players[1].rating = opponent.rating;
+    }
+
+    await game.save();
 
     logger.info(`Game created: ${game._id} by user: ${userId}`);
 

@@ -6,6 +6,8 @@ import Home from './pages/Home'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
+import CreateGame from './pages/CreateGame'
+import Game from './pages/Game'
 import LoadingSpinner from './components/UI/LoadingSpinner'
 
 function App() {
@@ -42,10 +44,16 @@ function App() {
       />
 
       {/* Protected routes */}
-      <Route 
-        path="/dashboard" 
+      <Route
+        path="/dashboard"
         element={
           isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />
+        }
+      />
+      <Route
+        path="/create-game"
+        element={
+          isAuthenticated ? <CreateGame /> : <Navigate to="/login" replace />
         }
       />
 
@@ -53,7 +61,12 @@ function App() {
       <Route path="/tournaments" element={<div>Tournaments - Coming Soon</div>} />
       <Route path="/leaderboard" element={<div>Leaderboard - Coming Soon</div>} />
       <Route path="/profile" element={<div>Profile - Coming Soon</div>} />
-      <Route path="/game/:gameId" element={<div>Game - Coming Soon</div>} />
+      <Route
+        path="/game/:gameId"
+        element={
+          isAuthenticated ? <Game /> : <Navigate to="/login" replace />
+        }
+      />
 
       {/* Catch all route */}
       <Route path="*" element={<Navigate to="/" replace />} />

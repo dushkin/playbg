@@ -308,10 +308,10 @@ export interface AuthResponse {
 // Game Logic Constants
 export const INITIAL_BOARD_STATE: BoardState = {
   points: [
-    [0, 2], [0, 0], [0, 0], [0, 0], [0, 0], [1, 5],  // Points 1-6
-    [0, 0], [1, 3], [0, 0], [0, 0], [0, 0], [0, 5],  // Points 7-12
-    [1, 5], [0, 0], [0, 0], [0, 0], [0, 3], [0, 0],  // Points 13-18
-    [0, 5], [0, 0], [0, 0], [0, 0], [0, 0], [0, 2]   // Points 19-24
+    [2, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 5],  // Points 1-6: White starts with 2 on point 1, Black has 5 on point 6
+    [0, 0], [0, 3], [0, 0], [0, 0], [0, 0], [5, 0],  // Points 7-12: Black has 3 on point 8, White has 5 on point 12
+    [0, 5], [0, 0], [0, 0], [0, 0], [3, 0], [0, 0],  // Points 13-18: Black has 5 on point 13, White has 3 on point 17
+    [5, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 2]   // Points 19-24: White has 5 on point 19, Black has 2 on point 24
   ],
   bar: [0, 0],
   off: [0, 0]

@@ -11,6 +11,10 @@ pnpm-debug.log*
 /apps/*/build/
 /packages/*/build/
 
+# Compiled output files
+packages/shared/dist/index.js
+packages/shared/dist/index.js.map
+
 # Environment variables - ALL excluded for security
 .env*
 !.env.example
