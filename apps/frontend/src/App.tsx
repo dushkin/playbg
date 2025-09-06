@@ -2,17 +2,22 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import { useAppDispatch, useAppSelector } from './hooks/redux'
 import { checkAuth } from './store/slices/authSlice'
+import { useSocket } from './hooks/useSocket'
 import Home from './pages/Home'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import CreateGame from './pages/CreateGame'
+import FindGame from './pages/FindGame'
 import Game from './pages/Game'
 import LoadingSpinner from './components/UI/LoadingSpinner'
 
 function App() {
   const dispatch = useAppDispatch()
   const { isAuthenticated, isLoading } = useAppSelector((state) => state.auth)
+  
+  // Initialize Socket.IO connection
+  useSocket()
 
   useEffect(() => {
     dispatch(checkAuth())
@@ -54,6 +59,12 @@ function App() {
         path="/create-game"
         element={
           isAuthenticated ? <CreateGame /> : <Navigate to="/login" replace />
+        }
+      />
+      <Route
+        path="/find-game"
+        element={
+          isAuthenticated ? <FindGame /> : <Navigate to="/login" replace />
         }
       />
 

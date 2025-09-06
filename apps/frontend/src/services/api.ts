@@ -139,6 +139,21 @@ export const gamesAPI = {
     const response: AxiosResponse<ApiResponse<any>> = await api.post('/games', gameData)
     return response.data
   },
+
+  findGame: async (findGameData: any): Promise<ApiResponse<any>> => {
+    const response: AxiosResponse<ApiResponse<any>> = await api.post('/games/find', findGameData)
+    return response.data
+  },
+
+  leaveMatchmaking: async (): Promise<ApiResponse<any>> => {
+    const response: AxiosResponse<ApiResponse<any>> = await api.delete('/games/find')
+    return response.data
+  },
+
+  getMatchmakingStatus: async (): Promise<ApiResponse<any>> => {
+    const response: AxiosResponse<ApiResponse<any>> = await api.get('/games/find/status')
+    return response.data
+  },
 }
 
 // Tournaments API

@@ -444,6 +444,42 @@ export class ValidationService {
     };
   }
 
+  // === FIND GAME VALIDATION ===
+
+  public validateFindGame(findGameData: any): ValidationResult {
+    const schema = Joi.object({
+      gameSpeed: Joi.string().valid(...Object.values(GameSpeed)).required(),
+      gameType: Joi.string().valid(...Object.values(GameType)).default(GameType.CASUAL),
+      isPrivate: Joi.boolean().default(false),
+      preferences: Joi.object({
+        ratingRange: Joi.number().integer().min(0).max(500).default(200),
+        acceptLowerRating: Joi.boolean().default(true),
+        acceptHigherRating: Joi.boolean().default(true)
+      }).default({})
+    });
+
+    const { error, value } = schema.validate(findGameData);
+    if (error) {
+      return {
+        isValid: false,
+        error: error.details[0].message
+      };
+    }
+
+    // Additional validation for find game
+    if (value.preferences.ratingRange < 0 || value.preferences.ratingRange > 500) {
+      return {
+        isValid: false,
+        error: 'Rating range must be between 0 and 500'
+      };
+    }
+
+    return {
+      isValid: true,
+      sanitizedData: value
+    };
+  }
+
   // === TOURNAMENT VALIDATION ===
 
   public validateTournamentCreation(tournamentData: any): ValidationResult {

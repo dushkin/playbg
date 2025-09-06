@@ -8,6 +8,16 @@ interface GameState {
   error: string | null
   availableMoves: GameMove[]
   selectedChecker: { point: number; checkerIndex: number } | null
+  
+  // Matchmaking state
+  matchmaking: {
+    isSearching: boolean
+    inQueue: boolean
+    queuePosition: number
+    estimatedWaitTime: number
+    waitTime: number
+    preferences: any | null
+  }
 }
 
 const initialState: GameState = {
@@ -17,6 +27,15 @@ const initialState: GameState = {
   error: null,
   availableMoves: [],
   selectedChecker: null,
+  
+  matchmaking: {
+    isSearching: false,
+    inQueue: false,
+    queuePosition: 0,
+    estimatedWaitTime: 0,
+    waitTime: 0,
+    preferences: null
+  }
 }
 
 const gameSlice = createSlice({
@@ -55,6 +74,40 @@ const gameSlice = createSlice({
     setError: (state, action: PayloadAction<string | null>) => {
       state.error = action.payload
     },
+    
+    // Matchmaking actions
+    startMatchmaking: (state, action: PayloadAction<any>) => {
+      state.matchmaking.isSearching = true
+      state.matchmaking.inQueue = true
+      state.matchmaking.preferences = action.payload
+      state.matchmaking.queuePosition = 0
+      state.matchmaking.estimatedWaitTime = 0
+      state.matchmaking.waitTime = 0
+    },
+    updateMatchmakingStatus: (state, action: PayloadAction<{
+      queuePosition: number
+      estimatedWaitTime: number
+      waitTime: number
+    }>) => {
+      state.matchmaking.queuePosition = action.payload.queuePosition
+      state.matchmaking.estimatedWaitTime = action.payload.estimatedWaitTime
+      state.matchmaking.waitTime = action.payload.waitTime
+    },
+    matchmakingSuccess: (state) => {
+      state.matchmaking.isSearching = false
+      state.matchmaking.inQueue = false
+      state.matchmaking.queuePosition = 0
+      state.matchmaking.preferences = null
+      // Game ID is in action.payload for navigation
+    },
+    stopMatchmaking: (state) => {
+      state.matchmaking.isSearching = false
+      state.matchmaking.inQueue = false
+      state.matchmaking.queuePosition = 0
+      state.matchmaking.estimatedWaitTime = 0
+      state.matchmaking.waitTime = 0
+      state.matchmaking.preferences = null
+    },
   },
 })
 
@@ -67,6 +120,10 @@ export const {
   leaveGame,
   setLoading,
   setError,
+  startMatchmaking,
+  updateMatchmakingStatus,
+  matchmakingSuccess,
+  stopMatchmaking,
 } = gameSlice.actions
 
 export default gameSlice.reducer

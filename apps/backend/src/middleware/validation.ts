@@ -26,6 +26,9 @@ export const validateRequest = (validationType: string) => {
         case 'tournament-creation':
           validationResult = validationService.validateTournamentCreation(req.body);
           break;
+        case 'find-game':
+          validationResult = validationService.validateFindGame(req.body);
+          break;
         default:
           return res.status(500).json({
             success: false,

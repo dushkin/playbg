@@ -63,6 +63,17 @@ const addChatSchema = Joi.object({
   type: Joi.string().valid('chat', 'system', 'game').default('chat')
 });
 
+const findGameSchema = Joi.object({
+  gameSpeed: Joi.string().valid(...Object.values(GameSpeed)).required(),
+  gameType: Joi.string().valid(...Object.values(GameType)).default(GameType.CASUAL),
+  isPrivate: Joi.boolean().default(false),
+  preferences: Joi.object({
+    ratingRange: Joi.number().integer().min(0).max(500).default(200),
+    acceptLowerRating: Joi.boolean().default(true),
+    acceptHigherRating: Joi.boolean().default(true)
+  }).default({})
+});
+
 // @route   GET /api/games
 // @desc    Get user's games
 // @access  Private
@@ -444,6 +455,158 @@ router.post('/:id/spectate', async (req: Request, res: Response): Promise<void> 
     res.status(500).json({
       success: false,
       error: 'Server error joining as spectator'
+    } as ApiResponse);
+  }
+});
+
+// @route   POST /api/games/find
+// @desc    Find a game using matchmaking
+// @access  Private
+router.post('/find',
+  sanitizeInput,
+  validateRequest('find-game'),
+  async (req: Request, res: Response): Promise<void> => {
+  try {
+    const validatedData = (req as any).validatedData;
+    const { gameSpeed, gameType, isPrivate, preferences } = validatedData;
+    const userId = req.user._id.toString();
+    const user = req.user;
+
+    // Check if user is already in matchmaking queue - skip this check for now
+    const redisService = getRedisService();
+    
+    // Try to find immediate match
+    const opponent = await redisService.findMatchmakingOpponent(
+      userId,
+      user.rating,
+      gameSpeed,
+      isPrivate,
+      preferences?.ratingRange || 200
+    );
+
+    if (opponent) {
+      // Create game immediately
+      const game = await gameStateManager.createGame({
+        player1Id: userId,
+        player2Id: opponent.userId,
+        gameType: gameType || GameType.CASUAL,
+        gameSpeed,
+        isPrivate
+      });
+
+      // Update player information
+      if (game.players && game.players[0]) {
+        game.players[0].username = user.username;
+        game.players[0].rating = user.rating;
+      }
+
+      if (game.players && game.players[1]) {
+        const opponentUser = await User.findById(opponent.userId);
+        if (opponentUser) {
+          game.players[1].username = opponentUser.username;
+          game.players[1].rating = opponentUser.rating;
+        }
+      }
+
+      await game.save();
+
+      logger.info(`Instant match found: ${user.username} vs ${opponent.username}`);
+
+      res.json({
+        success: true,
+        data: {
+          gameId: game._id.toString(),
+          opponent: {
+            id: opponent.userId,
+            username: opponent.username,
+            rating: opponent.rating
+          },
+          matchFound: true
+        },
+        message: 'Match found!'
+      } as ApiResponse);
+    } else {
+      // Add to matchmaking queue
+      const queueData = {
+        userId,
+        username: user.username,
+        rating: user.rating,
+        gameSpeed,
+        isPrivate,
+        preferences: preferences || {},
+        joinedAt: Date.now()
+      };
+
+      await redisService.addToMatchmakingQueue(queueData);
+
+      const queuePosition = 1; // Simplified - would need to implement queue position tracking
+
+      logger.info(`${user.username} added to matchmaking queue, position: ${queuePosition}`);
+
+      res.json({
+        success: true,
+        data: {
+          queuePosition,
+          estimatedWaitTime: queuePosition * 30, // rough estimate: 30 seconds per position
+          matchFound: false
+        },
+        message: 'Added to matchmaking queue'
+      } as ApiResponse);
+    }
+  } catch (error) {
+    logger.error('Find game error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error finding game'
+    } as ApiResponse);
+  }
+});
+
+// @route   DELETE /api/games/find
+// @desc    Leave matchmaking queue
+// @access  Private
+router.delete('/find', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.user._id.toString();
+    const redisService = getRedisService();
+
+    await redisService.removeFromMatchmakingQueue(userId);
+
+    logger.info(`${req.user.username} left matchmaking queue`);
+
+    res.json({
+      success: true,
+      message: 'Left matchmaking queue'
+    } as ApiResponse);
+  } catch (error) {
+    logger.error('Leave matchmaking error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error leaving matchmaking'
+    } as ApiResponse);
+  }
+});
+
+// @route   GET /api/games/find/status
+// @desc    Get current matchmaking status
+// @access  Private
+router.get('/find/status', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.user._id.toString();
+    const redisService = getRedisService();
+
+    // For now, return simple status - would need to implement proper queue tracking
+    res.json({
+      success: true,
+      data: {
+        inQueue: false // Simplified implementation
+      }
+    } as ApiResponse);
+  } catch (error) {
+    logger.error('Get matchmaking status error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error getting matchmaking status'
     } as ApiResponse);
   }
 });
