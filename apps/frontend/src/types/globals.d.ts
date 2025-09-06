@@ -5,6 +5,7 @@ declare global {
     Capacitor: CapacitorGlobal
     eruda: any
     toggleEruda: () => void
+    initErudaDebug: () => void
   }
 
   interface ImportMetaEnv {

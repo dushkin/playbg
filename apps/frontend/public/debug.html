@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlayBG Debug Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: #f5f5f5;
+        }
+        .debug-info { 
+            background: white; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin: 10px 0;
+            border: 1px solid #ddd;
+        }
+        .button { 
+            background: #007bff; 
+            color: white; 
+            padding: 10px 20px; 
+            border: none; 
+            border-radius: 5px; 
+            margin: 5px; 
+            cursor: pointer;
+        }
+        .button:hover { 
+            background: #0056b3; 
+        }
+        .log { 
+            background: #333; 
+            color: #fff; 
+            padding: 10px; 
+            border-radius: 5px; 
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>PlayBG Mobile Debug Test</h1>
+    
+    <div class="debug-info">
+        <h3>Environment Information</h3>
+        <p><strong>User Agent:</strong> <span id="userAgent"></span></p>
+        <p><strong>Platform:</strong> <span id="platform"></span></p>
+        <p><strong>Is Mobile:</strong> <span id="isMobile"></span></p>
+        <p><strong>Capacitor Available:</strong> <span id="capacitorAvailable"></span></p>
+        <p><strong>Capacitor Platform:</strong> <span id="capacitorPlatform"></span></p>
+        <p><strong>Is Native Platform:</strong> <span id="isNativePlatform"></span></p>
+    </div>
+
+    <div class="debug-info">
+        <h3>Eruda Debug Controls</h3>
+        <button class="button" onclick="initEruda()">Initialize Eruda</button>
+        <button class="button" onclick="toggleEruda()">Toggle Eruda</button>
+        <button class="button" onclick="checkErudaStatus()">Check Eruda Status</button>
+        <button class="button" onclick="clearLogs()">Clear Logs</button>
+    </div>
+
+    <div class="debug-info">
+        <h3>Debug Logs</h3>
+        <div id="logs" class="log"></div>
+    </div>
+
+    <script src="https://unpkg.com/eruda/eruda.js"></script>
+    <script>
+        // Debug logging function
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('logs');
+            logElement.textContent += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+
+        // Update environment info
+        function updateEnvironmentInfo() {
+            document.getElementById('userAgent').textContent = navigator.userAgent;
+            document.getElementById('platform').textContent = navigator.platform;
+            
+            const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            document.getElementById('isMobile').textContent = isMobile ? 'Yes' : 'No';
+            
+            const capacitorAvailable = typeof window.Capacitor !== 'undefined';
+            document.getElementById('capacitorAvailable').textContent = capacitorAvailable ? 'Yes' : 'No';
+            
+            if (capacitorAvailable) {
+                document.getElementById('capacitorPlatform').textContent = window.Capacitor.getPlatform();
+                document.getElementById('isNativePlatform').textContent = window.Capacitor.isNativePlatform() ? 'Yes' : 'No';
+            } else {
+                document.getElementById('capacitorPlatform').textContent = 'N/A';
+                document.getElementById('isNativePlatform').textContent = 'N/A';
+            }
+        }
+
+        // Initialize Eruda
+        function initEruda() {
+            try {
+                log('🔍 Initializing Eruda...');
+                
+                if (typeof eruda !== 'undefined') {
+                    eruda.init({
+                        container: document.body,
+                        tool: ['console', 'elements', 'network', 'resources', 'info', 'snippets'],
+                        useShadowDom: true,
+                        autoScale: true,
+                        defaults: {
+                            displaySize: 40,
+                            transparency: 0.9,
+                            theme: 'Material Design'
+                        }
+                    });
+                    
+                    window.eruda = eruda;
+                    log('✅ Eruda initialized successfully!');
+                    
+                    window.toggleEruda = function() {
+                        if (window.eruda) {
+                            if (window.eruda._isInit) {
+                                window.eruda.destroy();
+                                log('❌ Eruda disabled');
+                            } else {
+                                window.eruda.init();
+                                log('✅ Eruda enabled');
+                            }
+                        }
+                    };
+                } else {
+                    log('❌ Eruda library not available');
+                }
+            } catch (err) {
+                log('❌ Error initializing Eruda: ' + err.message);
+            }
+        }
+
+        // Toggle Eruda
+        function toggleEruda() {
+            if (typeof window.toggleEruda === 'function') {
+                window.toggleEruda();
+            } else {
+                log('⚠️ toggleEruda function not available. Try initializing Eruda first.');
+            }
+        }
+
+        // Check Eruda status
+        function checkErudaStatus() {
+            if (typeof window.eruda !== 'undefined' && window.eruda) {
+                log('ℹ️ Eruda status: ' + (window.eruda._isInit ? 'Initialized' : 'Not initialized'));
+                log('ℹ️ Eruda version: ' + (window.eruda.version || 'Unknown'));
+            } else {
+                log('ℹ️ Eruda not available');
+            }
+        }
+
+        // Clear logs
+        function clearLogs() {
+            document.getElementById('logs').textContent = '';
+        }
+
+        // Auto-initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            updateEnvironmentInfo();
+            log('🚀 Debug page loaded');
+            
+            // Auto-init Eruda in Capacitor environments
+            setTimeout(function() {
+                const isCapacitor = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+                if (isCapacitor) {
+                    log('📱 Capacitor environment detected, auto-initializing Eruda...');
+                    initEruda();
+                } else {
+                    log('🖥️ Non-Capacitor environment, manual initialization required');
+                }
+            }, 1000);
+        });
+
+        // Listen for Capacitor ready event
+        document.addEventListener('capacitor:ready', function() {
+            log('📱 Capacitor ready event received');
+            updateEnvironmentInfo();
+        });
+    </script>
+</body>
+</html>
