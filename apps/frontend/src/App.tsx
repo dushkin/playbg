@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { useAppDispatch, useAppSelector } from './hooks/redux'
 import { checkAuth } from './store/slices/authSlice'
 import { useSocket } from './hooks/useSocket'
+import { initMobileDebugging } from './utils/mobile'
 import Home from './pages/Home'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -21,6 +22,8 @@ function App() {
 
   useEffect(() => {
     dispatch(checkAuth())
+    // Initialize mobile debugging in development
+    initMobileDebugging()
   }, [dispatch])
 
   if (isLoading) {
