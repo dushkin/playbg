@@ -44,7 +44,13 @@ const server = createServer(app);
 // Setup Socket.IO
 const io = new SocketIOServer(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: process.env.NODE_ENV === 'development' 
+      ? [
+          "http://localhost:3000", 
+          "http://192.168.1.114:3000",
+          process.env.FRONTEND_URL || "http://localhost:3000"
+        ] 
+      : process.env.FRONTEND_URL || "http://localhost:3000",
     methods: ["GET", "POST"]
   }
 });
@@ -91,7 +97,9 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'"],
       scriptSrc: ["'self'"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", process.env.FRONTEND_URL || "http://localhost:3000"],
+      connectSrc: process.env.NODE_ENV === 'development' 
+        ? ["'self'", "http://localhost:3000", "http://192.168.1.114:3000"]
+        : ["'self'", process.env.FRONTEND_URL || "http://localhost:3000"],
       fontSrc: ["'self'"],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
@@ -109,7 +117,13 @@ app.use(helmet({
   referrerPolicy: { policy: "strict-origin-when-cross-origin" }
 }));
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:3000",
+  origin: process.env.NODE_ENV === 'development' 
+    ? [
+        "http://localhost:3000", 
+        "http://192.168.1.114:3000",
+        process.env.FRONTEND_URL || "http://localhost:3000"
+      ] 
+    : process.env.FRONTEND_URL || "http://localhost:3000",
   credentials: true
 }));
 app.use(limiter);
