@@ -4,9 +4,16 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 import { erudaPlugin } from './src/plugins/eruda'
 
+// Read version from package.json
+const packageJson = require('../../package.json')
+
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react(), erudaPlugin()],
+  define: {
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(packageJson.version),
+    'import.meta.env.VITE_BUILD_TIME': JSON.stringify(new Date().toISOString()),
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

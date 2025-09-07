@@ -12,6 +12,7 @@ import CreateGame from './pages/CreateGame'
 import FindGame from './pages/FindGame'
 import Game from './pages/Game'
 import LoadingSpinner from './components/UI/LoadingSpinner'
+import BetaBanner from './components/UI/BetaBanner'
 
 function App() {
   const dispatch = useAppDispatch()
@@ -36,6 +37,7 @@ function App() {
 
   return (
     <>
+      <BetaBanner />
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<Home />} />

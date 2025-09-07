@@ -15,9 +15,11 @@ class SocketService {
       return this.socket
     }
 
-    const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000'
+    // Extract WebSocket URL - if VITE_API_URL has /api, remove it for Socket.IO
+    const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000/api'
+    const WS_BASE_URL = apiUrl.replace('/api', '')
     
-    this.socket = io(API_BASE_URL, {
+    this.socket = io(WS_BASE_URL, {
       auth: { token },
       autoConnect: true,
       reconnection: true,
