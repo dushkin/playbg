@@ -16,8 +16,24 @@ export const setupErudaDebug = () => {
       const eruda = await import('eruda')
       
       if (!window.eruda || !window.eruda._isInit) {
+        // Create a separate container for Eruda to avoid React conflicts
+        let erudaContainer = document.getElementById('eruda-container')
+        if (!erudaContainer) {
+          erudaContainer = document.createElement('div')
+          erudaContainer.id = 'eruda-container'
+          erudaContainer.style.position = 'fixed'
+          erudaContainer.style.top = '0'
+          erudaContainer.style.left = '0'
+          erudaContainer.style.width = '100%'
+          erudaContainer.style.height = '100%'
+          erudaContainer.style.pointerEvents = 'none' // Allow clicks through
+          erudaContainer.style.zIndex = '999999'
+          document.body.appendChild(erudaContainer)
+        }
+        
+        // Initialize with the separate container
         eruda.default.init({
-          container: document.body,
+          container: erudaContainer,
           tool: ['console', 'elements', 'network', 'resources', 'info', 'snippets'],
           useShadowDom: true,
           autoScale: true,
@@ -28,6 +44,14 @@ export const setupErudaDebug = () => {
           }
         })
         
+        // Enable pointer events on Eruda elements
+        setTimeout(() => {
+          const erudaElements = erudaContainer.querySelectorAll('[class*="eruda"]')
+          erudaElements.forEach(el => {
+            ;(el as HTMLElement).style.pointerEvents = 'auto'
+          })
+        }, 100)
+        
         console.log('✅ Eruda manually initialized!')
         localStorage.setItem('eruda-debug', 'true')
         
@@ -36,12 +60,15 @@ export const setupErudaDebug = () => {
           if (window.eruda) {
             if (window.eruda._isInit) {
               window.eruda.destroy()
+              // Remove the container
+              const container = document.getElementById('eruda-container')
+              if (container) {
+                container.remove()
+              }
               localStorage.setItem('eruda-debug', 'false')
               console.log('❌ Eruda disabled')
             } else {
-              window.eruda.init()
-              localStorage.setItem('eruda-debug', 'true')
-              console.log('✅ Eruda enabled')
+              window.initErudaDebug() // Re-initialize
             }
           }
         }
