@@ -76,7 +76,12 @@ fi
 # -----------------------------
 echo "📦 Building frontend for production..."
 cd apps/frontend
+# Backup current .env and use production settings for build
+cp .env .env.backup
+cp .env.production .env
 npm run build
+# Restore development .env for continued development
+cp .env.development .env
 cd ../..
 
 # -----------------------------
