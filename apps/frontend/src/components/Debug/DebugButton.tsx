@@ -7,8 +7,15 @@ const DebugButton = () => {
 
   useEffect(() => {
     // Only show debug button on mobile devices
-    const isMobile = Capacitor.isNativePlatform() || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-    setIsVisible(isMobile)
+    const isCapacitor = Capacitor.isNativePlatform()
+    const isMobileUA = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    const isMobile = isCapacitor || isMobileUA
+    
+    console.log('🔧 DebugButton: Capacitor native?', isCapacitor)
+    console.log('🔧 DebugButton: Mobile UA?', isMobileUA)
+    console.log('🔧 DebugButton: Will show button?', isMobile)
+    
+    setIsVisible(true) // Force visible for testing - change back to isMobile later
     
     // Check if Eruda is already active
     const checkErudaStatus = () => {

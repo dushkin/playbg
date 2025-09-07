@@ -12,7 +12,6 @@ import CreateGame from './pages/CreateGame'
 import FindGame from './pages/FindGame'
 import Game from './pages/Game'
 import LoadingSpinner from './components/UI/LoadingSpinner'
-import DebugButton from './components/Debug/DebugButton'
 
 function App() {
   const dispatch = useAppDispatch()
@@ -87,9 +86,6 @@ function App() {
         {/* Catch all route */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-      
-      {/* Debug button for mobile */}
-      <DebugButton />
     </>
   )
 }
