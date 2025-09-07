@@ -53,32 +53,8 @@ export const setupErudaDebug = () => {
     }
   }
   
-  // Auto-initialize in mobile environments
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', checkAndInitEruda)
-  } else {
-    checkAndInitEruda()
-  }
+  // Don't auto-initialize here to prevent conflicts with main.tsx
+  // Just setup the global function for manual use
 }
 
-const checkAndInitEruda = async () => {
-  // Wait a bit for Capacitor to load
-  setTimeout(async () => {
-    const isMobile = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()
-    
-    if (isMobile) {
-      console.log('📱 Mobile environment detected, auto-initializing Eruda...')
-      
-      // Check if we should auto-enable
-      const autoEnable = localStorage.getItem('eruda-debug') !== 'false'
-      
-      if (autoEnable) {
-        window.initErudaDebug()
-      } else {
-        console.log('ℹ️ Eruda auto-initialization disabled. Call window.initErudaDebug() to enable.')
-      }
-    } else {
-      console.log('🖥️ Desktop environment detected. Eruda disabled.')
-    }
-  }, 500) // Give Capacitor time to initialize
-}
+// Removed auto-initialization to prevent conflicts
