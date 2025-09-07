@@ -48,13 +48,21 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 // Initialize Eruda after React app is mounted
 setTimeout(() => {
   try {
-    // Only setup the debug functions, don't auto-initialize Eruda
-    // This prevents Eruda from interfering with app loading
+    // Setup debug functions first
     setupErudaDebug()
     
-    // Log that we're ready for manual Eruda initialization
-    console.log('🔧 Eruda debug functions ready. Use window.initErudaDebug() to enable.')
+    // Check if we're in a Capacitor mobile environment
+    const isCapacitor = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()
+    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    
+    if (isCapacitor || isMobile) {
+      console.log('📱 Mobile environment detected, auto-initializing Eruda...')
+      // Auto-initialize Eruda in mobile environments
+      window.initErudaDebug()
+    } else {
+      console.log('🔧 Desktop environment - Eruda debug functions ready. Use window.initErudaDebug() to enable.')
+    }
   } catch (err) {
     console.warn('Eruda setup failed:', err)
   }
-}, 100) // Small delay to ensure React is rendered first
+}, 500) // Increased delay to ensure Capacitor is fully loaded

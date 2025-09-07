@@ -22,8 +22,8 @@ export const setupErudaDebug = () => {
           useShadowDom: true,
           autoScale: true,
           defaults: {
-            displaySize: 40,
-            transparency: 0.9,
+            displaySize: 50,
+            transparency: 0.8,
             theme: 'Material Design'
           }
         })
