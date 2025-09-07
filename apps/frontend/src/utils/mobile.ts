@@ -30,26 +30,10 @@ export const isDevelopment = (): boolean => {
 
 /**
  * Initialize mobile debugging tools
+ * DISABLED: Conflicted with main.tsx Eruda setup, causing blank screen
  */
 export const initMobileDebugging = async (): Promise<void> => {
-  if (isMobile() && isDevelopment()) {
-    try {
-      const eruda = await import('eruda')
-      eruda.default.init({
-        container: document.body,
-        tool: ['console', 'elements', 'network', 'resources', 'info', 'snippets'],
-        useShadowDom: true,
-        autoScale: true,
-        defaults: {
-          displaySize: 50,
-          transparency: 0.9,
-          theme: 'Material Design'
-        }
-      })
-      
-      console.log('📱 Eruda mobile debugging initialized')
-    } catch (error) {
-      console.warn('Failed to initialize Eruda:', error)
-    }
-  }
+  // Eruda initialization moved to main.tsx and erudaInit.ts for better control
+  // This function is now a no-op to prevent conflicts
+  console.log('🔧 Mobile debugging setup handled by main.tsx - use window.initErudaDebug()')
 }
