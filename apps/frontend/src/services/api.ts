@@ -1,7 +1,7 @@
 import axios, { AxiosResponse } from 'axios'
 import { ApiResponse, AuthResponse, LoginRequest, RegisterRequest, User } from '@playbg/shared'
 
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000/api'
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'https://playbg-backend-dev.onrender.com/api'
 
 // Debug logging for mobile development
 console.log('[API] Environment variables:', {
