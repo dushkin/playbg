@@ -1,17 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
     <domain-config cleartextTrafficPermitted="false">
-        <domain includeSubdomains="true">playbg-backend-dev.onrender.com</domain>
-        <domain includeSubdomains="true">playbg-backend-prod.onrender.com</domain>
-        <domain includeSubdomains="true">playbg-frontend-dev.onrender.com</domain>
-        <domain includeSubdomains="true">playbg-frontend-prod.onrender.com</domain>
+        <domain includeSubdomains="true">onrender.com</domain>
         <trust-anchors>
             <certificates src="system"/>
+            <certificates src="user"/>
         </trust-anchors>
     </domain-config>
-    <base-config cleartextTrafficPermitted="false">
+    <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
             <certificates src="system"/>
+            <certificates src="user"/>
         </trust-anchors>
     </base-config>
 </network-security-config>

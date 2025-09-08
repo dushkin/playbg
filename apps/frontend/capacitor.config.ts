@@ -5,7 +5,8 @@ const config: CapacitorConfig = {
   appName: 'PlayBG',
   webDir: 'dist',
   server: {
-    androidScheme: 'https'
+    androidScheme: 'https',
+    cleartext: true
   },
   android: {
     allowMixedContent: true,
