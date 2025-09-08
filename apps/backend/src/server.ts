@@ -48,6 +48,7 @@ const io = new SocketIOServer(server, {
       ? [
           "http://localhost:3000", 
           "http://192.168.1.114:3000",
+          "https://playbg-frontend-dev.onrender.com",
           process.env.FRONTEND_URL || "http://localhost:3000"
         ] 
       : process.env.FRONTEND_URL || "http://localhost:3000",
@@ -98,7 +99,7 @@ app.use(helmet({
       scriptSrc: ["'self'"],
       imgSrc: ["'self'", "data:", "https:"],
       connectSrc: process.env.NODE_ENV === 'development' 
-        ? ["'self'", "http://localhost:3000", "http://192.168.1.114:3000"]
+        ? ["'self'", "http://localhost:3000", "http://192.168.1.114:3000", "https://playbg-frontend-dev.onrender.com"]
         : ["'self'", process.env.FRONTEND_URL || "http://localhost:3000"],
       fontSrc: ["'self'"],
       objectSrc: ["'none'"],
