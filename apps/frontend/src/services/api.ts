@@ -64,8 +64,18 @@ api.interceptors.response.use(
 // Auth API
 export const authAPI = {
   login: async (credentials: LoginRequest): Promise<ApiResponse<AuthResponse>> => {
-    const response: AxiosResponse<ApiResponse<AuthResponse>> = await api.post('/auth/login', credentials)
-    return response.data
+    // Add verbose logging to assist with debugging login failures on mobile devices.
+    // Note: avoid logging sensitive information like passwords. Only log the email.
+    try {
+      console.debug('[authAPI.login] initiating login', { email: credentials.email })
+      const response: AxiosResponse<ApiResponse<AuthResponse>> = await api.post('/auth/login', credentials)
+      console.debug('[authAPI.login] login successful', response.data)
+      return response.data
+    } catch (error: any) {
+      // Log the error details to understand why the request failed (e.g., network issues, CORS)
+      console.error('[authAPI.login] login failed', error, error?.response)
+      throw error
+    }
   },
 
   register: async (userData: RegisterRequest): Promise<ApiResponse<AuthResponse>> => {
