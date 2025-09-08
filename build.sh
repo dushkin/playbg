@@ -36,6 +36,8 @@ echo "   New version: $NEW_VERSION"
 echo
 echo "📦 Building frontend (development mode)"
 cd apps/frontend
+export VITE_API_URL=https://playbg-backend-dev.onrender.com/api
+export VITE_WS_URL=https://playbg-backend-dev.onrender.com
 npm run build
 cd ../..
 

@@ -121,6 +121,7 @@ app.use(cors({
     ? [
         "http://localhost:3000", 
         "http://192.168.1.114:3000",
+        "https://playbg-frontend-dev.onrender.com",
         process.env.FRONTEND_URL || "http://localhost:3000"
       ] 
     : process.env.FRONTEND_URL || "http://localhost:3000",
