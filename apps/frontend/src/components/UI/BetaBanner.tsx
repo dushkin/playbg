@@ -15,10 +15,9 @@ const BetaBanner: React.FC<BetaBannerProps> = ({ version = getAppVersion() }) =>
 
   return (
     <div 
-      className="bg-orange-500 text-white px-3 sm:px-4 text-xs sm:text-sm flex items-center justify-between shadow-sm relative z-50"
+      className="bg-orange-500 text-white px-3 sm:px-4 py-2 text-xs sm:text-sm flex items-center justify-between shadow-sm relative z-50"
       style={{
-        paddingTop: mobile ? 'calc(env(safe-area-inset-top) + 0.25rem)' : '0.5rem',
-        paddingBottom: '0.5rem'
+        marginTop: mobile ? 'env(safe-area-inset-top)' : '0'
       }}
     >
       <div className="flex items-center space-x-1 sm:space-x-2 flex-wrap">
