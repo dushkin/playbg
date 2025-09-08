@@ -118,14 +118,28 @@ app.use(helmet({
   referrerPolicy: { policy: "strict-origin-when-cross-origin" }
 }));
 app.use(cors({
-  origin: process.env.NODE_ENV === 'development' 
-    ? [
-        "http://localhost:3000", 
+  origin: (() => {
+    const mobileOrigins = [
+      "capacitor://localhost",
+      "http://localhost",
+      "https://localhost"
+    ];
+    if (process.env.NODE_ENV === 'development') {
+      return [
+        "http://localhost:3000",
         "http://192.168.1.114:3000",
         "https://playbg-frontend-dev.onrender.com",
-        process.env.FRONTEND_URL || "http://localhost:3000"
-      ] 
-    : process.env.FRONTEND_URL || "http://localhost:3000",
+        process.env.FRONTEND_URL || "http://localhost:3000",
+        ...mobileOrigins
+      ];
+    }
+    // production
+    return [
+      process.env.FRONTEND_URL || "https://playbg-frontend-prod.onrender.com",
+      "https://playbg-frontend-prod.onrender.com",
+      ...mobileOrigins
+    ];
+  })(),
   credentials: true
 }));
 app.use(limiter);

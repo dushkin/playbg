@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import { getAppVersion } from '@/utils/version'
-import { isMobile } from '@/utils/mobile'
+import { isMobile, isAndroid } from '@/utils/mobile'
 
 interface BetaBannerProps {
   version?: string
@@ -16,9 +16,7 @@ const BetaBanner: React.FC<BetaBannerProps> = ({ version = getAppVersion() }) =>
   return (
     <div 
       className="bg-orange-500 text-white px-3 sm:px-4 py-2 text-xs sm:text-sm flex items-center justify-between shadow-sm relative z-50"
-      style={{
-        marginTop: mobile ? 'env(safe-area-inset-top)' : '0'
-      }}
+      style={{ marginTop: mobile ? (isAndroid() ? '25px' : 'env(safe-area-inset-top)') : '0' }}
     >
       <div className="flex items-center space-x-1 sm:space-x-2 flex-wrap">
         <span className="font-semibold">BETA</span>
