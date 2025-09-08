@@ -3,6 +3,14 @@ import { ApiResponse, AuthResponse, LoginRequest, RegisterRequest, User } from '
 
 const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000/api'
 
+// Debug logging for mobile development
+console.log('[API] Environment variables:', {
+  VITE_API_URL: (import.meta as any).env?.VITE_API_URL,
+  VITE_WS_URL: (import.meta as any).env?.VITE_WS_URL,
+  VITE_DEBUG_MOBILE: (import.meta as any).env?.VITE_DEBUG_MOBILE,
+  API_BASE_URL
+})
+
 // Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
