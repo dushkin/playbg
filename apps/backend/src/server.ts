@@ -41,18 +41,36 @@ dotenv.config({ path: path.join(__dirname, '../.env') }); // Try relative to dis
 const app = express();
 const server = createServer(app);
 
+// Define a comprehensive list of allowed origins for both development and production.
+// These arrays include the local development URLs, the hosted frontends on Render, and
+// the special origins used by Capacitor and local dev servers on mobile devices. Without
+// explicitly listing these, the browser or mobile webview will block responses due to
+// missing CORS headers, causing network requests to fail with status 0.
+const allowedOriginsDev: string[] = [
+  'http://localhost:3000',
+  'http://192.168.1.114:3000',
+  'https://playbg-frontend-dev.onrender.com',
+  // Allow internal mobile origins for Capacitor/Android dev builds
+  'capacitor://localhost',
+  'http://localhost',
+  'https://localhost',
+  process.env.FRONTEND_URL || 'http://localhost:3000'
+];
+
+const allowedOriginsProd: string[] = [
+  process.env.FRONTEND_URL || 'http://localhost:3000',
+  'https://playbg-frontend-dev.onrender.com',
+  'https://playbg-frontend-prod.onrender.com',
+  'capacitor://localhost',
+  'http://localhost',
+  'https://localhost'
+];
+
 // Setup Socket.IO
 const io = new SocketIOServer(server, {
   cors: {
-    origin: process.env.NODE_ENV === 'development' 
-      ? [
-          "http://localhost:3000", 
-          "http://192.168.1.114:3000",
-          "https://playbg-frontend-dev.onrender.com",
-          process.env.FRONTEND_URL || "http://localhost:3000"
-        ] 
-      : process.env.FRONTEND_URL || "http://localhost:3000",
-    methods: ["GET", "POST"]
+    origin: process.env.NODE_ENV === 'development' ? allowedOriginsDev : allowedOriginsProd,
+    methods: ['GET', 'POST']
   }
 });
 
@@ -97,15 +115,31 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: process.env.NODE_ENV === 'development' 
-        ? ["'self'", "http://localhost:3000", "http://192.168.1.114:3000", "https://playbg-frontend-dev.onrender.com"]
-        : ["'self'", process.env.FRONTEND_URL || "http://localhost:3000"],
+      imgSrc: ["'self'", 'data:', 'https:'],
+      connectSrc: process.env.NODE_ENV === 'development'
+        ? [
+          "'self'",
+          'http://localhost:3000',
+          'http://192.168.1.114:3000',
+          'https://playbg-frontend-dev.onrender.com',
+          'capacitor://localhost',
+          'http://localhost',
+          'https://localhost'
+        ]
+        : [
+          "'self'",
+          process.env.FRONTEND_URL || 'http://localhost:3000',
+          'https://playbg-frontend-dev.onrender.com',
+          'https://playbg-frontend-prod.onrender.com',
+          'capacitor://localhost',
+          'http://localhost',
+          'https://localhost'
+        ],
       fontSrc: ["'self'"],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
-      frameSrc: ["'none'"],
-    },
+      frameSrc: ["'none'"]
+    }
   },
   hsts: {
     maxAge: 31536000, // 1 year
@@ -115,33 +149,15 @@ app.use(helmet({
   frameguard: { action: 'deny' },
   noSniff: true,
   xssFilter: true,
-  referrerPolicy: { policy: "strict-origin-when-cross-origin" }
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
 }));
+
+// CORS configuration
 app.use(cors({
-  origin: (() => {
-    const mobileOrigins = [
-      "capacitor://localhost",
-      "http://localhost",
-      "https://localhost"
-    ];
-    if (process.env.NODE_ENV === 'development') {
-      return [
-        "http://localhost:3000",
-        "http://192.168.1.114:3000",
-        "https://playbg-frontend-dev.onrender.com",
-        process.env.FRONTEND_URL || "http://localhost:3000",
-        ...mobileOrigins
-      ];
-    }
-    // production
-    return [
-      process.env.FRONTEND_URL || "https://playbg-frontend-prod.onrender.com",
-      "https://playbg-frontend-prod.onrender.com",
-      ...mobileOrigins
-    ];
-  })(),
+  origin: process.env.NODE_ENV === 'development' ? allowedOriginsDev : allowedOriginsProd,
   credentials: true
 }));
+
 app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -169,7 +185,7 @@ app.get('/api/admin/rate-limit-stats/:userId/:action?', authMiddleware, async (r
   try {
     // Check if user is admin (you would implement proper admin check)
     const { userId, action } = req.params;
-    
+
     if (action) {
       const stats = await rateLimitService.getStats(userId, action);
       res.json({
@@ -236,7 +252,7 @@ const connectRedis = async () => {
       logger.warn('REDIS_URL not configured - running without Redis cache');
       return;
     }
-    
+
     await getRedisService().connect();
     logger.info('Redis connected successfully');
   } catch (error) {
@@ -251,7 +267,7 @@ const setupCleanupTasks = () => {
   setInterval(async () => {
     try {
       await gameStateManager.cleanupInactiveGames(60); // Clean games inactive for 60+ minutes
-      
+
       // Only attempt Redis cleanup if Redis is available
       if (process.env.REDIS_URL) {
         try {
@@ -260,7 +276,7 @@ const setupCleanupTasks = () => {
           logger.warn('Redis cleanup failed:', redisError);
         }
       }
-      
+
       await rateLimitService.cleanup(); // Clean expired rate limit data
     } catch (error) {
       logger.error('Cleanup task error:', error);
@@ -276,20 +292,20 @@ const startServer = async () => {
     // Connect to databases
     await connectDB();
     await connectRedis();
-    
+
     // Setup cleanup tasks
     setupCleanupTasks();
-    
+
     // Initialize cache warming
     await cacheInvalidationService.schedulePeriodicWarming();
-    
+
     // Warm initial caches
     setTimeout(() => {
       cacheInvalidationService.warmAllCaches().catch(error => {
         logger.error('Initial cache warming failed:', error);
       });
     }, 5000); // Wait 5 seconds after startup
-    
+
     server.listen(PORT, () => {
       logger.info(`Server running on port ${PORT}`);
       logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
@@ -305,14 +321,14 @@ const startServer = async () => {
 const gracefulShutdown = async () => {
   try {
     logger.info('Shutting down gracefully...');
-    
+
     // Close server
     server.close();
-    
+
     // Disconnect from databases
     await mongoose.connection.close();
     await getRedisService().disconnect();
-    
+
     logger.info('Process terminated');
     process.exit(0);
   } catch (error) {
