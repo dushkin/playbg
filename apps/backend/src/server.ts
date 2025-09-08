@@ -50,6 +50,7 @@ const allowedOriginsDev: string[] = [
   'http://localhost:3000',
   'http://192.168.1.114:3000',
   'https://playbg-frontend-dev.onrender.com',
+  'https://playbg-backend-dev.onrender.com',
   // Allow internal mobile origins for Capacitor/Android dev builds
   'capacitor://localhost',
   'http://localhost',
@@ -61,6 +62,8 @@ const allowedOriginsProd: string[] = [
   process.env.FRONTEND_URL || 'http://localhost:3000',
   'https://playbg-frontend-dev.onrender.com',
   'https://playbg-frontend-prod.onrender.com',
+  'https://playbg-backend-dev.onrender.com',
+  'https://playbg-backend-prod.onrender.com',
   'capacitor://localhost',
   'http://localhost',
   'https://localhost'
@@ -69,7 +72,10 @@ const allowedOriginsProd: string[] = [
 // Setup Socket.IO
 const io = new SocketIOServer(server, {
   cors: {
-    origin: process.env.NODE_ENV === 'development' ? allowedOriginsDev : allowedOriginsProd,
+    // In development, reflect the request's origin (true) to simplify testing from
+    // various local ports and mobile webviews. In production, restrict to a list
+    // of allowed domains.
+    origin: process.env.NODE_ENV === 'development' ? true : allowedOriginsProd,
     methods: ['GET', 'POST']
   }
 });
@@ -122,6 +128,8 @@ app.use(helmet({
           'http://localhost:3000',
           'http://192.168.1.114:3000',
           'https://playbg-frontend-dev.onrender.com',
+          'https://playbg-backend-dev.onrender.com',
+          'https://playbg-backend-prod.onrender.com',
           'capacitor://localhost',
           'http://localhost',
           'https://localhost'
@@ -131,6 +139,8 @@ app.use(helmet({
           process.env.FRONTEND_URL || 'http://localhost:3000',
           'https://playbg-frontend-dev.onrender.com',
           'https://playbg-frontend-prod.onrender.com',
+          'https://playbg-backend-dev.onrender.com',
+          'https://playbg-backend-prod.onrender.com',
           'capacitor://localhost',
           'http://localhost',
           'https://localhost'
@@ -154,7 +164,9 @@ app.use(helmet({
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.NODE_ENV === 'development' ? allowedOriginsDev : allowedOriginsProd,
+  // In development, allow any origin. This simplifies local testing across different ports
+  // and mobile webviews. In production, restrict to the defined list of domains.
+  origin: process.env.NODE_ENV === 'development' ? true : allowedOriginsProd,
   credentials: true
 }));
 
