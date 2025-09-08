@@ -4,12 +4,20 @@ import { ApiResponse, AuthResponse, LoginRequest, RegisterRequest, User } from '
 const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'https://playbg-backend-dev.onrender.com/api'
 
 // Debug logging for mobile development
-console.log('[API] Environment variables:', {
+const debugInfo = {
   VITE_API_URL: (import.meta as any).env?.VITE_API_URL,
   VITE_WS_URL: (import.meta as any).env?.VITE_WS_URL,
   VITE_DEBUG_MOBILE: (import.meta as any).env?.VITE_DEBUG_MOBILE,
   API_BASE_URL
-})
+}
+console.log('[API] Environment variables:', debugInfo)
+
+// For mobile debugging - show as alert for easy copying
+if ((import.meta as any).env?.VITE_DEBUG_MOBILE) {
+  setTimeout(() => {
+    alert(`Debug Info:\n${JSON.stringify(debugInfo, null, 2)}`)
+  }, 1000)
+}
 
 // Create axios instance
 const api = axios.create({

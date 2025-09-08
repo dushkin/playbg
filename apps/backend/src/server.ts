@@ -75,7 +75,7 @@ const io = new SocketIOServer(server, {
     // In development, reflect the request's origin (true) to simplify testing from
     // various local ports and mobile webviews. In production, restrict to a list
     // of allowed domains.
-    origin: process.env.NODE_ENV === 'development' ? true : allowedOriginsProd,
+    origin: process.env.NODE_ENV === 'development' ? allowedOriginsDev : allowedOriginsProd,
     methods: ['GET', 'POST']
   }
 });
@@ -166,7 +166,7 @@ app.use(helmet({
 app.use(cors({
   // In development, allow any origin. This simplifies local testing across different ports
   // and mobile webviews. In production, restrict to the defined list of domains.
-  origin: process.env.NODE_ENV === 'development' ? true : allowedOriginsProd,
+  origin: process.env.NODE_ENV === 'development' ? allowedOriginsDev : allowedOriginsProd,
   credentials: true
 }));
 
