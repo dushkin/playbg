@@ -84,7 +84,7 @@ const userSchema = new Schema<IUserDocument>({
   },
   preferredGameSpeed: {
     type: String,
-    enum: Object.values(GameSpeed),
+    enum: [...Object.values(GameSpeed), 'blitz', 'rapid', 'standard'], // Allow old values during migration
     default: GameSpeed.THIRTY_MINUTES
   }
 }, {
@@ -118,6 +118,23 @@ userSchema.pre('save', async function(next) {
   } catch (error) {
     next(error as Error);
   }
+});
+
+// Pre-save middleware to migrate old GameSpeed values
+userSchema.pre('save', function(next) {
+  // Migration map for old GameSpeed values to new ones
+  const migrationMap: Record<string, string> = {
+    'blitz': GameSpeed.THREE_MINUTES,
+    'rapid': GameSpeed.TEN_MINUTES,
+    'standard': GameSpeed.THIRTY_MINUTES,
+    'unlimited': GameSpeed.UNLIMITED
+  };
+
+  if (this.preferredGameSpeed && migrationMap[this.preferredGameSpeed]) {
+    this.preferredGameSpeed = migrationMap[this.preferredGameSpeed] as GameSpeed;
+  }
+
+  next();
 });
 
 // Method to compare password

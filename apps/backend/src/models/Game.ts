@@ -165,12 +165,12 @@ const gameSchema = new Schema<IGameDocument>({
   },
   gameType: {
     type: String,
-    enum: Object.values(GameType),
+    enum: [...Object.values(GameType), 'casual', 'private', 'tournament'], // Allow old values during migration
     required: true
   },
   gameSpeed: {
     type: String,
-    enum: Object.values(GameSpeed),
+    enum: [...Object.values(GameSpeed), 'blitz', 'rapid', 'standard'], // Allow old values during migration
     required: true
   },
   stepTiming: {
@@ -212,6 +212,34 @@ const gameSchema = new Schema<IGameDocument>({
       return ret;
     }
   }
+});
+
+// Pre-save middleware to migrate old enum values
+gameSchema.pre('save', function(next) {
+  // Migration map for old GameSpeed values to new ones
+  const gameSpeedMigrationMap: Record<string, string> = {
+    'blitz': GameSpeed.THREE_MINUTES,
+    'rapid': GameSpeed.TEN_MINUTES,
+    'standard': GameSpeed.THIRTY_MINUTES,
+    'unlimited': GameSpeed.UNLIMITED
+  };
+
+  // Migration map for old GameType values to new ones
+  const gameTypeMigrationMap: Record<string, string> = {
+    'casual': GameType.NOT_RANKED,
+    'private': GameType.NOT_RANKED,
+    'tournament': GameType.NOT_RANKED
+  };
+
+  if (this.gameSpeed && gameSpeedMigrationMap[this.gameSpeed]) {
+    this.gameSpeed = gameSpeedMigrationMap[this.gameSpeed] as GameSpeed;
+  }
+
+  if (this.gameType && gameTypeMigrationMap[this.gameType]) {
+    this.gameType = gameTypeMigrationMap[this.gameType] as GameType;
+  }
+
+  next();
 });
 
 // Indexes
