@@ -92,9 +92,9 @@ export declare enum GameType {
     RANKED = "ranked"
 }
 export declare enum GameSpeed {
-    BLITZ = "blitz",// 3 minutes per player
-    RAPID = "rapid",// 10 minutes per player
-    STANDARD = "standard",// 30 minutes per player
+    THREE_MINUTES = "3min",// 3 minutes per match
+    TEN_MINUTES = "10min",// 10 minutes per match
+    THIRTY_MINUTES = "30min",// 30 minutes per match
     UNLIMITED = "unlimited"
 }
 export declare enum StepTiming {

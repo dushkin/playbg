@@ -85,7 +85,7 @@ const userSchema = new Schema<IUserDocument>({
   preferredGameSpeed: {
     type: String,
     enum: Object.values(GameSpeed),
-    default: GameSpeed.STANDARD
+    default: GameSpeed.THIRTY_MINUTES
   }
 }, {
   timestamps: true,

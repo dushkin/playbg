@@ -96,7 +96,7 @@ const FindGameModal: React.FC<FindGameModalProps> = ({
             {/* Game Speed */}
             <div>
               <label htmlFor="gameSpeed" className="block text-sm font-medium text-gray-700 mb-1">
-                Time Control
+                Max Match Time
               </label>
               <select
                 id="gameSpeed"
@@ -104,9 +104,9 @@ const FindGameModal: React.FC<FindGameModalProps> = ({
                 onChange={(e) => setPreferences({ ...preferences, gameSpeed: e.target.value as GameSpeed })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value={GameSpeed.BLITZ}>Blitz (3 minutes)</option>
-                <option value={GameSpeed.RAPID}>Rapid (10 minutes)</option>
-                <option value={GameSpeed.STANDARD}>Standard (30 minutes)</option>
+                <option value={GameSpeed.THREE_MINUTES}>3 minutes</option>
+                <option value={GameSpeed.TEN_MINUTES}>10 minutes</option>
+                <option value={GameSpeed.THIRTY_MINUTES}>30 minutes</option>
                 <option value={GameSpeed.UNLIMITED}>Unlimited</option>
               </select>
             </div>

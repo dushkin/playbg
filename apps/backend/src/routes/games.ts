@@ -34,11 +34,11 @@ const router = express.Router();
 // Helper function to get time limits based on game speed
 function getTimeForSpeed(speed: GameSpeed): number {
   switch (speed) {
-    case GameSpeed.BLITZ:
+    case GameSpeed.THREE_MINUTES:
       return 3 * 60 * 1000; // 3 minutes in milliseconds
-    case GameSpeed.RAPID:
+    case GameSpeed.TEN_MINUTES:
       return 10 * 60 * 1000; // 10 minutes
-    case GameSpeed.STANDARD:
+    case GameSpeed.THIRTY_MINUTES:
       return 30 * 60 * 1000; // 30 minutes
     case GameSpeed.UNLIMITED:
     default:

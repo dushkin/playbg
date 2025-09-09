@@ -547,7 +547,7 @@ export class ValidationService {
   public validateSocketEvent(eventName: string, data: any): ValidationResult {
     const schemas: Record<string, Joi.ObjectSchema> = {
       'matchmaking:join': Joi.object({
-        gameSpeed: Joi.string().valid(...Object.values(GameSpeed)).default(GameSpeed.STANDARD),
+        gameSpeed: Joi.string().valid(...Object.values(GameSpeed)).default(GameSpeed.THIRTY_MINUTES),
         gameType: Joi.string().valid(...Object.values(GameType)).default(GameType.NOT_RANKED),
         isPrivate: Joi.boolean().default(false),
         preferences: Joi.object({
