@@ -44,6 +44,7 @@ export interface Game {
     gameState: GameState;
     gameType: GameType;
     gameSpeed: GameSpeed;
+    stepTiming?: StepTiming;
     startTime: Date;
     endTime?: Date;
     winner?: string;
@@ -87,15 +88,28 @@ export declare enum GameState {
     ABANDONED = "abandoned"
 }
 export declare enum GameType {
-    CASUAL = "casual",
-    RANKED = "ranked",
-    TOURNAMENT = "tournament",
-    PRIVATE = "private"
+    NOT_RANKED = "not_ranked",
+    RANKED = "ranked"
 }
 export declare enum GameSpeed {
     BLITZ = "blitz",// 3 minutes per player
     RAPID = "rapid",// 10 minutes per player
     STANDARD = "standard",// 30 minutes per player
+    UNLIMITED = "unlimited"
+}
+export declare enum StepTiming {
+    TEN_SECONDS = "10s",
+    THIRTY_SECONDS = "30s",
+    ONE_MINUTE = "1m",
+    THREE_MINUTES = "3m",
+    TEN_MINUTES = "10m",
+    ONE_HOUR = "1h",
+    THREE_HOURS = "3h",
+    ONE_DAY = "1d",
+    THREE_DAYS = "3d",
+    FIVE_DAYS = "5d",
+    SEVEN_DAYS = "7d",
+    TEN_DAYS = "10d",
     UNLIMITED = "unlimited"
 }
 export declare enum GameResult {

@@ -135,23 +135,23 @@ const FindGame: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="text-center">
-              <div className="w-16 h-16 bg-yellow-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">⚡</span>
+              <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">🎯</span>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Blitz Game</h3>
-              <p className="text-gray-600 text-sm mb-4">Quick 3-minute games</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Not Ranked Game</h3>
+              <p className="text-gray-600 text-sm mb-4">Play for fun without affecting rating</p>
               <button
                 onClick={() => handleFindGame({
-                  gameSpeed: GameSpeed.BLITZ,
-                  gameType: GameType.CASUAL,
+                  gameSpeed: GameSpeed.UNLIMITED,
+                  gameType: GameType.NOT_RANKED,
                   ratingRange: 200,
                   acceptLowerRating: true,
                   acceptHigherRating: true
                 })}
                 disabled={matchmaking.isSearching}
-                className="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-2 px-4 rounded-md transition-colors disabled:opacity-50"
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md transition-colors disabled:opacity-50"
               >
-                {matchmaking.isSearching ? 'Searching...' : 'Play Blitz'}
+                {matchmaking.isSearching ? 'Searching...' : 'Play Casual'}
               </button>
             </div>
           </div>
@@ -165,7 +165,7 @@ const FindGame: React.FC = () => {
               <p className="text-gray-600 text-sm mb-4">Compete for rating points</p>
               <button
                 onClick={() => handleFindGame({
-                  gameSpeed: GameSpeed.STANDARD,
+                  gameSpeed: GameSpeed.UNLIMITED,
                   gameType: GameType.RANKED,
                   ratingRange: 200,
                   acceptLowerRating: true,
@@ -181,7 +181,7 @@ const FindGame: React.FC = () => {
 
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="text-center">
-              <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl">⚙️</span>
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Custom Game</h3>
@@ -189,7 +189,7 @@ const FindGame: React.FC = () => {
               <button
                 onClick={() => setShowModal(true)}
                 disabled={matchmaking.isSearching}
-                className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md transition-colors disabled:opacity-50"
+                className="w-full bg-purple-500 hover:bg-purple-600 text-white py-2 px-4 rounded-md transition-colors disabled:opacity-50"
               >
                 {matchmaking.isSearching ? 'Searching...' : 'Customize'}
               </button>

@@ -152,7 +152,7 @@ export const setupSocketHandlers = (io: SocketIOServer): void => {
           const game = await gameStateManager.createGame({
             player1Id: socket.userId!,
             player2Id: opponent.userId,
-            gameType: GameType.CASUAL,
+            gameType: GameType.NOT_RANKED,
             gameSpeed: queue.gameSpeed,
             isPrivate: queue.isPrivate
           });

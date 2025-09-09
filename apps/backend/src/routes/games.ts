@@ -14,6 +14,7 @@ import {
   GameType,
   GameSpeed,
   GameState,
+  StepTiming,
   Player,
   GameMove,
   ChatMessage
@@ -49,7 +50,8 @@ function getTimeForSpeed(speed: GameSpeed): number {
 const createGameSchema = Joi.object({
   gameType: Joi.string().valid(...Object.values(GameType)).required(),
   gameSpeed: Joi.string().valid(...Object.values(GameSpeed)).required(),
-  opponentId: Joi.string().optional() // For private games
+  stepTiming: Joi.string().valid(...Object.values(StepTiming)).optional(),
+  opponentId: Joi.string().optional()
 });
 
 const makeMoveSchema = Joi.object({
@@ -65,7 +67,8 @@ const addChatSchema = Joi.object({
 
 const findGameSchema = Joi.object({
   gameSpeed: Joi.string().valid(...Object.values(GameSpeed)).required(),
-  gameType: Joi.string().valid(...Object.values(GameType)).default(GameType.CASUAL),
+  gameType: Joi.string().valid(...Object.values(GameType)).default(GameType.NOT_RANKED),
+  stepTiming: Joi.string().valid(...Object.values(StepTiming)).optional(),
   isPrivate: Joi.boolean().default(false),
   preferences: Joi.object({
     ratingRange: Joi.number().integer().min(0).max(500).default(200),
@@ -135,7 +138,7 @@ router.post('/',
 
     let opponent: any = null;
 
-    if (opponentId && gameType === GameType.PRIVATE) {
+    if (opponentId && gameType === GameType.NOT_RANKED) {
       opponent = await User.findById(opponentId);
       if (!opponent) {
         res.status(404).json({
@@ -152,7 +155,7 @@ router.post('/',
       player2Id: opponent?._id?.toString(),
       gameType,
       gameSpeed,
-      isPrivate: gameType === GameType.PRIVATE
+      isPrivate: gameType === GameType.NOT_RANKED
     });
 
     // Update player information with actual user data
@@ -428,7 +431,7 @@ router.post('/:id/spectate', async (req: Request, res: Response): Promise<void> 
     }
 
     // Can't spectate private games unless you're a player
-    if (game.gameType === GameType.PRIVATE && !game.isPlayerInGame(userId)) {
+    if (game.gameType === GameType.NOT_RANKED && !game.isPlayerInGame(userId)) {
       res.status(403).json({
         success: false,
         error: 'Cannot spectate private games'
@@ -489,7 +492,7 @@ router.post('/find',
       const game = await gameStateManager.createGame({
         player1Id: userId,
         player2Id: opponent.userId,
-        gameType: gameType || GameType.CASUAL,
+        gameType: gameType || GameType.NOT_RANKED,
         gameSpeed,
         isPrivate
       });

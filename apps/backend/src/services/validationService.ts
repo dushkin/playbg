@@ -3,6 +3,7 @@ import {
   GameMove,
   GameType,
   GameSpeed,
+  StepTiming,
   TournamentType,
   TournamentFormat,
   MatchStatus,
@@ -424,12 +425,7 @@ export class ValidationService {
     }
 
     // Additional business logic validation
-    if (value.gameType === GameType.PRIVATE && !value.opponentId) {
-      return {
-        isValid: false,
-        error: 'Private games require an opponent ID'
-      };
-    }
+    // No private games anymore, remove this validation
 
     if (value.gameType === GameType.RANKED && value.stakes && value.stakes > 0) {
       return {
@@ -449,7 +445,7 @@ export class ValidationService {
   public validateFindGame(findGameData: any): ValidationResult {
     const schema = Joi.object({
       gameSpeed: Joi.string().valid(...Object.values(GameSpeed)).required(),
-      gameType: Joi.string().valid(...Object.values(GameType)).default(GameType.CASUAL),
+      gameType: Joi.string().valid(...Object.values(GameType)).default(GameType.NOT_RANKED),
       isPrivate: Joi.boolean().default(false),
       preferences: Joi.object({
         ratingRange: Joi.number().integer().min(0).max(500).default(200),
@@ -552,7 +548,7 @@ export class ValidationService {
     const schemas: Record<string, Joi.ObjectSchema> = {
       'matchmaking:join': Joi.object({
         gameSpeed: Joi.string().valid(...Object.values(GameSpeed)).default(GameSpeed.STANDARD),
-        gameType: Joi.string().valid(...Object.values(GameType)).default(GameType.CASUAL),
+        gameType: Joi.string().valid(...Object.values(GameType)).default(GameType.NOT_RANKED),
         isPrivate: Joi.boolean().default(false),
         preferences: Joi.object({
           minRating: Joi.number().integer().min(0).max(3000).optional(),

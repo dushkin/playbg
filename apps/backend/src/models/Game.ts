@@ -8,6 +8,7 @@ import {
   GameState,
   GameType,
   GameSpeed,
+  StepTiming,
   INITIAL_BOARD_STATE
 } from '@playbg/shared';
 import logger from '../utils/logger';
@@ -171,6 +172,11 @@ const gameSchema = new Schema<IGameDocument>({
     type: String,
     enum: Object.values(GameSpeed),
     required: true
+  },
+  stepTiming: {
+    type: String,
+    enum: Object.values(StepTiming),
+    required: false
   },
   startTime: {
     type: Date,

@@ -23,9 +23,11 @@ class SocketService {
       auth: { token },
       autoConnect: true,
       reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-      timeout: 20000,
+      reconnectionAttempts: 3,
+      reconnectionDelay: 2000,
+      reconnectionDelayMax: 10000,
+      timeout: 10000,
+      forceNew: false,
     })
 
     this.setupEventListeners()

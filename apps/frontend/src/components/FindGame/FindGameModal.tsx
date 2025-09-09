@@ -30,8 +30,8 @@ const FindGameModal: React.FC<FindGameModalProps> = ({
   queueStatus
 }) => {
   const [preferences, setPreferences] = useState<FindGamePreferences>({
-    gameSpeed: GameSpeed.STANDARD,
-    gameType: GameType.CASUAL,
+    gameSpeed: GameSpeed.UNLIMITED,
+    gameType: GameType.NOT_RANKED,
     ratingRange: 200,
     acceptLowerRating: true,
     acceptHigherRating: true
@@ -122,7 +122,7 @@ const FindGameModal: React.FC<FindGameModalProps> = ({
                 onChange={(e) => setPreferences({ ...preferences, gameType: e.target.value as GameType })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value={GameType.CASUAL}>Casual</option>
+                <option value={GameType.NOT_RANKED}>Not Ranked</option>
                 <option value={GameType.RANKED}>Ranked</option>
               </select>
             </div>

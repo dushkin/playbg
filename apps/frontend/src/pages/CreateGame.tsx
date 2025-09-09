@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppSelector } from '../hooks/redux'
 import { gamesAPI } from '../services/api'
-import { GameType, GameSpeed } from '@playbg/shared'
+import { GameType, GameSpeed, StepTiming } from '@playbg/shared'
 import LoadingSpinner from '../components/UI/LoadingSpinner'
 
 const CreateGame: React.FC = () => {
@@ -12,8 +12,9 @@ const CreateGame: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
 
   const [gameData, setGameData] = useState({
-    gameType: GameType.CASUAL,
-    gameSpeed: GameSpeed.STANDARD,
+    gameType: GameType.NOT_RANKED,
+    gameSpeed: GameSpeed.UNLIMITED,
+    stepTiming: StepTiming.THREE_DAYS,
   })
 
   if (!user) {
@@ -70,14 +71,12 @@ const CreateGame: React.FC = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                   disabled={isLoading}
                 >
-                  <option value={GameType.CASUAL}>Casual</option>
+                  <option value={GameType.NOT_RANKED}>Not Ranked</option>
                   <option value={GameType.RANKED}>Ranked</option>
-                  <option value={GameType.PRIVATE}>Private</option>
                 </select>
                 <p className="mt-1 text-xs text-gray-500">
-                  {gameData.gameType === GameType.CASUAL && "Play for fun without affecting your rating"}
+                  {gameData.gameType === GameType.NOT_RANKED && "Play for fun without affecting your rating"}
                   {gameData.gameType === GameType.RANKED && "Compete for rating points"}
-                  {gameData.gameType === GameType.PRIVATE && "Invite a specific opponent"}
                 </p>
               </div>
 
@@ -96,15 +95,48 @@ const CreateGame: React.FC = () => {
                   <option value={GameSpeed.BLITZ}>Blitz (3 minutes)</option>
                   <option value={GameSpeed.RAPID}>Rapid (10 minutes)</option>
                   <option value={GameSpeed.STANDARD}>Standard (30 minutes)</option>
-                  <option value={GameSpeed.UNLIMITED}>Unlimited</option>
+                  <option value={GameSpeed.UNLIMITED}>Unlimited (Custom step timing)</option>
                 </select>
                 <p className="mt-1 text-xs text-gray-500">
                   {gameData.gameSpeed === GameSpeed.BLITZ && "Fast-paced games for quick matches"}
                   {gameData.gameSpeed === GameSpeed.RAPID && "Balanced time control"}
                   {gameData.gameSpeed === GameSpeed.STANDARD && "Traditional time control"}
-                  {gameData.gameSpeed === GameSpeed.UNLIMITED && "No time limit"}
+                  {gameData.gameSpeed === GameSpeed.UNLIMITED && "Set custom time per move"}
                 </p>
               </div>
+
+              {/* Step Timing Selection (only for Unlimited) */}
+              {gameData.gameSpeed === GameSpeed.UNLIMITED && (
+                <div>
+                  <label htmlFor="stepTiming" className="block text-sm font-medium text-gray-700 mb-2">
+                    Time per Move
+                  </label>
+                  <select
+                    id="stepTiming"
+                    value={gameData.stepTiming}
+                    onChange={(e) => setGameData({ ...gameData, stepTiming: e.target.value as StepTiming })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    disabled={isLoading}
+                  >
+                    <option value={StepTiming.TEN_SECONDS}>10 seconds</option>
+                    <option value={StepTiming.THIRTY_SECONDS}>30 seconds</option>
+                    <option value={StepTiming.ONE_MINUTE}>1 minute</option>
+                    <option value={StepTiming.THREE_MINUTES}>3 minutes</option>
+                    <option value={StepTiming.TEN_MINUTES}>10 minutes</option>
+                    <option value={StepTiming.ONE_HOUR}>1 hour</option>
+                    <option value={StepTiming.THREE_HOURS}>3 hours</option>
+                    <option value={StepTiming.ONE_DAY}>1 day</option>
+                    <option value={StepTiming.THREE_DAYS}>3 days (Default)</option>
+                    <option value={StepTiming.FIVE_DAYS}>5 days</option>
+                    <option value={StepTiming.SEVEN_DAYS}>7 days</option>
+                    <option value={StepTiming.TEN_DAYS}>10 days</option>
+                    <option value={StepTiming.UNLIMITED}>Unlimited</option>
+                  </select>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Maximum time allowed per move
+                  </p>
+                </div>
+              )}
 
               {/* Error Message */}
               {error && (

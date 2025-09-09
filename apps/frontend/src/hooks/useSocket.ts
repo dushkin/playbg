@@ -4,25 +4,36 @@ import { socketService } from '../services/socketService'
 
 export const useSocket = () => {
   const { isAuthenticated, user } = useAppSelector((state) => state.auth)
-  const initalized = useRef(false)
+  const initialized = useRef(false)
+  const connectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
-    if (isAuthenticated && user && !initalized.current) {
+    // Clear any existing timeout
+    if (connectTimeoutRef.current) {
+      clearTimeout(connectTimeoutRef.current)
+      connectTimeoutRef.current = null
+    }
+
+    if (isAuthenticated && user && !initialized.current) {
       const token = localStorage.getItem('token')
-      if (token) {
-        socketService.connect(token)
-        initalized.current = true
+      if (token && !socketService.isConnected()) {
+        // Delay connection slightly to avoid rapid reconnects
+        connectTimeoutRef.current = setTimeout(() => {
+          socketService.connect(token)
+          initialized.current = true
+        }, 100)
       }
     }
 
-    if (!isAuthenticated && initalized.current) {
+    if (!isAuthenticated && initialized.current) {
       socketService.disconnect()
-      initalized.current = false
+      initialized.current = false
     }
 
     return () => {
-      if (!isAuthenticated) {
-        socketService.disconnect()
+      if (connectTimeoutRef.current) {
+        clearTimeout(connectTimeoutRef.current)
+        connectTimeoutRef.current = null
       }
     }
   }, [isAuthenticated, user])

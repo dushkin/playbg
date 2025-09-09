@@ -102,22 +102,29 @@ export class MonitoringService {
   }
 
   private initializeMonitoring(): void {
-    // Increase intervals to reduce memory pressure
+    // Significantly increase intervals to reduce memory pressure
     setInterval(() => {
       this.performHealthCheck().catch(error => {
         logger.error('Health check failed:', error);
       });
-    }, 60 * 1000); // Changed from 30s to 60s
+    }, 300 * 1000); // 5 minutes
 
     setInterval(() => {
       this.collectMetrics().catch(error => {
         logger.error('Metrics collection failed:', error);
       });
-    }, 120 * 1000); // Changed from 60s to 120s
+    }, 600 * 1000); // 10 minutes
 
     setInterval(() => {
       this.cleanupMetrics();
-    }, 180 * 1000); // Changed from 300s to 180s for more frequent cleanup
+    }, 60 * 1000); // More frequent cleanup every minute
+
+    // Force garbage collection periodically if available
+    setInterval(() => {
+      if (global.gc) {
+        global.gc();
+      }
+    }, 300 * 1000); // 5 minutes
 
     logger.info('Monitoring service initialized');
   }
@@ -157,7 +164,8 @@ export class MonitoringService {
   private recordResponseTime(time: number): void {
     this.responseTimeSamples.push(time);
     
-    if (this.responseTimeSamples.length > 1000) {
+    // Reduce sample size to save memory
+    if (this.responseTimeSamples.length > 100) {
       this.responseTimeSamples.shift();
     }
 
@@ -389,7 +397,7 @@ export class MonitoringService {
       timestamp: new Date()
     });
 
-    if (metrics.memoryUsage.percentage > 85) {
+    if (metrics.memoryUsage.percentage > 95) {
       this.createAlert({
         severity: 'warning',
         message: `High memory usage: ${metrics.memoryUsage.percentage.toFixed(1)}%`,
@@ -422,8 +430,8 @@ export class MonitoringService {
 
     this.alerts.push(alert);
     
-    // Reduce alert limit to save memory
-    if (this.alerts.length > 50) {
+    // Reduce alert limit further to save memory
+    if (this.alerts.length > 20) {
       this.alerts.shift();
     }
 
@@ -481,7 +489,8 @@ export class MonitoringService {
   }
 
   private cleanupMetrics(): void {
-    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    // More aggressive cleanup - keep only 1 hour of data
+    const cutoff = Date.now() - 60 * 60 * 1000;
     
     this.metrics.forEach((value, key) => {
       if (value.timestamp && value.timestamp.getTime() < cutoff) {
@@ -489,9 +498,15 @@ export class MonitoringService {
       }
     });
 
+    // Keep alerts for only 1 hour
     this.alerts = this.alerts.filter(alert => 
-      !alert.resolved || (Date.now() - alert.timestamp.getTime() < 24 * 60 * 60 * 1000)
+      !alert.resolved || (Date.now() - alert.timestamp.getTime() < 60 * 60 * 1000)
     );
+
+    // Clear old response time samples more aggressively
+    if (this.responseTimeSamples.length > 50) {
+      this.responseTimeSamples = this.responseTimeSamples.slice(-50);
+    }
 
     logger.debug('Metrics cleanup completed');
   }
