@@ -102,21 +102,22 @@ export class MonitoringService {
   }
 
   private initializeMonitoring(): void {
+    // Increase intervals to reduce memory pressure
     setInterval(() => {
       this.performHealthCheck().catch(error => {
         logger.error('Health check failed:', error);
       });
-    }, 30 * 1000);
+    }, 60 * 1000); // Changed from 30s to 60s
 
     setInterval(() => {
       this.collectMetrics().catch(error => {
         logger.error('Metrics collection failed:', error);
       });
-    }, 60 * 1000);
+    }, 120 * 1000); // Changed from 60s to 120s
 
     setInterval(() => {
       this.cleanupMetrics();
-    }, 300 * 1000);
+    }, 180 * 1000); // Changed from 300s to 180s for more frequent cleanup
 
     logger.info('Monitoring service initialized');
   }
@@ -421,7 +422,8 @@ export class MonitoringService {
 
     this.alerts.push(alert);
     
-    if (this.alerts.length > 100) {
+    // Reduce alert limit to save memory
+    if (this.alerts.length > 50) {
       this.alerts.shift();
     }
 
