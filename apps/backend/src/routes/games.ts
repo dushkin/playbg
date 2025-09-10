@@ -132,7 +132,7 @@ router.post('/',
   try {
     // Use validated data from middleware
     const validatedData = (req as any).validatedData;
-    const { gameType, gameSpeed, opponentId } = validatedData;
+    const { gameType, gameSpeed, stepTiming, opponentId } = validatedData;
     const userId = req.user._id.toString();
     const user = req.user;
 
@@ -155,6 +155,7 @@ router.post('/',
       player2Id: opponent?._id?.toString(),
       gameType,
       gameSpeed,
+      stepTiming,
       isPrivate: gameType === GameType.NOT_RANKED
     });
 

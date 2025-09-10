@@ -411,6 +411,7 @@ export class ValidationService {
     const schema = Joi.object({
       gameType: Joi.string().valid(...Object.values(GameType)).required(),
       gameSpeed: Joi.string().valid(...Object.values(GameSpeed)).required(),
+      stepTiming: Joi.string().valid(...Object.values(StepTiming)).optional(),
       opponentId: Joi.string().optional(),
       isPrivate: Joi.boolean().default(false),
       stakes: Joi.number().min(0).max(1000).optional()
