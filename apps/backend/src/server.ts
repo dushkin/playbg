@@ -19,6 +19,7 @@ import healthRoutes from './routes/health';
 
 // Import socket handlers
 import { setupSocketHandlers } from './socket/socketHandlers';
+import { setSocketServer } from './utils/socketEmitter';
 
 // Import services
 import { getRedisService } from './services/redisService';
@@ -230,6 +231,7 @@ app.use('/api/admin', authMiddleware, rateLimitService.createExpressMiddleware('
 app.use('/health', healthRoutes);
 
 // Setup Socket.IO handlers
+setSocketServer(io);
 setupSocketHandlers(io);
 
 // Error handling middleware

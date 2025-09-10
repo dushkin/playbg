@@ -165,6 +165,27 @@ export const gamesAPI = {
     const response: AxiosResponse<ApiResponse<any>> = await api.get('/games/find/status')
     return response.data
   },
+
+  // New game lobby APIs
+  getAvailableGames: async (): Promise<ApiResponse<any[]>> => {
+    const response: AxiosResponse<ApiResponse<any[]>> = await api.get('/games/available')
+    return response.data
+  },
+
+  getMyGames: async (): Promise<ApiResponse<any[]>> => {
+    const response: AxiosResponse<ApiResponse<any[]>> = await api.get('/games/my-games')
+    return response.data
+  },
+
+  getGameHistory: async (page = 1, limit = 20): Promise<ApiResponse<any[]>> => {
+    const response: AxiosResponse<ApiResponse<any[]>> = await api.get(`/games/history?page=${page}&limit=${limit}`)
+    return response.data
+  },
+
+  joinGame: async (gameId: string): Promise<ApiResponse<any>> => {
+    const response: AxiosResponse<ApiResponse<any>> = await api.post(`/games/${gameId}/join`)
+    return response.data
+  },
 }
 
 // Tournaments API
