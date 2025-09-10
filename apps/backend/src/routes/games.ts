@@ -172,6 +172,23 @@ router.post('/',
 
     await game.save();
 
+    // If no opponent was specified, add creator to matchmaking queue
+    if (!opponent) {
+      const matchmakingQueue = {
+        userId,
+        username: user.username,
+        rating: user.rating,
+        gamePeriod,
+        isPrivate: false,
+        preferences: {},
+        joinedAt: Date.now(),
+        gameId: game._id.toString() // Link to the created game
+      };
+
+      await getRedisService().addToMatchmakingQueue(matchmakingQueue);
+      logger.info(`Game creator ${user.username} added to matchmaking queue for game: ${game._id}`);
+    }
+
     logger.info(`Game created: ${game._id} by user: ${userId}`);
 
     res.status(201).json({
@@ -475,14 +492,45 @@ router.post('/find',
     );
 
     if (opponent) {
-      // Create game immediately
-      const game = await gameStateManager.createGame({
-        player1Id: userId,
-        player2Id: opponent.userId,
-        gameType: gameType || GameType.NOT_RANKED,
-        gamePeriod,
-        isPrivate: false
-      });
+      let game;
+      
+      // Check if opponent already has a game waiting (from create game flow)
+      if (opponent.gameId) {
+        // Join existing game
+        game = await GameModel.findById(opponent.gameId);
+        if (game && game.players.length < 2) {
+          // Add second player to existing game
+          game.players.push({
+            userId: user._id.toString(),
+            username: user.username,
+            rating: user.rating,
+            color: 'black',
+            timeRemaining: game.gamePeriod === GamePeriod.UNLIMITED ? undefined : getTimeForPeriod(game.gamePeriod),
+            isReady: true
+          });
+          await game.save();
+          
+          logger.info(`User ${user.username} joined existing game: ${game._id}`);
+        } else {
+          // Game is full or doesn't exist, create new one
+          game = await gameStateManager.createGame({
+            player1Id: userId,
+            player2Id: opponent.userId,
+            gameType: gameType || GameType.NOT_RANKED,
+            gamePeriod,
+            isPrivate: false
+          });
+        }
+      } else {
+        // Create new game
+        game = await gameStateManager.createGame({
+          player1Id: userId,
+          player2Id: opponent.userId,
+          gameType: gameType || GameType.NOT_RANKED,
+          gamePeriod,
+          isPrivate: false
+        });
+      }
 
       // Update player information
       if (game.players && game.players[0]) {

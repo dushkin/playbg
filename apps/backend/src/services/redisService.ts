@@ -14,6 +14,7 @@ export interface MatchmakingQueue {
     gameType?: string;
   };
   joinedAt: number;
+  gameId?: string; // Optional: ID of pre-created game waiting for second player
 }
 
 export interface GameSession {

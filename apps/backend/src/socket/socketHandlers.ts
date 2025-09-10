@@ -185,8 +185,12 @@ export const setupSocketHandlers = (io: SocketIOServer): void => {
 
           logger.info(`Matched players: ${socket.username} vs ${opponent.username}`);
         } else {
-          socket.emit('matchmaking:queued', { position: 1 });
-          logger.info(`${socket.username} added to matchmaking queue`);
+          // Get current queue size for better position reporting
+          const queueKey = `matchmaking:${queue.gamePeriod}`;
+          const queueSize = await getRedisService().getRedisClient().zcard(queueKey);
+          
+          socket.emit('matchmaking:queued', { position: queueSize });
+          logger.info(`${socket.username} added to matchmaking queue, position: ${queueSize}, waiting for opponent`);
         }
       } catch (error) {
         logger.error('Matchmaking join error:', error);
