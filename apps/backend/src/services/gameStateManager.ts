@@ -6,9 +6,9 @@ import {
   GameState,
   GameMove,
   ChatMessage,
-  GameSpeed,
+  GamePeriod,
   GameType,
-  StepTiming
+  StepPeriod
 } from '@playbg/shared';
 
 export interface GameStateUpdate {
@@ -27,8 +27,8 @@ export interface GameCreationOptions {
   player1Id: string;
   player2Id?: string;
   gameType: GameType;
-  gameSpeed: GameSpeed;
-  stepTiming?: StepTiming;
+  gamePeriod: GamePeriod;
+  stepPeriod?: StepPeriod;
   isPrivate: boolean;
   spectators?: string[];
 }
@@ -90,8 +90,8 @@ export class GameStateManager {
         dice: initialState.dice,
         gameState: options.player2Id ? 'in_progress' : 'waiting',
         gameType: options.gameType,
-        gameSpeed: options.gameSpeed,
-        stepTiming: options.stepTiming,
+        gamePeriod: options.gamePeriod,
+        stepPeriod: options.stepPeriod,
         startTime: new Date(),
         moves: initialState.moves,
         spectators: options.spectators || [],

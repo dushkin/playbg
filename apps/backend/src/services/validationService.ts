@@ -2,8 +2,8 @@ import Joi from 'joi';
 import {
   GameMove,
   GameType,
-  GameSpeed,
-  StepTiming,
+  GamePeriod,
+  StepPeriod,
   TournamentType,
   TournamentFormat,
   MatchStatus,
@@ -410,8 +410,8 @@ export class ValidationService {
   public validateGameCreation(gameData: any): ValidationResult {
     const schema = Joi.object({
       gameType: Joi.string().valid(...Object.values(GameType)).required(),
-      gameSpeed: Joi.string().valid(...Object.values(GameSpeed)).required(),
-      stepTiming: Joi.string().valid(...Object.values(StepTiming)).optional(),
+      gamePeriod: Joi.string().valid(...Object.values(GamePeriod)).required(),
+      stepPeriod: Joi.string().valid(...Object.values(StepPeriod)).optional(),
       opponentId: Joi.string().optional(),
       isPrivate: Joi.boolean().default(false),
       stakes: Joi.number().min(0).max(1000).optional()
@@ -445,7 +445,7 @@ export class ValidationService {
 
   public validateFindGame(findGameData: any): ValidationResult {
     const schema = Joi.object({
-      gameSpeed: Joi.string().valid(...Object.values(GameSpeed)).required(),
+      gamePeriod: Joi.string().valid(...Object.values(GamePeriod)).required(),
       gameType: Joi.string().valid(...Object.values(GameType)).default(GameType.NOT_RANKED),
       preferences: Joi.object({
         ratingRange: Joi.number().integer().min(0).max(500).default(200),
@@ -493,7 +493,7 @@ export class ValidationService {
       startTime: Joi.date().greater('now').required(),
       rules: Joi.object({
         matchLength: Joi.number().integer().min(1).max(21).required(),
-        timeControl: Joi.string().valid(...Object.values(GameSpeed)).required(),
+        timeControl: Joi.string().valid(...Object.values(GamePeriod)).required(),
         doubleAllowed: Joi.boolean().default(true),
         crawfordRule: Joi.boolean().default(true)
       }).required()
@@ -547,7 +547,7 @@ export class ValidationService {
   public validateSocketEvent(eventName: string, data: any): ValidationResult {
     const schemas: Record<string, Joi.ObjectSchema> = {
       'matchmaking:join': Joi.object({
-        gameSpeed: Joi.string().valid(...Object.values(GameSpeed)).default(GameSpeed.THIRTY_MINUTES),
+        gamePeriod: Joi.string().valid(...Object.values(GamePeriod)).default(GamePeriod.UNLIMITED),
         gameType: Joi.string().valid(...Object.values(GameType)).default(GameType.NOT_RANKED),
         preferences: Joi.object({
           ratingRange: Joi.number().integer().min(0).max(500).default(200),

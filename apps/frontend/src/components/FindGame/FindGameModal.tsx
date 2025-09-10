@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { GameSpeed, GameType } from '@playbg/shared'
+import { GamePeriod, GameType } from '@playbg/shared'
 import LoadingSpinner from '../UI/LoadingSpinner'
 
 interface FindGameModalProps {
@@ -15,7 +15,7 @@ interface FindGameModalProps {
 }
 
 export interface FindGamePreferences {
-  gameSpeed: GameSpeed
+  gamePeriod: GamePeriod
   gameType: GameType
   ratingRange: number
   acceptLowerRating: boolean
@@ -30,7 +30,7 @@ const FindGameModal: React.FC<FindGameModalProps> = ({
   queueStatus
 }) => {
   const [preferences, setPreferences] = useState<FindGamePreferences>({
-    gameSpeed: GameSpeed.UNLIMITED,
+    gamePeriod: GamePeriod.UNLIMITED,
     gameType: GameType.NOT_RANKED,
     ratingRange: 200,
     acceptLowerRating: true,
@@ -93,21 +93,21 @@ const FindGameModal: React.FC<FindGameModalProps> = ({
         ) : (
           // Game Preferences Form
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Game Speed */}
+            {/* Game Period */}
             <div>
-              <label htmlFor="gameSpeed" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="gamePeriod" className="block text-sm font-medium text-gray-700 mb-1">
                 Max Match Time
               </label>
               <select
-                id="gameSpeed"
-                value={preferences.gameSpeed}
-                onChange={(e) => setPreferences({ ...preferences, gameSpeed: e.target.value as GameSpeed })}
+                id="gamePeriod"
+                value={preferences.gamePeriod}
+                onChange={(e) => setPreferences({ ...preferences, gamePeriod: e.target.value as GamePeriod })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value={GameSpeed.THREE_MINUTES}>3 minutes</option>
-                <option value={GameSpeed.TEN_MINUTES}>10 minutes</option>
-                <option value={GameSpeed.THIRTY_MINUTES}>30 minutes</option>
-                <option value={GameSpeed.UNLIMITED}>Unlimited</option>
+                <option value={GamePeriod.THREE_MINUTES}>3 minutes</option>
+                <option value={GamePeriod.TEN_MINUTES}>10 minutes</option>
+                <option value={GamePeriod.THIRTY_MINUTES}>30 minutes</option>
+                <option value={GamePeriod.UNLIMITED}>Unlimited</option>
               </select>
             </div>
 

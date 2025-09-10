@@ -118,7 +118,7 @@ class SocketService {
 
   // Matchmaking methods
   joinMatchmaking(preferences: {
-    gameSpeed: string
+    gamePeriod: string
     gameType?: string
     isPrivate?: boolean
     preferences?: any
@@ -128,8 +128,8 @@ class SocketService {
     }
 
     this.socket.emit('matchmaking:join', {
-      gameSpeed: preferences.gameSpeed,
-      gameType: preferences.gameType || 'casual',
+      gamePeriod: preferences.gamePeriod,
+      gameType: preferences.gameType || 'not-ranked',
       isPrivate: preferences.isPrivate || false,
       preferences: preferences.preferences || {}
     })

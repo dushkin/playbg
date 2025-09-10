@@ -1,19 +1,19 @@
-import { GameSpeed } from '@playbg/shared';
+import { GamePeriod } from '@playbg/shared';
 
 /**
- * Returns the time limit in milliseconds for a given game speed.
- * @param speed The game speed.
+ * Returns the time limit in milliseconds for a given game period.
+ * @param period The game period.
  * @returns The time limit in milliseconds, or 0 for unlimited.
  */
-export function getTimeForSpeed(speed: GameSpeed): number {
-  switch (speed) {
-    case GameSpeed.THREE_MINUTES:
+export function getTimeForPeriod(period: GamePeriod): number {
+  switch (period) {
+    case GamePeriod.THREE_MINUTES:
       return 3 * 60 * 1000; // 3 minutes in milliseconds
-    case GameSpeed.TEN_MINUTES:
+    case GamePeriod.TEN_MINUTES:
       return 10 * 60 * 1000; // 10 minutes
-    case GameSpeed.THIRTY_MINUTES:
+    case GamePeriod.THIRTY_MINUTES:
       return 30 * 60 * 1000; // 30 minutes
-    case GameSpeed.UNLIMITED:
+    case GamePeriod.UNLIMITED:
     default:
       return 0; // No time limit
   }

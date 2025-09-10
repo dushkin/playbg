@@ -1,12 +1,12 @@
 import Redis from 'ioredis';
-import { GameSpeed } from '@playbg/shared';
+import { GamePeriod } from '@playbg/shared';
 import { logger } from '../utils/logger';
 
 export interface MatchmakingQueue {
   userId: string;
   username: string;
   rating: number;
-  gameSpeed: GameSpeed;
+  gamePeriod: GamePeriod;
   isPrivate: boolean;
   preferences: {
     minRating?: number;
@@ -100,7 +100,7 @@ export class RedisService {
 
   // Matchmaking Queue Management
   public async addToMatchmakingQueue(queue: MatchmakingQueue): Promise<void> {
-    const key = `matchmaking:${queue.gameSpeed}`;
+    const key = `matchmaking:${queue.gamePeriod}`;
     const data = JSON.stringify(queue);
     
     // Add to sorted set with rating as score for ranking-based matchmaking
@@ -134,10 +134,10 @@ export class RedisService {
   public async findMatchmakingOpponent(
     userId: string,
     rating: number,
-    gameSpeed: GameSpeed,
+    gamePeriod: GamePeriod,
     ratingRange: number = 200
   ): Promise<MatchmakingQueue | null> {
-    const key = `matchmaking:${gameSpeed}`;
+    const key = `matchmaking:${gamePeriod}`;
     
     // Find opponents within rating range
     const minRating = rating - ratingRange;

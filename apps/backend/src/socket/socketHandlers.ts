@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { AuthenticatedSocket } from '../types/socket';
 import { User } from '../models/User';
 import { TournamentModel } from '../models/Tournament';
-import { SocketEvents, GameSpeed, GameType, MatchStatus } from '@playbg/shared';
+import { SocketEvents, GamePeriod, GameType, MatchStatus } from '@playbg/shared';
 import { gameStateManager } from '../services/gameStateManager';
 import { getRedisService, MatchmakingQueue } from '../services/redisService';
 import { rateLimitService } from '../services/rateLimitService';
@@ -127,7 +127,7 @@ export const setupSocketHandlers = (io: SocketIOServer): void => {
           userId: socket.userId!,
           username: socket.username || user.username,
           rating: user.rating,
-          gameSpeed: validatedData.gameSpeed,
+          gamePeriod: validatedData.gamePeriod,
           isPrivate: false,
           preferences: validatedData.preferences || {},
           joinedAt: Date.now()
@@ -143,7 +143,7 @@ export const setupSocketHandlers = (io: SocketIOServer): void => {
         const opponent = await getRedisService().findMatchmakingOpponent(
           socket.userId!,
           user.rating,
-          queue.gameSpeed
+          queue.gamePeriod
         );
 
         if (opponent) {
@@ -152,7 +152,7 @@ export const setupSocketHandlers = (io: SocketIOServer): void => {
             player1Id: socket.userId!,
             player2Id: opponent.userId,
             gameType: GameType.NOT_RANKED,
-            gameSpeed: queue.gameSpeed,
+            gamePeriod: queue.gamePeriod,
             isPrivate: false
           });
 

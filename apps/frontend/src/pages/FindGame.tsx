@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppSelector, useAppDispatch } from '../hooks/redux'
-import { GameSpeed, GameType } from '@playbg/shared'
+import { GamePeriod, GameType } from '@playbg/shared'
 import { gamesAPI } from '../services/api'
 import FindGameModal, { FindGamePreferences } from '../components/FindGame/FindGameModal'
 import { useSocket } from '../hooks/useSocket'
@@ -42,7 +42,7 @@ const FindGame: React.FC = () => {
     try {
       // First try HTTP API for immediate match
       const response = await gamesAPI.findGame({
-        gameSpeed: preferences.gameSpeed,
+        gamePeriod: preferences.gamePeriod,
         gameType: preferences.gameType,
         preferences: {
           ratingRange: preferences.ratingRange,
@@ -62,7 +62,7 @@ const FindGame: React.FC = () => {
       // If no immediate match, use Socket.IO for real-time matchmaking
       if (socketService.isConnected()) {
         socketService.joinMatchmaking({
-          gameSpeed: preferences.gameSpeed,
+          gamePeriod: preferences.gamePeriod,
           gameType: preferences.gameType,
           isPrivate: false,
           preferences: {
@@ -142,7 +142,7 @@ const FindGame: React.FC = () => {
               <p className="text-gray-600 text-sm mb-4">Play for fun without affecting rating</p>
               <button
                 onClick={() => handleFindGame({
-                  gameSpeed: GameSpeed.UNLIMITED,
+                  gamePeriod: GamePeriod.UNLIMITED,
                   gameType: GameType.NOT_RANKED,
                   ratingRange: 200,
                   acceptLowerRating: true,
@@ -165,7 +165,7 @@ const FindGame: React.FC = () => {
               <p className="text-gray-600 text-sm mb-4">Compete for rating points</p>
               <button
                 onClick={() => handleFindGame({
-                  gameSpeed: GameSpeed.UNLIMITED,
+                  gamePeriod: GamePeriod.UNLIMITED,
                   gameType: GameType.RANKED,
                   ratingRange: 200,
                   acceptLowerRating: true,

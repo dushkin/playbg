@@ -11,7 +11,7 @@ import {
   ParticipantStatus,
   RoundStatus,
   MatchStatus,
-  GameSpeed
+  GamePeriod
 } from '@playbg/shared';
 
 export interface ITournamentDocument extends Document, Omit<Tournament, 'id'> {
@@ -34,8 +34,9 @@ const TournamentRulesSchema = new Schema<TournamentRules>({
   },
   timeControl: {
     type: String,
-    enum: Object.values(GameSpeed),
-    required: true
+    enum: Object.values(GamePeriod),
+    required: true,
+    default: GamePeriod.UNLIMITED
   },
   doubleAllowed: {
     type: Boolean,

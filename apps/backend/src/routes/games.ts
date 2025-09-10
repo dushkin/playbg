@@ -12,9 +12,9 @@ import {
   ApiResponse,
   Game,
   GameType,
-  GameSpeed,
+  GamePeriod,
   GameState,
-  StepTiming,
+  StepPeriod,
   Player,
   GameMove,
   ChatMessage
@@ -31,16 +31,16 @@ import {
 
 const router = express.Router();
 
-// Helper function to get time limits based on game speed
-function getTimeForSpeed(speed: GameSpeed): number {
-  switch (speed) {
-    case GameSpeed.THREE_MINUTES:
+// Helper function to get time limits based on game period
+function getTimeForPeriod(period: GamePeriod): number {
+  switch (period) {
+    case GamePeriod.THREE_MINUTES:
       return 3 * 60 * 1000; // 3 minutes in milliseconds
-    case GameSpeed.TEN_MINUTES:
+    case GamePeriod.TEN_MINUTES:
       return 10 * 60 * 1000; // 10 minutes
-    case GameSpeed.THIRTY_MINUTES:
+    case GamePeriod.THIRTY_MINUTES:
       return 30 * 60 * 1000; // 30 minutes
-    case GameSpeed.UNLIMITED:
+    case GamePeriod.UNLIMITED:
     default:
       return 0; // No time limit
   }
@@ -49,8 +49,8 @@ function getTimeForSpeed(speed: GameSpeed): number {
 // Validation schemas
 const createGameSchema = Joi.object({
   gameType: Joi.string().valid(...Object.values(GameType)).required(),
-  gameSpeed: Joi.string().valid(...Object.values(GameSpeed)).required(),
-  stepTiming: Joi.string().valid(...Object.values(StepTiming)).optional(),
+  gamePeriod: Joi.string().valid(...Object.values(GamePeriod)).required(),
+  stepPeriod: Joi.string().valid(...Object.values(StepPeriod)).optional(),
   opponentId: Joi.string().optional()
 });
 
@@ -66,9 +66,9 @@ const addChatSchema = Joi.object({
 });
 
 const findGameSchema = Joi.object({
-  gameSpeed: Joi.string().valid(...Object.values(GameSpeed)).required(),
+  gamePeriod: Joi.string().valid(...Object.values(GamePeriod)).required(),
   gameType: Joi.string().valid(...Object.values(GameType)).default(GameType.NOT_RANKED),
-  stepTiming: Joi.string().valid(...Object.values(StepTiming)).optional(),
+  stepPeriod: Joi.string().valid(...Object.values(StepPeriod)).optional(),
   isPrivate: Joi.boolean().default(false),
   preferences: Joi.object({
     ratingRange: Joi.number().integer().min(0).max(500).default(200),
@@ -132,7 +132,7 @@ router.post('/',
   try {
     // Use validated data from middleware
     const validatedData = (req as any).validatedData;
-    const { gameType, gameSpeed, stepTiming, opponentId } = validatedData;
+    const { gameType, gamePeriod, stepPeriod, opponentId } = validatedData;
     const userId = req.user._id.toString();
     const user = req.user;
 
@@ -154,8 +154,8 @@ router.post('/',
       player1Id: userId,
       player2Id: opponent?._id?.toString(),
       gameType,
-      gameSpeed,
-      stepTiming,
+      gamePeriod,
+      stepPeriod,
       isPrivate: false
     });
 
@@ -319,7 +319,7 @@ router.put('/:id/join', async (req: Request, res: Response): Promise<void> => {
       username: user.username,
       rating: user.rating,
       color: 'black',
-      timeRemaining: game.gameSpeed === GameSpeed.UNLIMITED ? undefined : getTimeForSpeed(game.gameSpeed),
+      timeRemaining: game.gamePeriod === GamePeriod.UNLIMITED ? undefined : getTimeForPeriod(game.gamePeriod),
       isReady: true
     };
 
@@ -459,7 +459,7 @@ router.post('/find',
   async (req: Request, res: Response): Promise<void> => {
   try {
     const validatedData = (req as any).validatedData;
-    const { gameSpeed, gameType, preferences } = validatedData;
+    const { gamePeriod, gameType, preferences } = validatedData;
     const userId = req.user._id.toString();
     const user = req.user;
 
@@ -470,7 +470,7 @@ router.post('/find',
     const opponent = await redisService.findMatchmakingOpponent(
       userId,
       user.rating,
-      gameSpeed,
+      gamePeriod,
       preferences?.ratingRange || 200
     );
 
@@ -480,7 +480,7 @@ router.post('/find',
         player1Id: userId,
         player2Id: opponent.userId,
         gameType: gameType || GameType.NOT_RANKED,
-        gameSpeed,
+        gamePeriod,
         isPrivate: false
       });
 
@@ -521,7 +521,7 @@ router.post('/find',
         userId,
         username: user.username,
         rating: user.rating,
-        gameSpeed,
+        gamePeriod,
         isPrivate: false,
         preferences: preferences || {},
         joinedAt: Date.now()

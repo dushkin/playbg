@@ -92,7 +92,7 @@ class MockRedisService {
   // Matchmaking methods
   async addToMatchmakingQueue(queue: any): Promise<void> {}
   async removeFromMatchmakingQueue(userId: string): Promise<void> {}
-  async findMatchmakingOpponent(userId: string, rating: number, gameSpeed: string, isPrivate?: boolean, ratingRange?: number): Promise<any> {
+  async findMatchmakingOpponent(userId: string, rating: number, gamePeriod: string, isPrivate?: boolean, ratingRange?: number): Promise<any> {
     return null;
   }
 

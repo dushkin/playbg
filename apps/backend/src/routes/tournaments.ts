@@ -9,7 +9,7 @@ import {
   TournamentType,
   TournamentFormat,
   TournamentStatus,
-  GameSpeed
+  GamePeriod
 } from '@playbg/shared';
 import { rateLimitService } from '../services/rateLimitService';
 import { 
@@ -34,7 +34,7 @@ const createTournamentSchema = Joi.object({
   startTime: Joi.date().greater('now').required(),
   rules: Joi.object({
     matchLength: Joi.number().integer().min(1).max(21).required(),
-    timeControl: Joi.string().valid(...Object.values(GameSpeed)).required(),
+    timeControl: Joi.string().valid(...Object.values(GamePeriod)).required(),
     doubleAllowed: Joi.boolean().default(true),
     crawfordRule: Joi.boolean().default(true)
   }).required()

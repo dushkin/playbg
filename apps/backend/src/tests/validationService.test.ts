@@ -1,5 +1,5 @@
 import { validationService } from '../services/validationService';
-import { GameMove, GameType, GameSpeed, TournamentType, TournamentFormat, BoardState, INITIAL_BOARD_STATE } from '@playbg/shared';
+import { GameMove, GameType, GamePeriod, TournamentType, TournamentFormat, BoardState, INITIAL_BOARD_STATE } from '@playbg/shared';
 
 describe('ValidationService', () => {
   describe('validateGameMove', () => {
@@ -280,20 +280,20 @@ describe('ValidationService', () => {
   describe('validateGameCreation', () => {
     it('should validate proper game creation data', () => {
       const gameData = {
-        gameType: GameType.CASUAL,
-        gameSpeed: GameSpeed.STANDARD,
+        gameType: GameType.NOT_RANKED,
+        gamePeriod: GamePeriod.UNLIMITED,
         isPrivate: false
       };
 
       const result = validationService.validateGameCreation(gameData);
       expect(result.isValid).toBe(true);
-      expect(result.sanitizedData?.gameType).toBe(GameType.CASUAL);
+      expect(result.sanitizedData?.gameType).toBe(GameType.NOT_RANKED);
     });
 
     it('should reject private games without opponent ID', () => {
       const gameData = {
-        gameType: GameType.PRIVATE,
-        gameSpeed: GameSpeed.STANDARD,
+        gameType: GameType.NOT_RANKED,
+        gamePeriod: GamePeriod.UNLIMITED,
         isPrivate: true
       };
 
@@ -305,7 +305,7 @@ describe('ValidationService', () => {
     it('should reject ranked games with stakes', () => {
       const gameData = {
         gameType: GameType.RANKED,
-        gameSpeed: GameSpeed.STANDARD,
+        gamePeriod: GamePeriod.UNLIMITED,
         stakes: 100
       };
 
@@ -317,7 +317,7 @@ describe('ValidationService', () => {
     it('should reject invalid game types', () => {
       const gameData = {
         gameType: 'invalid_type',
-        gameSpeed: GameSpeed.STANDARD
+        gamePeriod: GamePeriod.UNLIMITED
       };
 
       const result = validationService.validateGameCreation(gameData);
@@ -337,7 +337,7 @@ describe('ValidationService', () => {
         startTime: new Date(Date.now() + 60 * 60 * 1000), // 1 hour from now
         rules: {
           matchLength: 7,
-          timeControl: GameSpeed.STANDARD,
+          timeControl: GamePeriod.UNLIMITED,
           doubleAllowed: true,
           crawfordRule: true
         }
@@ -357,7 +357,7 @@ describe('ValidationService', () => {
         startTime: new Date(Date.now() + 60 * 60 * 1000),
         rules: {
           matchLength: 7,
-          timeControl: GameSpeed.STANDARD,
+          timeControl: GamePeriod.UNLIMITED,
           doubleAllowed: true,
           crawfordRule: true
         }
@@ -376,7 +376,7 @@ describe('ValidationService', () => {
         startTime: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes from now (too soon)
         rules: {
           matchLength: 7,
-          timeControl: GameSpeed.STANDARD,
+          timeControl: GamePeriod.UNLIMITED,
           doubleAllowed: true,
           crawfordRule: true
         }
@@ -396,7 +396,7 @@ describe('ValidationService', () => {
         startTime: new Date(Date.now() + 60 * 60 * 1000),
         rules: {
           matchLength: 7,
-          timeControl: GameSpeed.STANDARD,
+          timeControl: GamePeriod.UNLIMITED,
           doubleAllowed: true,
           crawfordRule: true
         }
@@ -417,7 +417,7 @@ describe('ValidationService', () => {
         startTime: new Date(Date.now() + 60 * 60 * 1000),
         rules: {
           matchLength: 7,
-          timeControl: GameSpeed.STANDARD,
+          timeControl: GamePeriod.UNLIMITED,
           doubleAllowed: true,
           crawfordRule: true
         }
@@ -433,14 +433,14 @@ describe('ValidationService', () => {
   describe('validateSocketEvent', () => {
     it('should validate matchmaking:join events', () => {
       const eventData = {
-        gameSpeed: GameSpeed.STANDARD,
-        gameType: GameType.CASUAL,
+        gamePeriod: GamePeriod.UNLIMITED,
+        gameType: GameType.NOT_RANKED,
         isPrivate: false
       };
 
       const result = validationService.validateSocketEvent('matchmaking:join', eventData);
       expect(result.isValid).toBe(true);
-      expect(result.sanitizedData?.gameSpeed).toBe(GameSpeed.STANDARD);
+      expect(result.sanitizedData?.gamePeriod).toBe(GamePeriod.UNLIMITED);
     });
 
     it('should validate game:join events', () => {
@@ -582,8 +582,8 @@ describe('Validation Integration', () => {
 
     // Test game creation
     const gameData = {
-      gameType: GameType.CASUAL,
-      gameSpeed: GameSpeed.STANDARD,
+      gameType: GameType.NOT_RANKED,
+      gamePeriod: GamePeriod.UNLIMITED,
       isPrivate: false
     };
     

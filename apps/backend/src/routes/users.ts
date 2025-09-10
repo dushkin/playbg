@@ -40,7 +40,7 @@ router.get('/profile', async (req: Request, res: Response): Promise<void> => {
 // @access  Private
 router.put('/profile', async (req: Request, res: Response): Promise<void> => {
   try {
-    const allowedUpdates = ['bio', 'country', 'preferredGameSpeed', 'avatar'];
+    const allowedUpdates = ['bio', 'country', 'preferredGamePeriod', 'avatar'];
     const updates = Object.keys(req.body);
     const isValidOperation = updates.every(update => allowedUpdates.includes(update));
 

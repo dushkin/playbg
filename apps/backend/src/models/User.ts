@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import mongoose, { Document, Schema } from 'mongoose';
-import { GameSpeed, INITIAL_RATING } from '@playbg/shared';
+import { GamePeriod, INITIAL_RATING } from '@playbg/shared';
 
 export interface IUserDocument extends Document {
   username: string;
@@ -14,7 +14,7 @@ export interface IUserDocument extends Document {
   lastSeen: Date;
   bio?: string;
   country?: string;
-  preferredGameSpeed: GameSpeed;
+  preferredGameSpeed: GamePeriod;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -84,8 +84,8 @@ const userSchema = new Schema<IUserDocument>({
   },
   preferredGameSpeed: {
     type: String,
-    enum: [...Object.values(GameSpeed), 'blitz', 'rapid', 'standard'], // Allow old values during migration
-    default: GameSpeed.THIRTY_MINUTES
+    enum: Object.values(GamePeriod),
+    default: GamePeriod.UNLIMITED
   }
 }, {
   timestamps: true,
@@ -120,18 +120,18 @@ userSchema.pre('save', async function(next) {
   }
 });
 
-// Pre-save middleware to migrate old GameSpeed values
+// Pre-save middleware to migrate old GameSpeed values to GamePeriod
 userSchema.pre('save', function(next) {
-  // Migration map for old GameSpeed values to new ones
+  // Migration map for old GameSpeed values to new GamePeriod ones
   const migrationMap: Record<string, string> = {
-    'blitz': GameSpeed.THREE_MINUTES,
-    'rapid': GameSpeed.TEN_MINUTES,
-    'standard': GameSpeed.THIRTY_MINUTES,
-    'unlimited': GameSpeed.UNLIMITED
+    'blitz': GamePeriod.THREE_MINUTES,
+    'rapid': GamePeriod.TEN_MINUTES,
+    'standard': GamePeriod.THIRTY_MINUTES,
+    'unlimited': GamePeriod.UNLIMITED
   };
 
   if (this.preferredGameSpeed && migrationMap[this.preferredGameSpeed]) {
-    this.preferredGameSpeed = migrationMap[this.preferredGameSpeed] as GameSpeed;
+    this.preferredGameSpeed = migrationMap[this.preferredGameSpeed] as GamePeriod;
   }
 
   next();

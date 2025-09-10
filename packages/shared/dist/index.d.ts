@@ -14,7 +14,7 @@ export interface User {
 export interface UserProfile extends User {
     bio?: string;
     country?: string;
-    preferredGameSpeed: GameSpeed;
+    preferredGameSpeed: GamePeriod;
     achievements: Achievement[];
     statistics: UserStatistics;
 }
@@ -43,8 +43,8 @@ export interface Game {
     dice: [number, number] | null;
     gameState: GameState;
     gameType: GameType;
-    gameSpeed: GameSpeed;
-    stepTiming?: StepTiming;
+    gamePeriod: GamePeriod;
+    stepPeriod?: StepPeriod;
     startTime: Date;
     endTime?: Date;
     winner?: string;
@@ -91,13 +91,13 @@ export declare enum GameType {
     NOT_RANKED = "not_ranked",
     RANKED = "ranked"
 }
-export declare enum GameSpeed {
+export declare enum GamePeriod {
     THREE_MINUTES = "3min",// 3 minutes per match
     TEN_MINUTES = "10min",// 10 minutes per match
     THIRTY_MINUTES = "30min",// 30 minutes per match
     UNLIMITED = "unlimited"
 }
-export declare enum StepTiming {
+export declare enum StepPeriod {
     TEN_SECONDS = "10s",
     THIRTY_SECONDS = "30s",
     ONE_MINUTE = "1m",
@@ -195,7 +195,7 @@ export declare enum MatchStatus {
 }
 export interface TournamentRules {
     matchLength: number;
-    timeControl: GameSpeed;
+    timeControl: GamePeriod;
     doubleAllowed: boolean;
     crawfordRule: boolean;
 }
@@ -267,7 +267,7 @@ export interface SocketEvents {
     };
     'matchmaking:join': {
         gameType: GameType;
-        gameSpeed: GameSpeed;
+        gamePeriod: GamePeriod;
     };
     'matchmaking:leave': {};
     'matchmaking:match_found': {

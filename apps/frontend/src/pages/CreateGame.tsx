@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppSelector } from '../hooks/redux'
 import { gamesAPI } from '../services/api'
-import { GameType, GameSpeed, StepTiming } from '@playbg/shared'
+import { GameType, GamePeriod, StepPeriod } from '@playbg/shared'
 import LoadingSpinner from '../components/UI/LoadingSpinner'
 
 const CreateGame: React.FC = () => {
@@ -13,8 +13,8 @@ const CreateGame: React.FC = () => {
 
   const [gameData, setGameData] = useState({
     gameType: GameType.NOT_RANKED,
-    gameSpeed: GameSpeed.UNLIMITED,
-    stepTiming: StepTiming.THREE_DAYS,
+    gamePeriod: GamePeriod.UNLIMITED,
+    stepPeriod: StepPeriod.THREE_DAYS,
   })
 
   if (!user) {
@@ -80,57 +80,57 @@ const CreateGame: React.FC = () => {
                 </p>
               </div>
 
-              {/* Game Speed Selection */}
+              {/* Game Period Selection */}
               <div>
-                <label htmlFor="gameSpeed" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="gamePeriod" className="block text-sm font-medium text-gray-700 mb-2">
                   Max Match Time
                 </label>
                 <select
-                  id="gameSpeed"
-                  value={gameData.gameSpeed}
-                  onChange={(e) => setGameData({ ...gameData, gameSpeed: e.target.value as GameSpeed })}
+                  id="gamePeriod"
+                  value={gameData.gamePeriod}
+                  onChange={(e) => setGameData({ ...gameData, gamePeriod: e.target.value as GamePeriod })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                   disabled={isLoading}
                 >
-                  <option value={GameSpeed.THREE_MINUTES}>3 minutes</option>
-                  <option value={GameSpeed.TEN_MINUTES}>10 minutes</option>
-                  <option value={GameSpeed.THIRTY_MINUTES}>30 minutes</option>
-                  <option value={GameSpeed.UNLIMITED}>Unlimited</option>
+                  <option value={GamePeriod.THREE_MINUTES}>3 minutes</option>
+                  <option value={GamePeriod.TEN_MINUTES}>10 minutes</option>
+                  <option value={GamePeriod.THIRTY_MINUTES}>30 minutes</option>
+                  <option value={GamePeriod.UNLIMITED}>Unlimited</option>
                 </select>
                 <p className="mt-1 text-xs text-gray-500">
-                  {gameData.gameSpeed === GameSpeed.THREE_MINUTES && "Fast-paced matches"}
-                  {gameData.gameSpeed === GameSpeed.TEN_MINUTES && "Medium-length matches"}
-                  {gameData.gameSpeed === GameSpeed.THIRTY_MINUTES && "Longer matches"}
-                  {gameData.gameSpeed === GameSpeed.UNLIMITED && "Set maximum period for the whole match"}
+                  {gameData.gamePeriod === GamePeriod.THREE_MINUTES && "Fast-paced matches"}
+                  {gameData.gamePeriod === GamePeriod.TEN_MINUTES && "Medium-length matches"}
+                  {gameData.gamePeriod === GamePeriod.THIRTY_MINUTES && "Longer matches"}
+                  {gameData.gamePeriod === GamePeriod.UNLIMITED && "Set maximum time period for the whole match"}
                 </p>
               </div>
 
-              {/* Step Timing Selection (only for Unlimited) */}
-              {gameData.gameSpeed === GameSpeed.UNLIMITED && (
+              {/* Step Period Selection (only for Unlimited) */}
+              {gameData.gamePeriod === GamePeriod.UNLIMITED && (
                 <div>
-                  <label htmlFor="stepTiming" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="stepPeriod" className="block text-sm font-medium text-gray-700 mb-2">
                     Time per Move
                   </label>
                   <select
-                    id="stepTiming"
-                    value={gameData.stepTiming}
-                    onChange={(e) => setGameData({ ...gameData, stepTiming: e.target.value as StepTiming })}
+                    id="stepPeriod"
+                    value={gameData.stepPeriod}
+                    onChange={(e) => setGameData({ ...gameData, stepPeriod: e.target.value as StepPeriod })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                     disabled={isLoading}
                   >
-                    <option value={StepTiming.TEN_SECONDS}>10 seconds</option>
-                    <option value={StepTiming.THIRTY_SECONDS}>30 seconds</option>
-                    <option value={StepTiming.ONE_MINUTE}>1 minute</option>
-                    <option value={StepTiming.THREE_MINUTES}>3 minutes</option>
-                    <option value={StepTiming.TEN_MINUTES}>10 minutes</option>
-                    <option value={StepTiming.ONE_HOUR}>1 hour</option>
-                    <option value={StepTiming.THREE_HOURS}>3 hours</option>
-                    <option value={StepTiming.ONE_DAY}>1 day</option>
-                    <option value={StepTiming.THREE_DAYS}>3 days (Default)</option>
-                    <option value={StepTiming.FIVE_DAYS}>5 days</option>
-                    <option value={StepTiming.SEVEN_DAYS}>7 days</option>
-                    <option value={StepTiming.TEN_DAYS}>10 days</option>
-                    <option value={StepTiming.UNLIMITED}>Unlimited</option>
+                    <option value={StepPeriod.TEN_SECONDS}>10 seconds</option>
+                    <option value={StepPeriod.THIRTY_SECONDS}>30 seconds</option>
+                    <option value={StepPeriod.ONE_MINUTE}>1 minute</option>
+                    <option value={StepPeriod.THREE_MINUTES}>3 minutes</option>
+                    <option value={StepPeriod.TEN_MINUTES}>10 minutes</option>
+                    <option value={StepPeriod.ONE_HOUR}>1 hour</option>
+                    <option value={StepPeriod.THREE_HOURS}>3 hours</option>
+                    <option value={StepPeriod.ONE_DAY}>1 day</option>
+                    <option value={StepPeriod.THREE_DAYS}>3 days (Default)</option>
+                    <option value={StepPeriod.FIVE_DAYS}>5 days</option>
+                    <option value={StepPeriod.SEVEN_DAYS}>7 days</option>
+                    <option value={StepPeriod.TEN_DAYS}>10 days</option>
+                    <option value={StepPeriod.UNLIMITED}>Unlimited</option>
                   </select>
                   <p className="mt-1 text-xs text-gray-500">
                     Maximum time allowed per move

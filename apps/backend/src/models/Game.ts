@@ -7,8 +7,8 @@ import {
   ChatMessage,
   GameState,
   GameType,
-  GameSpeed,
-  StepTiming,
+  GamePeriod,
+  StepPeriod,
   INITIAL_BOARD_STATE
 } from '@playbg/shared';
 import logger from '../utils/logger';
@@ -165,17 +165,18 @@ const gameSchema = new Schema<IGameDocument>({
   },
   gameType: {
     type: String,
-    enum: [...Object.values(GameType), 'casual', 'private', 'tournament'], // Allow old values during migration
+    enum: Object.values(GameType),
     required: true
   },
-  gameSpeed: {
+  gamePeriod: {
     type: String,
-    enum: [...Object.values(GameSpeed), 'blitz', 'rapid', 'standard'], // Allow old values during migration
-    required: true
+    enum: Object.values(GamePeriod),
+    required: true,
+    default: GamePeriod.UNLIMITED
   },
-  stepTiming: {
+  stepPeriod: {
     type: String,
-    enum: Object.values(StepTiming),
+    enum: Object.values(StepPeriod),
     required: false
   },
   startTime: {
@@ -216,12 +217,12 @@ const gameSchema = new Schema<IGameDocument>({
 
 // Pre-save middleware to migrate old enum values
 gameSchema.pre('save', function(next) {
-  // Migration map for old GameSpeed values to new ones
-  const gameSpeedMigrationMap: Record<string, string> = {
-    'blitz': GameSpeed.THREE_MINUTES,
-    'rapid': GameSpeed.TEN_MINUTES,
-    'standard': GameSpeed.THIRTY_MINUTES,
-    'unlimited': GameSpeed.UNLIMITED
+  // Migration map for old GameSpeed/GamePeriod values to new ones
+  const gamePeriodMigrationMap: Record<string, string> = {
+    'blitz': GamePeriod.THREE_MINUTES,
+    'rapid': GamePeriod.TEN_MINUTES,
+    'standard': GamePeriod.THIRTY_MINUTES,
+    'unlimited': GamePeriod.UNLIMITED
   };
 
   // Migration map for old GameType values to new ones
@@ -231,8 +232,27 @@ gameSchema.pre('save', function(next) {
     'tournament': GameType.NOT_RANKED
   };
 
-  if (this.gameSpeed && gameSpeedMigrationMap[this.gameSpeed]) {
-    this.gameSpeed = gameSpeedMigrationMap[this.gameSpeed] as GameSpeed;
+  // Handle both old gameSpeed and new gamePeriod fields for migration
+  if ((this as any).gameSpeed) {
+    const oldValue = (this as any).gameSpeed;
+    if (gamePeriodMigrationMap[oldValue]) {
+      this.gamePeriod = gamePeriodMigrationMap[oldValue] as GamePeriod;
+    } else if (oldValue === 'standard') {
+      this.gamePeriod = GamePeriod.THIRTY_MINUTES;
+    } else {
+      this.gamePeriod = oldValue;
+    }
+    delete (this as any).gameSpeed;
+  }
+  
+  if (this.gamePeriod && gamePeriodMigrationMap[this.gamePeriod]) {
+    this.gamePeriod = gamePeriodMigrationMap[this.gamePeriod] as GamePeriod;
+  }
+  
+  // Handle stepTiming to stepPeriod migration
+  if ((this as any).stepTiming) {
+    this.stepPeriod = (this as any).stepTiming;
+    delete (this as any).stepTiming;
   }
 
   if (this.gameType && gameTypeMigrationMap[this.gameType]) {
