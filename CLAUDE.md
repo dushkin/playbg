@@ -120,14 +120,14 @@ Run typecheck following code changes if relevant.
 ## Deployment Guidelines
 
 ### ⚠️ IMPORTANT: Deployment Control Guidelines
-**Claude should not push to origin autonomously, but build scripts executed by the user should handle deployment.**
+**Claude should not commit or push to origin autonomously.**
 
 **For Claude AI Assistant:**
 - ✅ **Make changes locally** without asking for permission
-- ✅ **Commit changes locally** as needed for organization
+- ❌ **DO NOT commit changes** (git commit) unless explicitly instructed by the user
 - ❌ **DO NOT push to origin** (git push) unless explicitly instructed by the user
 - ❌ **DO NOT deploy to remote** without clear user instruction
-- Focus on local development and testing, await explicit deployment approval before pushing
+- Focus on local development and testing only, await explicit user instruction for any git operations
 
 **For User-Executed Scripts (build.sh, deploy.sh, etc.):**
 - ✅ **Scripts should handle git push** when the user manually executes them
