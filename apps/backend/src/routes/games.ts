@@ -198,6 +198,191 @@ router.post('/',
   }
 });
 
+// @route   GET /api/games/available
+// @desc    Get list of games waiting for opponents
+// @access  Private
+router.get('/available',
+  validateQueryParams(['limit']),
+  async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      logger.error('No authenticated user found in request');
+      res.status(401).json({
+        success: false,
+        error: 'Authentication required'
+      } as ApiResponse);
+      return;
+    }
+    
+    const userId = req.user._id.toString();
+    logger.info(`Getting available games for user: ${userId}`);
+    
+    // Find games that are waiting for opponents (only 1 player) and not created by current user
+    const availableGames = await GameModel.find({
+      gameState: GameState.WAITING,
+      'players.1': { $exists: false }, // Only has 1 player
+      'players.0.userId': { $ne: userId } // Not created by current user
+    })
+    .sort({ createdAt: -1 })
+    .limit(50)
+    .lean();
+    
+    logger.info(`Found ${availableGames.length} available games`);
+
+    res.json({
+      success: true,
+      data: availableGames
+    } as ApiResponse);
+  } catch (error) {
+    logger.error('Error getting available games:', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      userId: req.user?._id?.toString()
+    });
+    res.status(500).json({
+      success: false,
+      error: 'Server error retrieving available games'
+    } as ApiResponse);
+  }
+});
+
+// @route   GET /api/games/my-games
+// @desc    Get list of user's active games
+// @access  Private
+router.get('/my-games',
+  validateQueryParams(['status']),
+  async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      logger.error('No authenticated user found in my-games request');
+      res.status(401).json({
+        success: false,
+        error: 'Authentication required'
+      } as ApiResponse);
+      return;
+    }
+    
+    const userId = req.user._id.toString();
+    logger.info(`Getting my games for user: ${userId}`);
+    
+    // Find games where user is a player and game is active
+    const myGames = await GameModel.find({
+      $or: [
+        { gameState: GameState.WAITING },
+        { gameState: GameState.IN_PROGRESS }
+      ],
+      'players.userId': userId
+    })
+    .sort({ updatedAt: -1 })
+    .lean();
+    
+    logger.info(`Found ${myGames.length} user games`);
+
+    // Add status information for each game
+    const gamesWithStatus = myGames.map(game => {
+      const isCreator = game.players[0]?.userId.toString() === userId;
+      let status = 'Waiting for opponent';
+      
+      if (game.gameState === GameState.IN_PROGRESS) {
+        const currentPlayerIndex = game.currentPlayer;
+        const isMyTurn = game.players[currentPlayerIndex]?.userId.toString() === userId;
+        status = isMyTurn ? 'Your turn' : "Opponent's turn";
+      }
+      
+      return {
+        ...game,
+        status,
+        isCreator
+      };
+    });
+
+    res.json({
+      success: true,
+      data: gamesWithStatus
+    } as ApiResponse);
+  } catch (error) {
+    logger.error('Error getting my games:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error retrieving your games'
+    } as ApiResponse);
+  }
+});
+
+// @route   GET /api/games/history
+// @desc    Get list of user's completed games
+// @access  Private
+router.get('/history',
+  validateQueryParams(['page', 'limit']),
+  validatePagination,
+  async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      logger.error('No authenticated user found in history request');
+      res.status(401).json({
+        success: false,
+        error: 'Authentication required'
+      } as ApiResponse);
+      return;
+    }
+    
+    const userId = req.user._id.toString();
+    logger.info(`Getting game history for user: ${userId}`);
+    const { page = 1, limit = 20 } = req.query;
+    
+    // Find completed games where user was a player
+    const historyGames = await GameModel.find({
+      $or: [
+        { gameState: GameState.FINISHED },
+        { gameState: GameState.ABANDONED }
+      ],
+      'players.userId': userId
+    })
+    .sort({ endTime: -1, updatedAt: -1 })
+    .limit(Number(limit) * Number(page))
+    .skip((Number(page) - 1) * Number(limit))
+    .lean();
+    
+    logger.info(`Found ${historyGames.length} history games`);
+
+    const total = await GameModel.countDocuments({
+      $or: [
+        { gameState: GameState.FINISHED },
+        { gameState: GameState.ABANDONED }
+      ],
+      'players.userId': userId
+    });
+
+    // Add result information for each game
+    const gamesWithResult = historyGames.map(game => {
+      const isWinner = game.winner === userId;
+      const result = game.winner ? (isWinner ? 'Won' : 'Lost') : 'Draw';
+      
+      return {
+        ...game,
+        result
+      };
+    });
+
+    res.json({
+      success: true,
+      data: gamesWithResult,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        totalPages: Math.ceil(total / Number(limit))
+      }
+    } as ApiResponse);
+  } catch (error) {
+    logger.error('Error getting game history:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error retrieving game history'
+    } as ApiResponse);
+  }
+});
+
 // @route   GET /api/games/:id
 // @desc    Get game state by ID
 // @access  Private
@@ -638,283 +823,6 @@ router.get('/find/status', async (req: Request, res: Response): Promise<void> =>
     res.status(500).json({
       success: false,
       error: 'Server error getting matchmaking status'
-    } as ApiResponse);
-  }
-});
-
-// @route   GET /api/games/available
-// @desc    Get list of games waiting for opponents
-// @access  Private
-router.get('/available', async (req: Request, res: Response): Promise<void> => {
-  try {
-    if (!req.user) {
-      logger.error('No authenticated user found in request');
-      res.status(401).json({
-        success: false,
-        error: 'Authentication required'
-      } as ApiResponse);
-      return;
-    }
-    
-    const userId = req.user._id.toString();
-    logger.info(`Getting available games for user: ${userId}`);
-    
-    // Find games that are waiting for opponents (only 1 player) and not created by current user
-    const availableGames = await GameModel.find({
-      gameState: GameState.WAITING,
-      'players.1': { $exists: false }, // Only has 1 player
-      'players.0.userId': { $ne: userId } // Not created by current user
-    })
-    .sort({ createdAt: -1 })
-    .limit(50)
-    .lean();
-    
-    logger.info(`Found ${availableGames.length} available games`);
-
-    res.json({
-      success: true,
-      data: availableGames
-    } as ApiResponse);
-  } catch (error) {
-    logger.error('Error getting available games:', {
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-      userId: req.user?._id?.toString()
-    });
-    res.status(500).json({
-      success: false,
-      error: 'Server error retrieving available games'
-    } as ApiResponse);
-  }
-});
-
-// @route   GET /api/games/my-games
-// @desc    Get list of user's active games
-// @access  Private
-router.get('/my-games', async (req: Request, res: Response): Promise<void> => {
-  try {
-    if (!req.user) {
-      logger.error('No authenticated user found in my-games request');
-      res.status(401).json({
-        success: false,
-        error: 'Authentication required'
-      } as ApiResponse);
-      return;
-    }
-    
-    const userId = req.user._id.toString();
-    logger.info(`Getting my games for user: ${userId}`);
-    
-    // Find games where user is a player and game is active
-    const myGames = await GameModel.find({
-      $or: [
-        { gameState: GameState.WAITING },
-        { gameState: GameState.IN_PROGRESS }
-      ],
-      'players.userId': userId
-    })
-    .sort({ updatedAt: -1 })
-    .lean();
-    
-    logger.info(`Found ${myGames.length} user games`);
-
-    // Add status information for each game
-    const gamesWithStatus = myGames.map(game => {
-      const isCreator = game.players[0]?.userId.toString() === userId;
-      let status = 'Waiting for opponent';
-      
-      if (game.gameState === GameState.IN_PROGRESS) {
-        const currentPlayerIndex = game.currentPlayer;
-        const isMyTurn = game.players[currentPlayerIndex]?.userId.toString() === userId;
-        status = isMyTurn ? 'Your turn' : "Opponent's turn";
-      }
-      
-      return {
-        ...game,
-        status,
-        isCreator
-      };
-    });
-
-    res.json({
-      success: true,
-      data: gamesWithStatus
-    } as ApiResponse);
-  } catch (error) {
-    logger.error('Error getting my games:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Server error retrieving your games'
-    } as ApiResponse);
-  }
-});
-
-// @route   GET /api/games/history
-// @desc    Get list of user's completed games
-// @access  Private
-router.get('/history', async (req: Request, res: Response): Promise<void> => {
-  try {
-    if (!req.user) {
-      logger.error('No authenticated user found in history request');
-      res.status(401).json({
-        success: false,
-        error: 'Authentication required'
-      } as ApiResponse);
-      return;
-    }
-    
-    const userId = req.user._id.toString();
-    logger.info(`Getting game history for user: ${userId}`);
-    const { page = 1, limit = 20 } = req.query;
-    
-    // Find completed games where user was a player
-    const historyGames = await GameModel.find({
-      $or: [
-        { gameState: GameState.FINISHED },
-        { gameState: GameState.ABANDONED }
-      ],
-      'players.userId': userId
-    })
-    .sort({ endTime: -1, updatedAt: -1 })
-    .limit(Number(limit) * Number(page))
-    .skip((Number(page) - 1) * Number(limit))
-    .lean();
-    
-    logger.info(`Found ${historyGames.length} history games`);
-
-    const total = await GameModel.countDocuments({
-      $or: [
-        { gameState: GameState.FINISHED },
-        { gameState: GameState.ABANDONED }
-      ],
-      'players.userId': userId
-    });
-
-    // Add result information for each game
-    const gamesWithResult = historyGames.map(game => {
-      const isWinner = game.winner === userId;
-      const result = game.winner ? (isWinner ? 'Won' : 'Lost') : 'Draw';
-      
-      return {
-        ...game,
-        result
-      };
-    });
-
-    res.json({
-      success: true,
-      data: gamesWithResult,
-      pagination: {
-        page: Number(page),
-        limit: Number(limit),
-        total,
-        totalPages: Math.ceil(total / Number(limit))
-      }
-    } as ApiResponse);
-  } catch (error) {
-    logger.error('Error getting game history:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Server error retrieving game history'
-    } as ApiResponse);
-  }
-});
-
-// @route   POST /api/games/:id/join
-// @desc    Join a waiting game
-// @access  Private
-router.post('/:id/join',
-  validateObjectId('id'),
-  async (req: Request, res: Response): Promise<void> => {
-  try {
-    const gameId = req.params.id;
-    const userId = req.user._id.toString();
-    const user = req.user;
-
-    // Find the game
-    const game = await GameModel.findById(gameId);
-    if (!game) {
-      res.status(404).json({
-        success: false,
-        error: 'Game not found'
-      } as ApiResponse);
-      return;
-    }
-
-    // Check if game is available to join
-    if (game.gameState !== GameState.WAITING) {
-      res.status(400).json({
-        success: false,
-        error: 'Game is not available to join'
-      } as ApiResponse);
-      return;
-    }
-
-    // Check if game has space for second player
-    if (game.players.length >= 2) {
-      res.status(400).json({
-        success: false,
-        error: 'Game is already full'
-      } as ApiResponse);
-      return;
-    }
-
-    // Check if user is not already in the game
-    const isAlreadyInGame = game.players.some(player => player.userId === userId);
-    if (isAlreadyInGame) {
-      res.status(400).json({
-        success: false,
-        error: 'You are already in this game'
-      } as ApiResponse);
-      return;
-    }
-
-    // Add second player to the game
-    const timeRemaining = game.gamePeriod === GamePeriod.UNLIMITED ? undefined : getTimeForPeriod(game.gamePeriod);
-    
-    game.players.push({
-      userId: user._id.toString(),
-      username: user.username,
-      rating: user.rating,
-      color: 'black',
-      timeRemaining,
-      isReady: true
-    });
-
-    // Randomly select who goes first (0 or 1)
-    game.currentPlayer = Math.random() < 0.5 ? 0 : 1;
-    
-    // Update game state to in progress
-    game.gameState = GameState.IN_PROGRESS;
-    game.startTime = new Date();
-
-    await game.save();
-
-    logger.info(`User ${user.username} joined game ${gameId}, first player: ${game.players[game.currentPlayer].username}`);
-
-    // Emit socket events for game joined
-    emitGameUpdate('game:joined', {
-      gameId: game._id.toString(),
-      joiner: user.username,
-      gameData: game.toJSON(),
-      firstPlayer: game.players[game.currentPlayer].username
-    });
-
-    // Game is no longer available, remove from available games list
-    emitGameUpdate('game:unavailable', {
-      gameId: game._id.toString()
-    });
-
-    res.json({
-      success: true,
-      data: game.toJSON(),
-      message: 'Successfully joined game'
-    } as ApiResponse);
-  } catch (error) {
-    logger.error('Error joining game:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Server error joining game'
     } as ApiResponse);
   }
 });
