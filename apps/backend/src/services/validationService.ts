@@ -552,9 +552,10 @@ export class ValidationService {
         gameType: Joi.string().valid(...Object.values(GameType)).default(GameType.NOT_RANKED),
         isPrivate: Joi.boolean().default(false),
         preferences: Joi.object({
-          minRating: Joi.number().integer().min(0).max(3000).optional(),
-          maxRating: Joi.number().integer().min(0).max(3000).optional()
-        }).optional()
+          ratingRange: Joi.number().integer().min(0).max(500).default(200),
+          acceptLowerRating: Joi.boolean().default(true),
+          acceptHigherRating: Joi.boolean().default(true)
+        }).default({})
       }),
       
       'game:join': Joi.object({
