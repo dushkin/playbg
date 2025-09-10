@@ -447,7 +447,6 @@ export class ValidationService {
     const schema = Joi.object({
       gameSpeed: Joi.string().valid(...Object.values(GameSpeed)).required(),
       gameType: Joi.string().valid(...Object.values(GameType)).default(GameType.NOT_RANKED),
-      isPrivate: Joi.boolean().default(false),
       preferences: Joi.object({
         ratingRange: Joi.number().integer().min(0).max(500).default(200),
         acceptLowerRating: Joi.boolean().default(true),
@@ -550,7 +549,6 @@ export class ValidationService {
       'matchmaking:join': Joi.object({
         gameSpeed: Joi.string().valid(...Object.values(GameSpeed)).default(GameSpeed.THIRTY_MINUTES),
         gameType: Joi.string().valid(...Object.values(GameType)).default(GameType.NOT_RANKED),
-        isPrivate: Joi.boolean().default(false),
         preferences: Joi.object({
           ratingRange: Joi.number().integer().min(0).max(500).default(200),
           acceptLowerRating: Joi.boolean().default(true),

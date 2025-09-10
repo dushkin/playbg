@@ -100,20 +100,20 @@ export class RedisService {
 
   // Matchmaking Queue Management
   public async addToMatchmakingQueue(queue: MatchmakingQueue): Promise<void> {
-    const key = `matchmaking:${queue.gameSpeed}:${queue.isPrivate ? 'private' : 'public'}`;
+    const key = `matchmaking:${queue.gameSpeed}`;
     const data = JSON.stringify(queue);
     
     // Add to sorted set with rating as score for ranking-based matchmaking
     await this.redis.zadd(key, queue.rating, data);
     
-    // Set expiry for queue entry (15 minutes)
-    await this.redis.expire(key, 900);
+    // Remove expiry - keep queues indefinitely until matched
+    // await this.redis.expire(key, 900);
     
     logger.info(`Added user ${queue.username} to matchmaking queue: ${key}`);
   }
 
   public async removeFromMatchmakingQueue(userId: string): Promise<void> {
-    const patterns = ['matchmaking:*:public', 'matchmaking:*:private'];
+    const patterns = ['matchmaking:*'];
     
     for (const pattern of patterns) {
       const keys = await this.redis.keys(pattern);
@@ -135,10 +135,9 @@ export class RedisService {
     userId: string,
     rating: number,
     gameSpeed: GameSpeed,
-    isPrivate: boolean = false,
     ratingRange: number = 200
   ): Promise<MatchmakingQueue | null> {
-    const key = `matchmaking:${gameSpeed}:${isPrivate ? 'private' : 'public'}`;
+    const key = `matchmaking:${gameSpeed}`;
     
     // Find opponents within rating range
     const minRating = rating - ratingRange;

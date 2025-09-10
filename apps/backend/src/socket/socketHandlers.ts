@@ -128,7 +128,7 @@ export const setupSocketHandlers = (io: SocketIOServer): void => {
           username: socket.username || user.username,
           rating: user.rating,
           gameSpeed: validatedData.gameSpeed,
-          isPrivate: validatedData.isPrivate,
+          isPrivate: false,
           preferences: validatedData.preferences || {},
           joinedAt: Date.now()
         };
@@ -143,8 +143,7 @@ export const setupSocketHandlers = (io: SocketIOServer): void => {
         const opponent = await getRedisService().findMatchmakingOpponent(
           socket.userId!,
           user.rating,
-          queue.gameSpeed,
-          queue.isPrivate
+          queue.gameSpeed
         );
 
         if (opponent) {
@@ -154,7 +153,7 @@ export const setupSocketHandlers = (io: SocketIOServer): void => {
             player2Id: opponent.userId,
             gameType: GameType.NOT_RANKED,
             gameSpeed: queue.gameSpeed,
-            isPrivate: queue.isPrivate
+            isPrivate: false
           });
 
           const gameId = (game._id as any).toString();

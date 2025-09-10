@@ -156,7 +156,7 @@ router.post('/',
       gameType,
       gameSpeed,
       stepTiming,
-      isPrivate: gameType === GameType.NOT_RANKED
+      isPrivate: false
     });
 
     // Update player information with actual user data
@@ -212,13 +212,7 @@ router.get('/:id',
     const isPlayer = game.isPlayerInGame(userId);
     const isSpectator = game.spectators.includes(userId);
     
-    if (!isPlayer && !isSpectator && (game as any).isPrivate) {
-      res.status(403).json({
-        success: false,
-        error: 'Access denied to this game'
-      } as ApiResponse);
-      return;
-    }
+    // All games are publicly accessible
 
     // Get current game state from cache or database
     const gameState = await gameStateManager.getGameState(id);
@@ -431,14 +425,7 @@ router.post('/:id/spectate', async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // Can't spectate private games unless you're a player
-    if (game.gameType === GameType.NOT_RANKED && !game.isPlayerInGame(userId)) {
-      res.status(403).json({
-        success: false,
-        error: 'Cannot spectate private games'
-      } as ApiResponse);
-      return;
-    }
+    // All games can be spectated
 
     // Can't spectate if you're already a player
     if (game.isPlayerInGame(userId)) {
@@ -472,7 +459,7 @@ router.post('/find',
   async (req: Request, res: Response): Promise<void> => {
   try {
     const validatedData = (req as any).validatedData;
-    const { gameSpeed, gameType, isPrivate, preferences } = validatedData;
+    const { gameSpeed, gameType, preferences } = validatedData;
     const userId = req.user._id.toString();
     const user = req.user;
 
@@ -484,7 +471,6 @@ router.post('/find',
       userId,
       user.rating,
       gameSpeed,
-      isPrivate,
       preferences?.ratingRange || 200
     );
 
@@ -495,7 +481,7 @@ router.post('/find',
         player2Id: opponent.userId,
         gameType: gameType || GameType.NOT_RANKED,
         gameSpeed,
-        isPrivate
+        isPrivate: false
       });
 
       // Update player information
@@ -536,7 +522,7 @@ router.post('/find',
         username: user.username,
         rating: user.rating,
         gameSpeed,
-        isPrivate,
+        isPrivate: false,
         preferences: preferences || {},
         joinedAt: Date.now()
       };

@@ -17,6 +17,7 @@ interface GameState {
     estimatedWaitTime: number
     waitTime: number
     preferences: any | null
+    searchingGameType: string | null // Track which specific game type is being searched
   }
 }
 
@@ -34,7 +35,8 @@ const initialState: GameState = {
     queuePosition: 0,
     estimatedWaitTime: 0,
     waitTime: 0,
-    preferences: null
+    preferences: null,
+    searchingGameType: null
   }
 }
 
@@ -80,6 +82,7 @@ const gameSlice = createSlice({
       state.matchmaking.isSearching = true
       state.matchmaking.inQueue = true
       state.matchmaking.preferences = action.payload
+      state.matchmaking.searchingGameType = action.payload.gameType
       state.matchmaking.queuePosition = 0
       state.matchmaking.estimatedWaitTime = 0
       state.matchmaking.waitTime = 0
@@ -98,6 +101,7 @@ const gameSlice = createSlice({
       state.matchmaking.inQueue = false
       state.matchmaking.queuePosition = 0
       state.matchmaking.preferences = null
+      state.matchmaking.searchingGameType = null
       // Game ID is in action.payload for navigation
     },
     stopMatchmaking: (state) => {
@@ -107,6 +111,7 @@ const gameSlice = createSlice({
       state.matchmaking.estimatedWaitTime = 0
       state.matchmaking.waitTime = 0
       state.matchmaking.preferences = null
+      state.matchmaking.searchingGameType = null
     },
   },
 })
