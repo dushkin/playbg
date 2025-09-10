@@ -133,6 +133,9 @@ export const setupSocketHandlers = (io: SocketIOServer): void => {
           joinedAt: Date.now()
         };
 
+        // Remove user from any existing queues first to avoid duplicates
+        await getRedisService().removeFromMatchmakingQueue(socket.userId!);
+        
         // Add to matchmaking queue
         await getRedisService().addToMatchmakingQueue(queue);
         
@@ -645,6 +648,10 @@ export const setupSocketHandlers = (io: SocketIOServer): void => {
             await user.save();
           }
 
+          // Remove user from matchmaking queues and clean up socket ID
+          await getRedisService().removeFromMatchmakingQueue(socket.userId);
+          await getRedisService().removeUserSocketId(socket.userId);
+          
           // Broadcast user offline status
           socket.broadcast.emit('user:offline', {
             userId: socket.userId
