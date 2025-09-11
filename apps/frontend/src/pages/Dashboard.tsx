@@ -346,7 +346,7 @@ const Dashboard: React.FC = () => {
                                   onClick={() => handleJoinGame(game._id)}
                                   className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded text-sm transition-colors"
                                 >
-                                  Join
+                                  Join now!
                                 </button>
                               </div>
                             </div>
@@ -378,7 +378,7 @@ const Dashboard: React.FC = () => {
                               <div className="flex-1">
                                 <div className="flex items-center justify-between mb-2">
                                   <h4 className="text-md font-medium text-gray-900">
-                                    {game.players.length === 1 ? 'Waiting for opponent' : 
+                                    {game.players.length === 1 ? 'Waiting for an opponent to join' : 
                                      `vs ${game.players.find(p => p.userId !== user.id)?.username || 'Unknown'}`}
                                   </h4>
                                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(game.status || '')}`}>

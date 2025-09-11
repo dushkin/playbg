@@ -110,6 +110,18 @@ class SocketService {
       toast.error(data.message || 'Game error occurred')
     })
 
+    // Game list update events
+    this.socket.on('game:created', (data) => {
+      console.log('New game created:', data)
+      // This event will be handled by components that are listening
+      // The Dashboard component should listen to this event directly
+    })
+
+    this.socket.on('game:unavailable', (data) => {
+      console.log('Game no longer available:', data)
+      // This event will be handled by components that are listening
+    })
+
     // User status events
     this.socket.on('user:offline', (data) => {
       console.log('User went offline:', data)

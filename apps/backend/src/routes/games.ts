@@ -526,6 +526,19 @@ router.put('/:id/join', async (req: Request, res: Response): Promise<void> => {
 
     await game.save();
 
+    // Emit socket events for game updates
+    emitGameUpdate('game:joined', {
+      gameId: game._id.toString(),
+      joiner: user.username,
+      gameData: game.toJSON(),
+      firstPlayer: game.players[0].username
+    });
+
+    // Remove game from available games list since it's now full
+    emitGameUpdate('game:unavailable', {
+      gameId: game._id.toString()
+    });
+
     res.json({
       success: true,
       data: game.toJSON(),
