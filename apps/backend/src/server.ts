@@ -165,10 +165,12 @@ app.use(helmet({
 
 // CORS configuration
 app.use(cors({
-  // In development, allow any origin. This simplifies local testing across different ports
-  // and mobile webviews. In production, restrict to the defined list of domains.
-  origin: process.env.NODE_ENV === 'development' ? allowedOriginsDev : allowedOriginsProd,
-  credentials: true
+  // Allow all origins for now to debug the issue
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 200
 }));
 
 app.use(limiter);
