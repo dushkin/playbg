@@ -284,7 +284,7 @@ const Dashboard: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Mobile Tabs (visible on mobile only) */}
               <div className="lg:hidden col-span-1">
-                <div className="border-b border-gray-200">
+                <div className="border-b border-gray-200 mb-6">
                   <nav className="-mb-px flex space-x-8">
                     <button
                       onClick={() => setActiveTab('available')}

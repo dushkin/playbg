@@ -103,7 +103,7 @@ const Game: React.FC = () => {
         {/* Point number */}
         <div className={`
           absolute ${isTopHalf ? 'bottom-0.5' : 'top-0.5'} left-1/2 transform -translate-x-1/2
-          text-xs font-bold text-amber-900 opacity-50 z-10 pointer-events-none
+          text-xs sm:text-xs font-bold text-amber-900 opacity-40 sm:opacity-50 z-10 pointer-events-none
         `}>
           {pointIndex + 1}
         </div>
@@ -123,8 +123,8 @@ const Game: React.FC = () => {
                 <div
                   key={checkerIndex}
                   className={`
-                    relative w-7 h-7 sm:w-8 sm:h-8 lg:w-9 lg:h-9 rounded-full transition-all duration-300 ease-out
-                    ${checkerIndex === 0 ? '' : '-mt-1'}
+                    relative w-4 h-4 sm:w-6 sm:h-6 lg:w-8 lg:h-8 xl:w-9 xl:h-9 rounded-full transition-all duration-300 ease-out
+                    ${checkerIndex === 0 ? '' : '-mt-0.5 sm:-mt-1'}
                     hover:scale-110 hover:z-30 cursor-pointer
                     transform hover:-translate-y-1
                   `}
@@ -162,8 +162,8 @@ const Game: React.FC = () => {
                 ))}
                 {playerCheckers > 5 && (
                   <div className={`
-                    absolute ${isTopHalf ? 'top-1' : 'bottom-1'} right-1
-                    bg-blue-600 text-white text-xs font-bold rounded-full w-4 h-4 sm:w-5 sm:h-5
+                    absolute ${isTopHalf ? 'top-0.5' : 'bottom-0.5'} right-0.5 sm:${isTopHalf ? 'top-1' : 'bottom-1'} sm:right-1
+                    bg-blue-600 text-white text-xs font-bold rounded-full w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5
                     flex items-center justify-center shadow-lg z-30
                   `}>
                     {playerCheckers}
@@ -181,15 +181,15 @@ const Game: React.FC = () => {
     if (!game) return null
 
     return (
-      <div className="bg-gradient-to-br from-amber-50 via-amber-100 to-amber-200 p-4 sm:p-6 lg:p-8 rounded-2xl shadow-2xl max-w-6xl mx-auto">
+      <div className="bg-gradient-to-br from-amber-50 via-amber-100 to-amber-200 p-2 sm:p-4 lg:p-6 rounded-xl sm:rounded-2xl shadow-2xl w-full mx-auto">
         {/* Board border with wood grain effect */}
-        <div className="bg-gradient-to-br from-amber-900 via-amber-800 to-amber-900 p-3 sm:p-4 rounded-xl shadow-inner">
-          <div className="bg-gradient-to-br from-amber-100 to-amber-50 p-4 sm:p-6 rounded-lg">
+        <div className="bg-gradient-to-br from-amber-900 via-amber-800 to-amber-900 p-2 sm:p-3 lg:p-4 rounded-lg sm:rounded-xl shadow-inner">
+          <div className="bg-gradient-to-br from-amber-100 to-amber-50 p-2 sm:p-4 lg:p-6 rounded-md sm:rounded-lg">
             
             {/* Top half of board */}
-            <div className="flex gap-1 sm:gap-2 h-56 sm:h-64 lg:h-72">
+            <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-32 sm:h-48 lg:h-64 xl:h-72">
               {/* Points 12-17 */}
-              <div className="flex gap-0.5 sm:gap-1 flex-1">
+              <div className="flex gap-0.5 flex-1">
                 {Array.from({ length: 6 }, (_, i) => (
                   <div key={`top-left-${i}`} className="flex-1 min-w-0">
                     {renderPoint(12 + i, true)}
@@ -198,23 +198,23 @@ const Game: React.FC = () => {
               </div>
               
               {/* Center bar */}
-              <div className="w-8 sm:w-10 lg:w-12 flex flex-col items-center justify-center px-1">
+              <div className="w-6 sm:w-8 lg:w-10 xl:w-12 flex flex-col items-center justify-center px-0.5 sm:px-1">
                 <div className="
-                  bg-gradient-to-b from-amber-800 to-amber-900 w-full h-48 sm:h-56 lg:h-64 rounded-lg shadow-inner
-                  border-2 border-amber-700 flex flex-col items-center justify-center
+                  bg-gradient-to-b from-amber-800 to-amber-900 w-full h-28 sm:h-44 lg:h-56 xl:h-64 rounded-md sm:rounded-lg shadow-inner
+                  border border-amber-700 sm:border-2 flex flex-col items-center justify-center
                   relative overflow-hidden
                 ">
-                  <div className="text-amber-200 text-xs font-bold mb-2 z-10">BAR</div>
+                  <div className="text-amber-200 text-xs font-bold mb-1 sm:mb-2 z-10">BAR</div>
                   {/* Wood grain effect */}
                   <div className="absolute inset-0 opacity-20">
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-600 to-transparent transform -skew-y-12" />
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-600 to-transparent transform skew-y-12 translate-y-4" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-600 to-transparent transform skew-y-12 translate-y-2 sm:translate-y-4" />
                   </div>
                 </div>
               </div>
               
               {/* Points 18-23 */}
-              <div className="flex gap-0.5 sm:gap-1 flex-1">
+              <div className="flex gap-0.5 flex-1">
                 {Array.from({ length: 6 }, (_, i) => (
                   <div key={`top-right-${i}`} className="flex-1 min-w-0">
                     {renderPoint(18 + i, true)}
@@ -224,14 +224,14 @@ const Game: React.FC = () => {
             </div>
             
             {/* Center divider */}
-            <div className="h-3 sm:h-4 bg-gradient-to-r from-amber-800 via-amber-700 to-amber-800 my-2 rounded shadow-inner relative overflow-hidden">
+            <div className="h-2 sm:h-3 lg:h-4 bg-gradient-to-r from-amber-800 via-amber-700 to-amber-800 my-1 sm:my-2 rounded shadow-inner relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-600 to-transparent opacity-30" />
             </div>
             
             {/* Bottom half of board */}
-            <div className="flex gap-1 sm:gap-2 h-56 sm:h-64 lg:h-72">
+            <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-32 sm:h-48 lg:h-64 xl:h-72">
               {/* Points 11-6 */}
-              <div className="flex gap-0.5 sm:gap-1 flex-1">
+              <div className="flex gap-0.5 flex-1">
                 {Array.from({ length: 6 }, (_, i) => (
                   <div key={`bottom-left-${i}`} className="flex-1 min-w-0">
                     {renderPoint(11 - i, false)}
@@ -240,23 +240,23 @@ const Game: React.FC = () => {
               </div>
               
               {/* Center bar */}
-              <div className="w-8 sm:w-10 lg:w-12 flex flex-col items-center justify-center px-1">
+              <div className="w-6 sm:w-8 lg:w-10 xl:w-12 flex flex-col items-center justify-center px-0.5 sm:px-1">
                 <div className="
-                  bg-gradient-to-b from-amber-800 to-amber-900 w-full h-48 sm:h-56 lg:h-64 rounded-lg shadow-inner
-                  border-2 border-amber-700 flex flex-col items-center justify-center
+                  bg-gradient-to-b from-amber-800 to-amber-900 w-full h-28 sm:h-44 lg:h-56 xl:h-64 rounded-md sm:rounded-lg shadow-inner
+                  border border-amber-700 sm:border-2 flex flex-col items-center justify-center
                   relative overflow-hidden
                 ">
-                  <div className="text-amber-200 text-xs font-bold mt-2 z-10">BAR</div>
+                  <div className="text-amber-200 text-xs font-bold mt-1 sm:mt-2 z-10">BAR</div>
                   {/* Wood grain effect */}
                   <div className="absolute inset-0 opacity-20">
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-600 to-transparent transform -skew-y-12" />
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-600 to-transparent transform skew-y-12 translate-y-4" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-600 to-transparent transform skew-y-12 translate-y-2 sm:translate-y-4" />
                   </div>
                 </div>
               </div>
               
               {/* Points 5-0 */}
-              <div className="flex gap-0.5 sm:gap-1 flex-1">
+              <div className="flex gap-0.5 flex-1">
                 {Array.from({ length: 6 }, (_, i) => (
                   <div key={`bottom-right-${i}`} className="flex-1 min-w-0">
                     {renderPoint(5 - i, false)}
@@ -300,35 +300,35 @@ const Game: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <div className="max-w-7xl mx-auto py-6 px-4">
+      <div className="max-w-7xl mx-auto py-2 sm:py-4 lg:py-6 px-2 sm:px-4">
         {/* Game Header */}
-        <div className="bg-white shadow rounded-lg p-6 mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <h1 className="text-3xl font-bold text-gray-900">Backgammon Game</h1>
+        <div className="bg-white shadow rounded-lg p-3 sm:p-4 lg:p-6 mb-3 sm:mb-4 lg:mb-6">
+          <div className="flex justify-between items-center mb-3 sm:mb-4">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Your turn</h1>
             <button
               onClick={() => navigate('/dashboard')}
-              className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+              className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-1 px-2 sm:py-2 sm:px-4 rounded text-sm sm:text-base"
             >
-              Back to Dashboard
+              Back
             </button>
           </div>
 
           {/* Players Info */}
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className={`p-4 rounded-lg ${game.currentPlayer === 0 ? 'bg-blue-100 border-2 border-blue-500' : 'bg-gray-100'} flex items-center gap-3`}>
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-white via-gray-100 to-gray-200 border border-gray-300 shadow-md"></div>
-              <div>
-                <h3 className="font-bold text-lg">{game.players[0]?.username || 'Player 1'}</h3>
-                <p className="text-sm text-gray-600">Rating: {game.players[0]?.rating || 'N/A'}</p>
-                <p className="text-sm text-gray-600">White Checkers</p>
+          <div className="grid grid-cols-2 gap-2 sm:gap-4 mb-3 sm:mb-4">
+            <div className={`p-2 sm:p-3 lg:p-4 rounded-lg ${game.currentPlayer === 0 ? 'bg-blue-100 border-2 border-blue-500' : 'bg-gray-100'} flex items-center gap-2 sm:gap-3`}>
+              <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-white via-gray-100 to-gray-200 border border-gray-300 shadow-md flex-shrink-0"></div>
+              <div className="min-w-0">
+                <h3 className="font-bold text-sm sm:text-base lg:text-lg truncate">{game.players[0]?.username || 'Player 1'}</h3>
+                <p className="text-xs sm:text-sm text-gray-600">{game.players[0]?.rating || 'N/A'}</p>
+                <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">White Checkers</p>
               </div>
             </div>
-            <div className={`p-4 rounded-lg ${game.currentPlayer === 1 ? 'bg-blue-100 border-2 border-blue-500' : 'bg-gray-100'} flex items-center gap-3`}>
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-800 via-gray-600 to-gray-700 border border-gray-800 shadow-md"></div>
-              <div>
-                <h3 className="font-bold text-lg">{game.players[1]?.username || 'Player 2'}</h3>
-                <p className="text-sm text-gray-600">Rating: {game.players[1]?.rating || 'N/A'}</p>
-                <p className="text-sm text-gray-600">Black Checkers</p>
+            <div className={`p-2 sm:p-3 lg:p-4 rounded-lg ${game.currentPlayer === 1 ? 'bg-blue-100 border-2 border-blue-500' : 'bg-gray-100'} flex items-center gap-2 sm:gap-3`}>
+              <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-gray-800 via-gray-600 to-gray-700 border border-gray-800 shadow-md flex-shrink-0"></div>
+              <div className="min-w-0">
+                <h3 className="font-bold text-sm sm:text-base lg:text-lg truncate">{game.players[1]?.username || 'Player 2'}</h3>
+                <p className="text-xs sm:text-sm text-gray-600">{game.players[1]?.rating || 'N/A'}</p>
+                <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">Black Checkers</p>
               </div>
             </div>
           </div>
@@ -351,28 +351,28 @@ const Game: React.FC = () => {
         </div>
 
         {/* Game Board */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4 text-center">Game Board</h2>
+        <div className="bg-white shadow rounded-lg p-2 sm:p-4 lg:p-6">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 sm:mb-4 text-center">Game Board</h2>
           {renderBoard()}
         </div>
 
         {/* Game Actions */}
-        <div className="bg-white shadow rounded-lg p-6 mt-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">Game Actions</h3>
-          <div className="flex space-x-4">
+        <div className="bg-white shadow rounded-lg p-3 sm:p-4 lg:p-6 mt-3 sm:mt-4 lg:mt-6">
+          <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4">Actions</h3>
+          <div className="flex flex-col sm:flex-row gap-2 sm:space-x-4 sm:gap-0">
             <button
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50 text-sm sm:text-base"
               disabled={!isCurrentPlayer || game.gameState !== GameStateEnum.IN_PROGRESS}
             >
               Roll Dice
             </button>
             <button
-              className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50"
+              className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50 text-sm sm:text-base"
               disabled={!isCurrentPlayer || game.gameState !== GameStateEnum.IN_PROGRESS}
             >
               End Turn
             </button>
-            <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
+            <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded text-sm sm:text-base">
               Resign
             </button>
           </div>
