@@ -8,10 +8,31 @@ import { cacheInvalidationService } from '../services/cacheInvalidationService';
 
 const router = express.Router();
 
+// Health check timeout middleware
+const healthTimeout = (timeoutMs: number = 10000) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const timeout = setTimeout(() => {
+      if (!res.headersSent) {
+        res.status(503).json({
+          status: 'TIMEOUT',
+          error: 'Health check timed out',
+          timestamp: new Date().toISOString()
+        });
+      }
+    }, timeoutMs);
+
+    // Clear timeout when response is finished
+    res.on('finish', () => clearTimeout(timeout));
+    res.on('close', () => clearTimeout(timeout));
+    
+    next();
+  };
+};
+
 // @route   GET /health
 // @desc    Basic health check endpoint
 // @access  Public
-router.get('/', async (req, res: Response): Promise<void> => {
+router.get('/', healthTimeout(5000), async (req, res: Response): Promise<void> => {
   try {
     const basicHealth = await monitoringService.performHealthCheck();
     
@@ -42,7 +63,7 @@ router.get('/', async (req, res: Response): Promise<void> => {
 // @route   GET /health/detailed
 // @desc    Detailed health check with all service statuses
 // @access  Public
-router.get('/detailed', async (req, res: Response): Promise<void> => {
+router.get('/detailed', healthTimeout(10000), async (req, res: Response): Promise<void> => {
   try {
     const health = await monitoringService.performHealthCheck();
     
@@ -225,7 +246,7 @@ router.get('/performance', async (req: Request, res: Response): Promise<void> =>
 // @route   POST /health/test
 // @desc    Run comprehensive system test
 // @access  Private (Admin)
-router.post('/test', async (req: Request, res: Response): Promise<void> => {
+router.post('/test', healthTimeout(30000), async (req: Request, res: Response): Promise<void> => {
   try {
     const testResults: any = {
       timestamp: new Date(),

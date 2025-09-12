@@ -376,7 +376,7 @@ const startServer = async () => {
       cacheInvalidationService.warmAllCaches().catch(error => {
         logger.error('Initial cache warming failed:', error);
       });
-    }, 5000); // Wait 5 seconds after startup
+    }, 15000); // Wait 15 seconds after startup for proper initialization
 
     server.listen(PORT, () => {
       logger.info(`Server running on port ${PORT}`);
