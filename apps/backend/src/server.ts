@@ -236,9 +236,12 @@ app.use(express.urlencoded({ extended: true }));
 // Add monitoring middleware
 app.use(requestMetricsMiddleware);
 
-// Request logging
+// Request logging (excluding frequent health checks)
 app.use((req, res, next) => {
-  logger.info(`${req.method} ${req.path} - ${req.ip}`);
+  // Don't log health checks to reduce noise (they happen every 5s from load balancers)
+  if (!req.path.startsWith('/health')) {
+    logger.info(`${req.method} ${req.path} - ${req.ip}`);
+  }
   next();
 });
 
