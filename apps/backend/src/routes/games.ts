@@ -217,10 +217,10 @@ router.get('/available',
     const userId = req.user._id.toString();
     logger.info(`Getting available games for user: ${userId}`);
     
-    // Find games that are waiting for opponents (only 1 player) and not created by current user
+    // Find games that are waiting for opponents (second player is 'waiting') and not created by current user
     const availableGames = await GameModel.find({
       gameState: GameState.WAITING,
-      'players.1': { $exists: false }, // Only has 1 player
+      'players.1.userId': 'waiting', // Second player slot is waiting for someone to join
       'players.0.userId': { $ne: userId } // Not created by current user
     })
     .sort({ createdAt: -1 })
