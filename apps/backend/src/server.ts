@@ -163,15 +163,52 @@ app.use(helmet({
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
 }));
 
-// CORS configuration
+// CORS configuration - Updated for Render deployment compatibility
 app.use(cors({
-  // Allow all origins for now to debug the issue
-  origin: true,
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://192.168.1.114:3000',
+      'https://playbg-frontend-dev.onrender.com',
+      'https://playbg-frontend-prod.onrender.com',
+      'https://playbg-backend-dev.onrender.com',
+      'https://playbg-backend-prod.onrender.com',
+      'capacitor://localhost',
+      'http://localhost',
+      'https://localhost',
+      process.env.FRONTEND_URL
+    ].filter(Boolean);
+    
+    logger.info(`CORS check for origin: ${origin}, allowed: ${allowedOrigins.includes(origin)}`);
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      logger.warn(`CORS blocked origin: ${origin}`);
+      callback(new Error(`CORS policy violation: Origin ${origin} not allowed`));
+    }
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  optionsSuccessStatus: 200
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD', 'PATCH'],
+  allowedHeaders: [
+    'Origin',
+    'X-Requested-With',
+    'Content-Type',
+    'Accept',
+    'Authorization',
+    'Cache-Control',
+    'X-HTTP-Method-Override'
+  ],
+  exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar'],
+  optionsSuccessStatus: 200,
+  preflightContinue: false
 }));
+
+// Handle preflight requests explicitly
+app.options('*', cors());
 
 app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
