@@ -348,11 +348,11 @@ export const setupSocketHandlers = (io: SocketIOServer): void => {
       }
     });
 
-    socket.on('game:dice_roll', async (data) => {
+    socket.on('game:roll_dice', async (data) => {
       try {
-        if (!await checkSocketRateLimit(socket, 'game:dice_roll')) return;
+        if (!await checkSocketRateLimit(socket, 'game:roll_dice')) return;
         
-        const validation = validateSocketEvent(socket, 'game:dice_roll', data);
+        const validation = validateSocketEvent(socket, 'game:roll_dice', data);
         if (!validation.isValid) return;
         
         const validatedData = validation.sanitizedData;
@@ -366,6 +366,7 @@ export const setupSocketHandlers = (io: SocketIOServer): void => {
           playerId: socket.userId,
           username: socket.username,
           dice: (stateUpdate.state as any)?.dice,
+          state: stateUpdate.state,
           timestamp: new Date()
         });
 

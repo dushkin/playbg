@@ -101,7 +101,7 @@ const Dashboard: React.FC = () => {
   }
 
   const handleGameUnavailable = (data: any) => {
-    console.log('Game no longer available:', data)
+    console.log('Game is on!', data)
     // Remove game from available games
     setAvailableGames(prev => prev.filter(game => game._id !== data.gameId))
   }
