@@ -118,7 +118,7 @@ class SocketService {
     })
 
     this.socket.on('game:unavailable', (data) => {
-      console.log('Game no longer available:', data)
+      console.log('Game is on now!', data)
       // This event will be handled by components that are listening
     })
 
