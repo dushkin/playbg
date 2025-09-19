@@ -18,9 +18,43 @@ const Game: React.FC = () => {
 
   useEffect(() => {
     if (gameId) {
-      loadGame()
+      loadGame();
+      socketService.joinGame(gameId);
     }
-  }, [gameId])
+
+    const socket = socketService.getSocket();
+    if (socket) {
+      const handleGameJoined = (data: any) => {
+        if (data.gameId === gameId) {
+          setGame(data.gameData);
+        }
+      };
+
+      const handleDiceRoll = (data: any) => {
+        if (data.gameId === gameId) {
+          setGame(prevGame => {
+            if (!prevGame) return null;
+            return {
+              ...prevGame,
+              dice: data.dice,
+              currentPlayer: data.state.currentPlayer,
+            };
+          });
+        }
+      };
+
+      socket.on('game:joined', handleGameJoined);
+      socket.on('game:dice_roll', handleDiceRoll);
+
+      return () => {
+        socket.off('game:joined', handleGameJoined);
+        socket.off('game:dice_roll', handleDiceRoll);
+        if (gameId) {
+          socketService.leaveGame(gameId);
+        }
+      };
+    }
+  }, [gameId]);
 
   const loadGame = async () => {
     if (!gameId) return

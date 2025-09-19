@@ -28,7 +28,7 @@ import {
   validatePagination,
   sanitizeInput
 } from '../middleware/validation';
-import { emitGameUpdate } from '../utils/socketEmitter';
+import { emitGameUpdate, emitToGame } from '../utils/socketEmitter';
 
 const router = express.Router();
 
@@ -569,7 +569,7 @@ router.post('/:id/join', async (req: Request, res: Response): Promise<void> => {
     logger.info(`User ${user.username} (${userId}) joined game ${id}`);
 
     // Emit socket events for game updates
-    emitGameUpdate('game:joined', {
+    emitToGame(game._id.toString(), 'game:joined', {
       gameId: game._id.toString(),
       joiner: user.username,
       gameData: game.toJSON(),

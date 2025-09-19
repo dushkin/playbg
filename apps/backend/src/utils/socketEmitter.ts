@@ -28,3 +28,9 @@ export const emitGameUpdate = (event: string, data: any) => {
     io.emit(event, data);
   }
 };
+
+export const emitToGame = (gameId: string, event: string, data: any) => {
+  if (io) {
+    io.to(`game:${gameId}`).emit(event, data);
+  }
+};
