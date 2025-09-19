@@ -100,16 +100,7 @@ const Game: React.FC = () => {
           }}
         />
         
-        {/* Point number */}
-        <div className={`
-          absolute ${isTopHalf ? 'top-0.5' : 'bottom-0.5'} left-1/2 transform -translate-x-1/2
-          text-xs sm:text-xs font-bold text-amber-900 opacity-40 sm:opacity-50 z-10 pointer-events-none
-        `}>
-          {pointIndex + 1}
-        </div>
-        
-        {/* Checkers */}
-        <div className={`
+        {/* Checkers */}        <div className={`
           relative z-20 flex ${isTopHalf ? 'flex-col' : 'flex-col-reverse'} items-center
           ${isTopHalf ? 'justify-start pt-1' : 'justify-start pt-1'}
           h-full px-2
@@ -186,6 +177,17 @@ const Game: React.FC = () => {
         <div className="bg-gradient-to-br from-amber-900 via-amber-800 to-amber-900 p-2 sm:p-3 lg:p-4 rounded-lg sm:rounded-xl shadow-inner">
           <div className="bg-gradient-to-br from-amber-100 to-amber-50 p-2 sm:p-4 lg:p-6 rounded-md sm:rounded-lg">
             
+            {/* Top numbers */}
+            <div className="flex text-xs font-bold text-amber-900 opacity-50 mb-1">
+              <div className="flex-1 flex justify-around">
+                {Array.from({ length: 6 }, (_, i) => 13 + i).map(num => <div key={num} className="w-8 text-center">{num}</div>)}
+              </div>
+              <div className="w-6 sm:w-8 lg:w-10 xl:w-12" />
+              <div className="flex-1 flex justify-around">
+                {Array.from({ length: 6 }, (_, i) => 19 + i).map(num => <div key={num} className="w-8 text-center">{num}</div>)}
+              </div>
+            </div>
+
             {/* Top half of board */}
             <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-32 sm:h-48 lg:h-64 xl:h-72">
               {/* Points 12-17 */}
@@ -264,6 +266,18 @@ const Game: React.FC = () => {
                 ))}
               </div>
             </div>
+
+            {/* Bottom numbers */}
+            <div className="flex text-xs font-bold text-amber-900 opacity-50 mt-1">
+              <div className="flex-1 flex justify-around">
+                {Array.from({ length: 6 }, (_, i) => 12 - i).map(num => <div key={num} className="w-8 text-center">{num}</div>)}
+              </div>
+              <div className="w-6 sm:w-8 lg:w-10 xl:w-12" />
+              <div className="flex-1 flex justify-around">
+                {Array.from({ length: 6 }, (_, i) => 6 - i).map(num => <div key={num} className="w-8 text-center">{num}</div>)}
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
