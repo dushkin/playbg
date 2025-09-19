@@ -4,6 +4,7 @@ import { useAppSelector } from '../hooks/redux'
 import { gamesAPI } from '../services/api'
 import { Game as GameType, GameState as GameStateEnum } from '@playbg/shared'
 import LoadingSpinner from '../components/UI/LoadingSpinner'
+import socketService from '../services/socketService'
 
 const Game: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>()
@@ -63,6 +64,12 @@ const Game: React.FC = () => {
       setSelectedPoint(null)
     }
   }
+
+  const handleRollDice = () => {
+    if (gameId) {
+      socketService.rollDice(gameId);
+    }
+  };
 
   const renderPoint = (pointIndex: number, isTopHalf: boolean) => {
     const point = game?.board.points[pointIndex]
@@ -377,6 +384,7 @@ const Game: React.FC = () => {
             <button
               className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50 text-sm sm:text-base"
               disabled={!isCurrentPlayer || game.gameState !== GameStateEnum.IN_PROGRESS}
+              onClick={handleRollDice}
             >
               Roll Dice
             </button>
