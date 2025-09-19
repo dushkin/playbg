@@ -175,7 +175,7 @@ router.post('/',
 
     // Game created successfully - no automatic matchmaking
 
-    logger.info(`Game created: ${game._id} by user: ${userId}`);
+    logger.info(`Game created: ${game._id} by user: ${user.username} (${userId})`);
 
     // Emit socket event for new game available
     emitGameUpdate('game:created', {
@@ -215,7 +215,7 @@ router.get('/available',
     }
     
     const userId = req.user._id.toString();
-    logger.info(`Getting available games for user: ${userId}`);
+    logger.info(`Getting available games for user: ${req.user.username} (${userId})`);
     
     // Find games that are waiting for opponents (second player is 'waiting') and not created by current user
     const availableGames = await GameModel.find({
@@ -263,7 +263,7 @@ router.get('/my-games',
     }
     
     const userId = req.user._id.toString();
-    logger.info(`Getting my games for user: ${userId}`);
+    logger.info(`Getting my games for user: ${req.user.username} (${userId})`);
     
     // Find games where user is a player and game is active
     const myGames = await GameModel.find({
@@ -327,7 +327,7 @@ router.get('/history',
     }
     
     const userId = req.user._id.toString();
-    logger.info(`Getting game history for user: ${userId}`);
+    logger.info(`Getting game history for user: ${req.user.username} (${userId})`);
     const { page = 1, limit = 20 } = req.query;
     
     // Find completed games where user was a player
@@ -462,10 +462,10 @@ router.put('/:id/move',
   }
 });
 
-// @route   PUT /api/games/:id/join
+// @route   POST /api/games/:id/join
 // @desc    Join a game as the second player
 // @access  Private
-router.put('/:id/join', async (req: Request, res: Response): Promise<void> => {
+router.post('/:id/join', async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const userId = req.user._id.toString();
@@ -525,6 +525,8 @@ router.put('/:id/join', async (req: Request, res: Response): Promise<void> => {
     }
 
     await game.save();
+
+    logger.info(`User ${user.username} (${userId}) joined game ${id}`);
 
     // Emit socket events for game updates
     emitGameUpdate('game:joined', {
