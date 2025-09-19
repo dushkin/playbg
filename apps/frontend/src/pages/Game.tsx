@@ -102,7 +102,7 @@ const Game: React.FC = () => {
         
         {/* Point number */}
         <div className={`
-          absolute ${isTopHalf ? 'bottom-0.5' : 'top-0.5'} left-1/2 transform -translate-x-1/2
+          absolute ${isTopHalf ? 'top-0.5' : 'bottom-0.5'} left-1/2 transform -translate-x-1/2
           text-xs sm:text-xs font-bold text-amber-900 opacity-40 sm:opacity-50 z-10 pointer-events-none
         `}>
           {pointIndex + 1}

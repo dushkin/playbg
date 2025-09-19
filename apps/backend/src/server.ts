@@ -213,21 +213,7 @@ app.options('*', cors({
   optionsSuccessStatus: 200
 }));
 
-// Add a catch-all middleware to add CORS headers in case the above doesn't work
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  const allowedOrigins = process.env.NODE_ENV === 'production' ? allowedOriginsProd : allowedOriginsDev;
-  
-  if (!origin || allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin || '*');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,HEAD,PATCH');
-    res.header('Access-Control-Allow-Headers', 'Origin,X-Requested-With,Content-Type,Accept,Authorization,Cache-Control,X-HTTP-Method-Override');
-    res.header('Access-Control-Expose-Headers', 'Content-Length,X-Foo,X-Bar');
-  }
-  
-  next();
-});
+
 
 app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
