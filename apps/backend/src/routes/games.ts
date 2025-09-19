@@ -462,6 +462,46 @@ router.put('/:id/move',
   }
 });
 
+// @route   POST /api/games/:id/roll-dice
+// @desc    Roll the dice for the current player
+// @access  Private
+router.post('/:id/roll-dice', 
+  validateObjectId('id'),
+  async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id.toString();
+
+    // Process dice roll using GameStateManager
+    const stateUpdate = await gameStateManager.rollDice(id, userId);
+
+    // Emit socket event for dice roll
+    emitGameUpdate('game:dice_roll', {
+      gameId: id,
+      playerId: userId,
+      username: req.user.username,
+      dice: (stateUpdate.state as any)?.dice,
+      timestamp: new Date()
+    });
+
+    res.json({
+      success: true,
+      data: {
+        gameId: id,
+        dice: (stateUpdate.state as any)?.dice
+      },
+      message: 'Dice rolled successfully'
+    } as ApiResponse);
+  } catch (error) {
+    logger.error('Error rolling dice:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Server error rolling dice';
+    res.status(400).json({
+      success: false,
+      error: errorMessage
+    } as ApiResponse);
+  }
+});
+
 // @route   POST /api/games/:id/join
 // @desc    Join a game as the second player
 // @access  Private
