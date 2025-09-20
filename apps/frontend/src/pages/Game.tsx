@@ -353,6 +353,12 @@ const Game: React.FC = () => {
   const currentPlayer = game.players[game.currentPlayer]
   const isCurrentPlayer = currentPlayer?.userId === user?.id
 
+  console.log('isCurrentPlayer', isCurrentPlayer);
+  console.log('game.gameState', game.gameState);
+  console.log('GameStateEnum.IN_PROGRESS', GameStateEnum.IN_PROGRESS);
+  console.log('game.gameState !== GameStateEnum.IN_PROGRESS', game.gameState !== GameStateEnum.IN_PROGRESS);
+
+
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="max-w-7xl mx-auto py-2 sm:py-4 lg:py-6 px-2 sm:px-4">

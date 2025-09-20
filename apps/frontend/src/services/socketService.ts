@@ -188,7 +188,7 @@ class SocketService {
       throw new Error('Socket not connected')
     }
 
-    this.socket.emit('game:dice_roll', { gameId })
+    this.socket.emit('game:roll_dice', { gameId })
   }
 
   sendChat(gameId: string, message: string) {
