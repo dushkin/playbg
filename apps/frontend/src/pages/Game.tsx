@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAppSelector } from '../hooks/redux'
 import { gamesAPI } from '../services/api'
-import { Game as GameType, GameState as GameStateEnum } from '@playbg/shared'
+import { Game as GameType, GameState as GameStateEnum, GameMove } from '@playbg/shared'
 import LoadingSpinner from '../components/UI/LoadingSpinner'
 import socketService from '../services/socketService'
+import Dice3D from '../components/Game/Dice3D'
 
 const Game: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>()
@@ -15,6 +16,7 @@ const Game: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedPoint, setSelectedPoint] = useState<number | null>(null)
+  const [isRollingDice, setIsRollingDice] = useState(false)
 
   useEffect(() => {
     if (gameId) {
@@ -32,23 +34,48 @@ const Game: React.FC = () => {
 
       const handleDiceRoll = (data: any) => {
         if (data.gameId === gameId) {
+          setIsRollingDice(false);
+          setGame(prevGame => {
+            if (!prevGame) return null;
+            const updatedGame = {
+              ...prevGame,
+              dice: data.dice,
+              // Keep the current player as is if state.currentPlayer is undefined
+              currentPlayer: data.state?.currentPlayer !== undefined ? data.state.currentPlayer : prevGame.currentPlayer,
+            };
+
+            // Clear selected point when dice are rolled
+            setSelectedPoint(null);
+
+            return updatedGame;
+          });
+        }
+      };
+
+      const handleGameMove = (data: any) => {
+        if (data.gameId === gameId) {
           setGame(prevGame => {
             if (!prevGame) return null;
             return {
               ...prevGame,
-              dice: data.dice,
-              currentPlayer: data.state.currentPlayer,
+              board: data.state?.board || prevGame.board,
+              currentPlayer: data.state?.currentPlayer !== undefined ? data.state.currentPlayer : prevGame.currentPlayer,
             };
           });
+
+          // Clear selected point when move is made
+          setSelectedPoint(null);
         }
       };
 
       socket.on('game:joined', handleGameJoined);
       socket.on('game:dice_roll', handleDiceRoll);
+      socket.on('game:move', handleGameMove);
 
       return () => {
         socket.off('game:joined', handleGameJoined);
         socket.off('game:dice_roll', handleDiceRoll);
+        socket.off('game:move', handleGameMove);
         if (gameId) {
           socketService.leaveGame(gameId);
         }
@@ -83,31 +110,82 @@ const Game: React.FC = () => {
     if (currentPlayerIndex !== game.currentPlayer) return
 
     if (selectedPoint === null) {
-      // Select a point if it has checkers
+      // Select a point if it has checkers belonging to the current player
       const point = game.board.points[pointIndex]
       if (point && point[currentPlayerIndex] > 0) {
         setSelectedPoint(pointIndex)
-        // TODO: Calculate possible moves for this point
       }
     } else if (selectedPoint === pointIndex) {
       // Deselect if clicking the same point
       setSelectedPoint(null)
     } else {
       // Try to make a move
-      // TODO: Implement move logic
-      setSelectedPoint(null)
+      if (validDestinations.has(pointIndex) && gameId) {
+        // Make the move
+        const move: GameMove = {
+          playerId: user?.id || '',
+          from: selectedPoint,
+          to: pointIndex,
+          timestamp: new Date()
+        }
+
+        socketService.makeMove(gameId, move)
+        setSelectedPoint(null)
+      } else {
+        // Invalid move, deselect
+        setSelectedPoint(null)
+      }
     }
   }
 
   const handleRollDice = () => {
     if (gameId) {
+      setIsRollingDice(true);
       socketService.rollDice(gameId);
     }
   };
 
+  // Calculate valid destination points for the selected point
+  const validDestinations = useMemo(() => {
+    if (selectedPoint === null || !game?.dice) return new Set<number>()
+
+    const currentPlayerIndex = game.players.findIndex(p => p.userId === user?.id)
+    if (currentPlayerIndex === -1) return new Set<number>()
+
+    const validTargets = new Set<number>()
+    const dice = game.dice
+
+    // Calculate possible destinations based on dice values
+    dice.forEach(diceValue => {
+      let targetPoint: number
+
+      if (currentPlayerIndex === 0) {
+        // Player 0 moves counter-clockwise (decreasing point numbers)
+        targetPoint = selectedPoint - diceValue
+      } else {
+        // Player 1 moves clockwise (increasing point numbers)
+        targetPoint = selectedPoint + diceValue
+      }
+
+      // Check if target point is valid (within board bounds)
+      if (targetPoint >= 0 && targetPoint < 24) {
+        // Basic validation: check if opponent has more than 1 checker
+        const opponentIndex = 1 - currentPlayerIndex
+        const opponentCheckers = game.board.points[targetPoint][opponentIndex]
+
+        if (opponentCheckers <= 1) {
+          validTargets.add(targetPoint)
+        }
+      }
+    })
+
+    return validTargets
+  }, [selectedPoint, game?.dice, game?.board, user?.id, game?.players])
+
   const renderPoint = (pointIndex: number, isTopHalf: boolean) => {
     const point = game?.board.points[pointIndex]
     const isSelected = selectedPoint === pointIndex
+    const isValidDestination = validDestinations.has(pointIndex)
     
     // Determine point color (alternating pattern)
     const isEvenPoint = pointIndex % 2 === 0
@@ -123,6 +201,7 @@ const Game: React.FC = () => {
           cursor-pointer transition-all duration-300 ease-out
           ${isSelected ? 'scale-110 z-20' : 'hover:scale-105 hover:z-10'}
           ${isSelected ? 'animate-pulse' : ''}
+          ${isValidDestination ? 'ring-2 ring-green-400 ring-opacity-75' : ''}
         `}
         onClick={() => handlePointClick(pointIndex)}
       >
@@ -131,6 +210,7 @@ const Game: React.FC = () => {
           className={`
             absolute inset-0 transition-all duration-200
             ${isSelected ? 'ring-4 ring-blue-400 ring-opacity-75' : ''}
+            ${isValidDestination ? 'ring-4 ring-green-400 ring-opacity-75' : ''}
           `}
           style={{
             background: `linear-gradient(to bottom, ${pointColorClass.includes('amber-100') ? '#fef3c7, #fde68a' : '#92400e, #78350f'})`,
@@ -205,6 +285,14 @@ const Game: React.FC = () => {
             )
           })}
         </div>
+
+        {/* Valid destination indicator */}
+        {isValidDestination && (
+          <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
+            <div className="w-6 h-6 bg-green-500 rounded-full opacity-75 animate-ping"></div>
+            <div className="absolute w-4 h-4 bg-green-400 rounded-full"></div>
+          </div>
+        )}
       </div>
     )
   }
@@ -240,7 +328,7 @@ const Game: React.FC = () => {
                 ))}
               </div>
               
-              {/* Center bar */}
+              {/* Center bar with dice */}
               <div className="w-6 sm:w-8 lg:w-10 xl:w-12 flex flex-col items-center justify-center px-0.5 sm:px-1">
                 <div className="
                   bg-gradient-to-b from-amber-800 to-amber-900 w-full h-28 sm:h-44 lg:h-56 xl:h-64 rounded-md sm:rounded-lg shadow-inner
@@ -248,6 +336,15 @@ const Game: React.FC = () => {
                   relative overflow-hidden
                 ">
                   <div className="text-amber-200 text-xs font-bold mb-1 sm:mb-2 z-10">BAR</div>
+
+                  {/* Dice display */}
+                  {game?.dice && game.dice.length === 2 && (
+                    <div className="flex flex-col gap-1 z-20">
+                      <Dice3D value={game.dice[0]} size="sm" isRolling={isRollingDice} />
+                      <Dice3D value={game.dice[1]} size="sm" isRolling={isRollingDice} />
+                    </div>
+                  )}
+
                   {/* Wood grain effect */}
                   <div className="absolute inset-0 opacity-20">
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-600 to-transparent transform -skew-y-12" />
@@ -403,11 +500,6 @@ const Game: React.FC = () => {
               )}
               {game.gameState === GameStateEnum.FINISHED && 'Game finished'}
             </p>
-            {game.dice && game.dice.length === 2 && (
-              <p className="text-sm text-gray-600 mt-2">
-                Dice: {game.dice[0]}, {game.dice[1]}
-              </p>
-            )}
           </div>
         </div>
 

@@ -258,7 +258,11 @@ export class GameStateManager {
 
       const stateUpdate: GameStateUpdate = {
         gameId,
-        state: { dice } as any
+        state: {
+          dice,
+          currentPlayer: engine.getCurrentPlayer(),
+          board: engine.getBoardState()
+        } as any
       };
 
       // Publish game event
