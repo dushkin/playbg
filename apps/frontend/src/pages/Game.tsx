@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAppSelector } from '../hooks/redux'
 import { gamesAPI } from '../services/api'
-import { Game as GameType, GameState as GameStateEnum, GameMove } from '@playbg/shared'
+import { Game as GameType, GameState as GameStateEnum } from '@playbg/shared'
 import LoadingSpinner from '../components/UI/LoadingSpinner'
 import socketService from '../services/socketService'
 import Dice3D from '../components/Game/Dice3D'
@@ -121,12 +121,10 @@ const Game: React.FC = () => {
     } else {
       // Try to make a move
       if (validDestinations.has(pointIndex) && gameId) {
-        // Make the move
-        const move: GameMove = {
-          playerId: user?.id || '',
+        // Make the move (backend will add playerId and timestamp)
+        const move = {
           from: selectedPoint,
-          to: pointIndex,
-          timestamp: new Date()
+          to: pointIndex
         }
 
         socketService.makeMove(gameId, move)
