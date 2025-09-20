@@ -89,6 +89,7 @@ const GameMoveSchema = new Schema<GameMove>({
   },
   dice: {
     type: [Number],
+    required: false,
     validate: {
       validator: function(dice: number[] | undefined) {
         return !dice || (dice.length === 2 && dice.every(d => d >= 1 && d <= 6));

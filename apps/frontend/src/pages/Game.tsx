@@ -336,10 +336,45 @@ const Game: React.FC = () => {
                   <div className="text-amber-200 text-xs font-bold mb-1 sm:mb-2 z-10">BAR</div>
 
                   {/* Dice display */}
-                  {game?.dice && game.dice.length === 2 && (
+                  {game?.dice && game.dice.length === 2 ? (
                     <div className="flex flex-col gap-1 z-20">
                       <Dice3D value={game.dice[0]} size="sm" isRolling={isRollingDice} />
                       <Dice3D value={game.dice[1]} size="sm" isRolling={isRollingDice} />
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-1 z-20">
+                      <div
+                        className={`
+                          w-8 h-8 bg-white rounded-lg shadow-lg border border-gray-300 cursor-pointer
+                          transition-all duration-200 hover:scale-110 hover:shadow-xl
+                          flex items-center justify-center text-gray-400 font-bold text-xs
+                          ${isCurrentPlayer && game.gameState === 'in_progress' ? 'hover:bg-blue-50 hover:border-blue-300' : 'cursor-not-allowed opacity-50'}
+                          ${isRollingDice ? 'animate-spin' : ''}
+                        `}
+                        onClick={() => {
+                          if (isCurrentPlayer && game.gameState === 'in_progress' && !isRollingDice) {
+                            handleRollDice();
+                          }
+                        }}
+                      >
+                        ?
+                      </div>
+                      <div
+                        className={`
+                          w-8 h-8 bg-white rounded-lg shadow-lg border border-gray-300 cursor-pointer
+                          transition-all duration-200 hover:scale-110 hover:shadow-xl
+                          flex items-center justify-center text-gray-400 font-bold text-xs
+                          ${isCurrentPlayer && game.gameState === 'in_progress' ? 'hover:bg-blue-50 hover:border-blue-300' : 'cursor-not-allowed opacity-50'}
+                          ${isRollingDice ? 'animate-spin' : ''}
+                        `}
+                        onClick={() => {
+                          if (isCurrentPlayer && game.gameState === 'in_progress' && !isRollingDice) {
+                            handleRollDice();
+                          }
+                        }}
+                      >
+                        ?
+                      </div>
                     </div>
                   )}
 
@@ -512,13 +547,6 @@ const Game: React.FC = () => {
           <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4">Actions</h3>
           <div className="flex flex-col sm:flex-row gap-2 sm:space-x-4 sm:gap-0">
             <button
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50 text-sm sm:text-base"
-              disabled={!isCurrentPlayer || game.gameState !== GameStateEnum.IN_PROGRESS}
-              onClick={handleRollDice}
-            >
-              Roll Dice
-            </button>
-            <button
               className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50 text-sm sm:text-base"
               disabled={!isCurrentPlayer || game.gameState !== GameStateEnum.IN_PROGRESS}
             >
@@ -528,6 +556,7 @@ const Game: React.FC = () => {
               Resign
             </button>
           </div>
+          <p className="text-sm text-gray-600 mt-2">Click the dice on the board to roll them!</p>
         </div>
       </div>
     </div>
