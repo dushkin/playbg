@@ -91,8 +91,8 @@ const GameMoveSchema = new Schema<GameMove>({
     type: [Number],
     required: false,
     validate: {
-      validator: function(dice: number[] | undefined) {
-        return !dice || (dice.length === 2 && dice.every(d => d >= 1 && d <= 6));
+      validator: function(dice: number[] | undefined | null) {
+        return dice === undefined || dice === null || (Array.isArray(dice) && dice.length === 2 && dice.every(d => d >= 1 && d <= 6));
       },
       message: 'Dice must be array of 2 numbers between 1-6'
     }

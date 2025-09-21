@@ -316,13 +316,14 @@ export const setupSocketHandlers = (io: SocketIOServer): void => {
         const validatedData = validation.sanitizedData;
         const gameId = validatedData.gameId;
         
-        // Add player ID and timestamp to move
+        // Add player ID and timestamp to move - explicitly don't include dice from frontend
         const move = {
-          ...validatedData.move,
           playerId: socket.userId!,
-          timestamp: new Date(),
-          dice: validatedData.move.dice || undefined
+          from: validatedData.move.from,
+          to: validatedData.move.to,
+          timestamp: new Date()
         };
+
 
         const stateUpdate = await gameStateManager.processMove(
           gameId,
