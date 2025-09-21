@@ -90,9 +90,15 @@ const GameMoveSchema = new Schema<GameMove>({
   dice: {
     type: [Number],
     required: false,
+    default: undefined,
     validate: {
       validator: function(dice: number[] | undefined | null) {
-        return dice === undefined || dice === null || (Array.isArray(dice) && dice.length === 2 && dice.every(d => d >= 1 && d <= 6));
+        // Allow undefined, null, or empty arrays (default state)
+        if (dice === undefined || dice === null || (Array.isArray(dice) && dice.length === 0)) {
+          return true;
+        }
+        // If dice is provided, it must be exactly 2 numbers between 1-6
+        return Array.isArray(dice) && dice.length === 2 && dice.every(d => d >= 1 && d <= 6);
       },
       message: 'Dice must be array of 2 numbers between 1-6'
     }
