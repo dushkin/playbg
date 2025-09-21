@@ -17,6 +17,12 @@ class BackgammonEngine {
             Math.floor(Math.random() * 6) + 1,
             Math.floor(Math.random() * 6) + 1
         ];
+        // Sort dice with higher value first
+        if (dice[1] > dice[0]) {
+            dice[0] = dice[0] + dice[1];
+            dice[1] = dice[0] - dice[1];
+            dice[0] = dice[0] - dice[1];
+        }
         this.dice = dice;
         // For doubles, track 4 dice. For regular, track 2 dice
         if (dice[0] === dice[1]) {
@@ -51,6 +57,9 @@ class BackgammonEngine {
      * Validate and execute a move
      */
     makeMove(move) {
+        // Quick validation first - check if move is structurally valid
+        if (!this.isValidMoveStructure(move))
+            return false;
         const possibleMoves = this.getPossibleMoves();
         const isValidMove = possibleMoves.some(m => m.from === move.from && m.to === move.to);
         if (!isValidMove)
@@ -58,8 +67,45 @@ class BackgammonEngine {
         this.executeMove(move);
         this.updateUsedDice(move);
         // Check if all dice are used or no more moves available
-        if (this.allDiceUsed() || this.getPossibleMoves().length === 0) {
+        // Use cached possible moves if all dice not used
+        if (this.allDiceUsed()) {
             this.endTurn();
+        }
+        else {
+            // Only recalculate possible moves if dice still available
+            const remainingMoves = this.getPossibleMoves();
+            if (remainingMoves.length === 0) {
+                this.endTurn();
+            }
+        }
+        return true;
+    }
+    /**
+     * Quick structural validation of move without expensive calculations
+     */
+    isValidMoveStructure(move) {
+        // Check if we have dice
+        if (!this.dice)
+            return false;
+        // Check basic move structure
+        if (typeof move.from !== 'number' || typeof move.to !== 'number')
+            return false;
+        if (move.from < -1 || move.from > 25 || move.to < -1 || move.to > 25)
+            return false;
+        if (move.from === move.to)
+            return false;
+        // Check if it's the correct player's turn
+        const playerIndex = this.currentPlayer;
+        // Check if player has pieces at source position (quick check)
+        if (move.from === -1) {
+            // Moving from bar
+            if (this.board.bar[playerIndex] === 0)
+                return false;
+        }
+        else if (move.from >= 0 && move.from <= 23) {
+            // Moving from board
+            if (this.board.points[move.from][playerIndex] === 0)
+                return false;
         }
         return true;
     }

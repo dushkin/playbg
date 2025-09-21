@@ -123,8 +123,10 @@ class SocketService {
     })
 
     // User status events
-    this.socket.on('user:offline', (data) => {
-      console.log('User went offline:', data)
+    this.socket.on('user:offline', () => {
+      // Only log if it's relevant to the current user (e.g., in same game)
+      // For now, we'll just silently handle this event without logging
+      // console.log('User went offline:', data)
     })
   }
 

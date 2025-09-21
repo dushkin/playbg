@@ -32,6 +32,7 @@ const Dashboard: React.FC = () => {
   const [myGames, setMyGames] = useState<GameItem[]>([])
   const [gameHistory, setGameHistory] = useState<GameItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [activeTab, setActiveTab] = useState<'available' | 'my-games'>('available')
 
   useEffect(() => {
@@ -58,8 +59,12 @@ const Dashboard: React.FC = () => {
     }
   }, [])
 
-  const loadGameData = async () => {
+  const loadGameData = async (isRefresh = false) => {
     try {
+      if (isRefresh) {
+        setRefreshing(true)
+      }
+
       const [availableRes, myGamesRes, historyRes] = await Promise.all([
         gamesAPI.getAvailableGames(),
         gamesAPI.getMyGames(),
@@ -69,11 +74,18 @@ const Dashboard: React.FC = () => {
       if (availableRes.success) setAvailableGames(availableRes.data || [])
       if (myGamesRes.success) setMyGames(myGamesRes.data || [])
       if (historyRes.success) setGameHistory(historyRes.data || [])
+
+      if (isRefresh) {
+        toast.success('Games refreshed successfully!')
+      }
     } catch (error) {
       console.error('Error loading game data:', error)
       toast.error('Failed to load game data')
     } finally {
       setLoading(false)
+      if (isRefresh) {
+        setRefreshing(false)
+      }
     }
   }
 
@@ -260,10 +272,17 @@ const Dashboard: React.FC = () => {
                   Create Game
                 </button>
                 <button
-                  onClick={() => loadGameData()}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors"
+                  onClick={() => loadGameData(true)}
+                  disabled={refreshing}
+                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded transition-colors flex items-center space-x-2"
                 >
-                  Refresh Games
+                  {refreshing && (
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  )}
+                  <span>{refreshing ? 'Refreshing...' : 'Refresh Games'}</span>
                 </button>
                 <button 
                   onClick={() => navigate('/tournaments')}

@@ -18,6 +18,10 @@ export declare class BackgammonEngine {
      */
     makeMove(move: GameMove): boolean;
     /**
+     * Quick structural validation of move without expensive calculations
+     */
+    private isValidMoveStructure;
+    /**
      * Check if the game is over
      */
     isGameOver(): boolean;

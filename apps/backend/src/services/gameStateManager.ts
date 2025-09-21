@@ -184,6 +184,11 @@ export class GameStateManager {
       // Add move to game
       await gameDoc.addMove(move);
 
+      // Update game document with new current player and dice state
+      gameDoc.currentPlayer = currentPlayer;
+      gameDoc.dice = currentDice;
+      await gameDoc.save();
+
       // Update cache
       const newState = {
         board: updatedBoard,

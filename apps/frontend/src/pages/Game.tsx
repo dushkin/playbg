@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAppSelector } from '../hooks/redux'
 import { gamesAPI } from '../services/api'
@@ -15,8 +15,8 @@ const Game: React.FC = () => {
   const [game, setGame] = useState<GameType | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [selectedPoint, setSelectedPoint] = useState<number | null>(null)
   const [isRollingDice, setIsRollingDice] = useState(false)
+  const [usedDice, setUsedDice] = useState<boolean[]>([false, false])
 
   useEffect(() => {
     if (gameId) {
@@ -44,8 +44,8 @@ const Game: React.FC = () => {
               currentPlayer: data.state?.currentPlayer !== undefined ? data.state.currentPlayer : prevGame.currentPlayer,
             };
 
-            // Clear selected point when dice are rolled
-            setSelectedPoint(null);
+            // Reset dice tracking when dice are rolled
+            setUsedDice([false, false]);
 
             return updatedGame;
           });
@@ -64,7 +64,6 @@ const Game: React.FC = () => {
           });
 
           // Clear selected point when move is made
-          setSelectedPoint(null);
         }
       };
 
@@ -103,37 +102,82 @@ const Game: React.FC = () => {
   }
 
   const handlePointClick = (pointIndex: number) => {
-    if (!game || game.gameState !== GameStateEnum.IN_PROGRESS) return
+    if (!game || game.gameState !== GameStateEnum.IN_PROGRESS || !game.dice) return
 
     // Check if it's the current player's turn
     const currentPlayerIndex = game.players.findIndex(p => p.userId === user?.id)
     if (currentPlayerIndex !== game.currentPlayer) return
 
-    if (selectedPoint === null) {
-      // Select a point if it has checkers belonging to the current player
-      const point = game.board.points[pointIndex]
-      if (point && point[currentPlayerIndex] > 0) {
-        setSelectedPoint(pointIndex)
-      }
-    } else if (selectedPoint === pointIndex) {
-      // Deselect if clicking the same point
-      setSelectedPoint(null)
-    } else {
-      // Try to make a move
-      if (validDestinations.has(pointIndex) && gameId) {
-        // Make the move (backend will add playerId and timestamp)
-        const move = {
-          from: selectedPoint,
-          to: pointIndex
-        }
+    // Check if all dice are used
+    if (usedDice.every(used => used)) return
 
-        socketService.makeMove(gameId, move)
-        setSelectedPoint(null)
-      } else {
-        // Invalid move, deselect
-        setSelectedPoint(null)
-      }
+    // Check if the point has checkers belonging to the current player
+    const point = game.board.points[pointIndex]
+    if (!point || point[currentPlayerIndex] === 0) return
+
+    // Find the next available dice (first unused)
+    const nextDiceIndex = usedDice.findIndex(used => !used)
+    if (nextDiceIndex === -1) return
+
+    const diceValue = game.dice[nextDiceIndex]
+
+    // Calculate target point based on dice value and player direction
+    let targetPoint: number
+
+    if (currentPlayerIndex === 0) {
+      // Player 0 moves counter-clockwise (decreasing point numbers)
+      targetPoint = pointIndex - diceValue
+    } else {
+      // Player 1 moves clockwise (increasing point numbers)
+      targetPoint = pointIndex + diceValue
     }
+
+    // Validate the move
+    const isValidMove = isValidMoveForDice(pointIndex, targetPoint, diceValue, currentPlayerIndex)
+
+    if (isValidMove && gameId) {
+      // Make the move automatically
+      const move = {
+        from: pointIndex,
+        to: targetPoint
+      }
+
+      socketService.makeMove(gameId, move)
+
+      // Mark this dice as used
+      const newUsedDice = [...usedDice]
+      newUsedDice[nextDiceIndex] = true
+      setUsedDice(newUsedDice)
+    }
+  }
+
+  // Function to validate a specific move with a dice value
+  const isValidMoveForDice = (fromPoint: number, toPoint: number, diceValue: number, currentPlayerIndex: number): boolean => {
+    // Calculate expected target based on dice value and player direction
+    let expectedTarget: number
+
+    if (currentPlayerIndex === 0) {
+      // Player 0 moves counter-clockwise (decreasing point numbers)
+      expectedTarget = fromPoint - diceValue
+    } else {
+      // Player 1 moves clockwise (increasing point numbers)
+      expectedTarget = fromPoint + diceValue
+    }
+
+    // Check if the move matches the dice value
+    if (toPoint !== expectedTarget) return false
+
+    // Check if target point is within bounds
+    if (toPoint < 0 || toPoint > 23) return false
+
+    // Check if opponent has more than 1 checker at target
+    const targetPoint = game?.board.points[toPoint]
+    if (targetPoint) {
+      const opponentIndex = 1 - currentPlayerIndex
+      if (targetPoint[opponentIndex] > 1) return false
+    }
+
+    return true
   }
 
   const handleRollDice = () => {
@@ -143,47 +187,30 @@ const Game: React.FC = () => {
     }
   };
 
-  // Calculate valid destination points for the selected point
-  const validDestinations = useMemo(() => {
-    if (selectedPoint === null || !game?.dice) return new Set<number>()
-
-    const currentPlayerIndex = game.players.findIndex(p => p.userId === user?.id)
-    if (currentPlayerIndex === -1) return new Set<number>()
-
-    const validTargets = new Set<number>()
-    const dice = game.dice
-
-    // Calculate possible destinations based on dice values
-    dice.forEach(diceValue => {
-      let targetPoint: number
-
-      if (currentPlayerIndex === 0) {
-        // Player 0 moves counter-clockwise (decreasing point numbers)
-        targetPoint = selectedPoint - diceValue
-      } else {
-        // Player 1 moves clockwise (increasing point numbers)
-        targetPoint = selectedPoint + diceValue
-      }
-
-      // Check if target point is valid (within board bounds)
-      if (targetPoint >= 0 && targetPoint < 24) {
-        // Basic validation: check if opponent has more than 1 checker
-        const opponentIndex = 1 - currentPlayerIndex
-        const opponentCheckers = game.board.points[targetPoint][opponentIndex]
-
-        if (opponentCheckers <= 1) {
-          validTargets.add(targetPoint)
-        }
-      }
-    })
-
-    return validTargets
-  }, [selectedPoint, game?.dice, game?.board, user?.id, game?.players])
 
   const renderPoint = (pointIndex: number, isTopHalf: boolean) => {
     const point = game?.board.points[pointIndex]
-    const isSelected = selectedPoint === pointIndex
-    const isValidDestination = validDestinations.has(pointIndex)
+
+    // Check if this point has a checker that can be moved with the current dice
+    const currentPlayerIndex = game?.players.findIndex(p => p.userId === user?.id) ?? -1
+    const isCurrentPlayer = currentPlayerIndex === game?.currentPlayer
+    const hasPlayerChecker = point && point[currentPlayerIndex] > 0
+    const nextDiceIndex = usedDice.findIndex(used => !used)
+    const canMove = isCurrentPlayer && hasPlayerChecker && nextDiceIndex !== -1 && game?.dice
+
+    let isValidMove = false
+    if (canMove && game?.dice) {
+      const diceValue = game.dice[nextDiceIndex]
+      let targetPoint: number
+
+      if (currentPlayerIndex === 0) {
+        targetPoint = pointIndex - diceValue
+      } else {
+        targetPoint = pointIndex + diceValue
+      }
+
+      isValidMove = isValidMoveForDice(pointIndex, targetPoint, diceValue, currentPlayerIndex)
+    }
     
     // Determine point color (alternating pattern)
     const isEvenPoint = pointIndex % 2 === 0
@@ -196,10 +223,9 @@ const Game: React.FC = () => {
         key={`point-${pointIndex}`}
         className={`
           relative flex ${isTopHalf ? 'flex-col' : 'flex-col-reverse'} items-center h-full
-          cursor-pointer transition-all duration-300 ease-out
-          ${isSelected ? 'scale-110 z-20' : 'hover:scale-105 hover:z-10'}
-          ${isSelected ? 'animate-pulse' : ''}
-          ${isValidDestination ? 'ring-2 ring-green-400 ring-opacity-75' : ''}
+          transition-all duration-300 ease-out
+          ${isValidMove ? 'cursor-pointer hover:scale-105 hover:z-10' : 'cursor-default'}
+          ${isValidMove ? 'ring-2 ring-blue-400 ring-opacity-75' : ''}
         `}
         onClick={() => handlePointClick(pointIndex)}
       >
@@ -207,15 +233,14 @@ const Game: React.FC = () => {
         <div
           className={`
             absolute inset-0 transition-all duration-200
-            ${isSelected ? 'ring-4 ring-blue-400 ring-opacity-75' : ''}
-            ${isValidDestination ? 'ring-4 ring-green-400 ring-opacity-75' : ''}
+            ${isValidMove ? 'ring-4 ring-blue-400 ring-opacity-75' : ''}
           `}
           style={{
             background: `linear-gradient(to bottom, ${pointColorClass.includes('amber-100') ? '#fef3c7, #fde68a' : '#92400e, #78350f'})`,
-            clipPath: isTopHalf 
+            clipPath: isTopHalf
               ? 'polygon(50% 100%, 0% 0%, 100% 0%)'
               : 'polygon(0% 100%, 100% 100%, 50% 0%)',
-            boxShadow: isSelected ? 'inset 0 0 20px rgba(59, 130, 246, 0.3)' : 'inset 0 2px 4px rgba(0,0,0,0.1)'
+            boxShadow: isValidMove ? 'inset 0 0 20px rgba(59, 130, 246, 0.3)' : 'inset 0 2px 4px rgba(0,0,0,0.1)'
           }}
         />
         
@@ -284,13 +309,6 @@ const Game: React.FC = () => {
           })}
         </div>
 
-        {/* Valid destination indicator */}
-        {isValidDestination && (
-          <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
-            <div className="w-6 h-6 bg-green-500 rounded-full opacity-75 animate-ping"></div>
-            <div className="absolute w-4 h-4 bg-green-400 rounded-full"></div>
-          </div>
-        )}
       </div>
     )
   }
@@ -338,8 +356,22 @@ const Game: React.FC = () => {
                   {/* Dice display */}
                   {game?.dice && game.dice.length === 2 ? (
                     <div className="flex flex-col gap-1 z-20">
-                      <Dice3D value={game.dice[0]} size="sm" isRolling={isRollingDice} />
-                      <Dice3D value={game.dice[1]} size="sm" isRolling={isRollingDice} />
+                      <div className={`relative ${usedDice[0] ? 'opacity-30' : ''} ${!usedDice[0] && usedDice.findIndex(used => !used) === 0 ? 'ring-2 ring-blue-400' : ''}`}>
+                        <Dice3D value={game.dice[0]} size="sm" isRolling={isRollingDice} />
+                        {usedDice[0] && (
+                          <div className="absolute inset-0 bg-gray-500 opacity-50 rounded flex items-center justify-center">
+                            <span className="text-white text-xs font-bold">✓</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className={`relative ${usedDice[1] ? 'opacity-30' : ''} ${!usedDice[1] && usedDice.findIndex(used => !used) === 1 ? 'ring-2 ring-blue-400' : ''}`}>
+                        <Dice3D value={game.dice[1]} size="sm" isRolling={isRollingDice} />
+                        {usedDice[1] && (
+                          <div className="absolute inset-0 bg-gray-500 opacity-50 rounded flex items-center justify-center">
+                            <span className="text-white text-xs font-bold">✓</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ) : (
                     <div className="flex flex-col gap-1 z-20">
@@ -556,7 +588,11 @@ const Game: React.FC = () => {
               Resign
             </button>
           </div>
-          <p className="text-sm text-gray-600 mt-2">Click the dice on the board to roll them!</p>
+          <p className="text-sm text-gray-600 mt-2">
+            {!game?.dice ? 'Click the dice on the board to roll them!' :
+             isCurrentPlayer ? 'Click a checker to move it automatically. First move uses the higher dice value.' :
+             "Waiting for opponent's move..."}
+          </p>
         </div>
       </div>
     </div>

@@ -659,10 +659,12 @@ export const setupSocketHandlers = (io: SocketIOServer): void => {
           await getRedisService().removeFromMatchmakingQueue(socket.userId);
           await getRedisService().removeUserSocketId(socket.userId);
           
-          // Broadcast user offline status
-          socket.broadcast.emit('user:offline', {
-            userId: socket.userId
-          });
+          // Only notify users who are in games with this user
+          // For now, we'll skip broadcasting offline status to reduce noise
+          // Future enhancement: Only notify users in active games with this user
+          // socket.broadcast.emit('user:offline', {
+          //   userId: socket.userId
+          // });
         }
       } catch (error) {
         logger.error('Error updating user offline status', { 
