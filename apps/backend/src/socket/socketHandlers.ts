@@ -320,7 +320,8 @@ export const setupSocketHandlers = (io: SocketIOServer): void => {
         const move = {
           ...validatedData.move,
           playerId: socket.userId!,
-          timestamp: new Date()
+          timestamp: new Date(),
+          dice: validatedData.move.dice || undefined
         };
 
         const stateUpdate = await gameStateManager.processMove(
