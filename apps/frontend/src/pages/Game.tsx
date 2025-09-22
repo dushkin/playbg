@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAppSelector } from '../hooks/redux'
 import { gamesAPI } from '../services/api'
@@ -18,6 +18,7 @@ const Game: React.FC = () => {
   const [isRollingDice, setIsRollingDice] = useState(false)
   const [usedDice, setUsedDice] = useState<boolean[]>([false, false])
   const [pendingMoves, setPendingMoves] = useState<Set<string>>(new Set())
+  const pendingMovesRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     if (gameId) {
@@ -69,10 +70,11 @@ const Game: React.FC = () => {
         if (data.gameId === gameId) {
           // Check if this move was made by the current user (optimistic update already applied)
           const moveKey = `${data.move?.from}-${data.move?.to}`
-          const wasOptimistic = pendingMoves.has(moveKey)
+          const wasOptimistic = pendingMovesRef.current.has(moveKey)
 
           console.log(`📝 Move ${moveKey} - wasOptimistic: ${wasOptimistic}`);
-          console.log('📋 Current pendingMoves:', Array.from(pendingMoves));
+          console.log('📋 Current pendingMoves (ref):', Array.from(pendingMovesRef.current));
+          console.log('📋 Current pendingMoves (state):', Array.from(pendingMoves));
 
           if (wasOptimistic) {
             console.log('✅ Processing optimistic move confirmation');
@@ -83,6 +85,10 @@ const Game: React.FC = () => {
               newSet.delete(moveKey)
               console.log('🗑️ Removing from pending moves:', moveKey);
               console.log('📋 Updated pendingMoves:', Array.from(newSet));
+
+              // Update ref to keep it in sync
+              pendingMovesRef.current = newSet;
+
               return newSet
             })
 
@@ -240,6 +246,16 @@ const Game: React.FC = () => {
       setPendingMoves(prev => {
         const newSet = new Set(prev).add(moveKey);
         console.log('📋 New pending moves:', Array.from(newSet));
+
+        // Update ref to keep it in sync
+        pendingMovesRef.current = newSet;
+
+        // Debug: Check pending moves after a delay to see if they're being cleared
+        setTimeout(() => {
+          console.log('⏰ Pending moves after 1s (ref):', Array.from(pendingMovesRef.current));
+          console.log('⏰ Pending moves after 1s (state):', Array.from(pendingMoves));
+        }, 1000);
+
         return newSet;
       })
 
