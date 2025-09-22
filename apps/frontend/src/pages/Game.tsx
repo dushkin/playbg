@@ -142,12 +142,37 @@ const Game: React.FC = () => {
         to: targetPoint
       }
 
-      socketService.makeMove(gameId, move)
+      // Optimistic update - update UI immediately
+      setGame(prevGame => {
+        if (!prevGame) return null
+
+        const newBoard = JSON.parse(JSON.stringify(prevGame.board))
+        const playerIndex = prevGame.players.findIndex(p => p.userId === user?.id)
+
+        // Move the checker
+        newBoard.points[pointIndex][playerIndex]--
+        newBoard.points[targetPoint][playerIndex]++
+
+        // If opponent has a single checker at target, capture it
+        const opponentIndex = 1 - playerIndex
+        if (newBoard.points[targetPoint][opponentIndex] === 1) {
+          newBoard.points[targetPoint][opponentIndex] = 0
+          newBoard.bar[opponentIndex]++
+        }
+
+        return {
+          ...prevGame,
+          board: newBoard
+        }
+      })
 
       // Mark this dice as used
       const newUsedDice = [...usedDice]
       newUsedDice[nextDiceIndex] = true
       setUsedDice(newUsedDice)
+
+      // Send move to backend
+      socketService.makeMove(gameId, move)
     }
   }
 
@@ -185,6 +210,83 @@ const Game: React.FC = () => {
       setIsRollingDice(true);
       socketService.rollDice(gameId);
     }
+  };
+
+  // Render dice for a specific player position
+  const renderPlayerDice = (isTopSide: boolean) => {
+    const currentPlayerIndex = game?.players.findIndex(p => p.userId === user?.id) ?? -1
+    const isCurrentPlayer = currentPlayerIndex === game?.currentPlayer
+
+    // Show dice on the side of the current player
+    const shouldShowDice = game?.currentPlayer === (isTopSide ? 1 : 0)
+    const shouldShowForCurrentPlayer = isCurrentPlayer && shouldShowDice
+
+    // Always show for the current player on their side, regardless of dice state
+    if (!shouldShowDice && !shouldShowForCurrentPlayer) return null
+
+    return (
+      <div className="flex flex-row gap-1 justify-center mb-2">
+        {/* Dice display */}
+        {game?.dice && game.dice.length === 2 ? (
+          <div className="flex flex-row gap-1 z-20 group">
+            <div className={`relative transition-transform duration-200 ${usedDice[0] ? 'opacity-30' : ''} ${!usedDice[0] && usedDice.findIndex(used => !used) === 0 ? 'ring-2 ring-blue-400' : ''} group-hover:scale-110`}>
+              <Dice3D value={game.dice[0]} size="sm" isRolling={isRollingDice} />
+              {usedDice[0] && (
+                <div className="absolute inset-0 bg-gray-500 opacity-50 rounded flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">✓</span>
+                </div>
+              )}
+            </div>
+            <div className={`relative transition-transform duration-200 ${usedDice[1] ? 'opacity-30' : ''} ${!usedDice[1] && usedDice.findIndex(used => !used) === 1 ? 'ring-2 ring-blue-400' : ''} group-hover:scale-110`}>
+              <Dice3D value={game.dice[1]} size="sm" isRolling={isRollingDice} />
+              {usedDice[1] && (
+                <div className="absolute inset-0 bg-gray-500 opacity-50 rounded flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">✓</span>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          // Show roll dice option only for current player on their side
+          shouldShowForCurrentPlayer && (
+            <div className="flex flex-row gap-1 z-20">
+              <div
+                className={`
+                  w-8 h-8 bg-white rounded-lg shadow-lg border border-gray-300 cursor-pointer
+                  transition-all duration-200 hover:scale-110 hover:shadow-xl
+                  flex items-center justify-center text-gray-400 font-bold text-xs
+                  hover:bg-blue-50 hover:border-blue-300
+                  ${isRollingDice ? 'animate-spin' : ''}
+                `}
+                onClick={() => {
+                  if (game?.gameState === 'in_progress' && !isRollingDice) {
+                    handleRollDice();
+                  }
+                }}
+              >
+                ?
+              </div>
+              <div
+                className={`
+                  w-8 h-8 bg-white rounded-lg shadow-lg border border-gray-300 cursor-pointer
+                  transition-all duration-200 hover:scale-110 hover:shadow-xl
+                  flex items-center justify-center text-gray-400 font-bold text-xs
+                  hover:bg-blue-50 hover:border-blue-300
+                  ${isRollingDice ? 'animate-spin' : ''}
+                `}
+                onClick={() => {
+                  if (game?.gameState === 'in_progress' && !isRollingDice) {
+                    handleRollDice();
+                  }
+                }}
+              >
+                ?
+              </div>
+            </div>
+          )
+        )}
+      </div>
+    )
   };
 
 
@@ -247,7 +349,7 @@ const Game: React.FC = () => {
         {/* Checkers */}        <div className={`
           relative z-20 flex ${isTopHalf ? 'flex-col' : 'flex-col-reverse'} items-center
           ${isTopHalf ? 'justify-start pt-1' : 'justify-start pt-1'}
-          h-full px-2
+          h-full px-1 sm:px-2
         `}>
           {point && point.map((playerCheckers, playerIndex) => {
             if (playerCheckers === 0) return null
@@ -258,8 +360,8 @@ const Game: React.FC = () => {
                 <div
                   key={checkerIndex}
                   className={`
-                    relative w-4 h-4 sm:w-6 sm:h-6 lg:w-8 lg:h-8 xl:w-9 xl:h-9 rounded-full transition-all duration-300 ease-out
-                    ${checkerIndex === 0 ? '' : '-mt-0.5 sm:-mt-1'}
+                    relative w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 xl:w-9 xl:h-9 rounded-full transition-all duration-300 ease-out
+                    ${checkerIndex === 0 ? '' : '-mt-1 sm:-mt-1'}
                     hover:scale-110 hover:z-30 cursor-pointer
                     transform hover:-translate-y-1
                   `}
@@ -317,11 +419,14 @@ const Game: React.FC = () => {
     if (!game) return null
 
     return (
-      <div className="bg-gradient-to-br from-amber-50 via-amber-100 to-amber-200 p-2 sm:p-4 lg:p-6 rounded-xl sm:rounded-2xl shadow-2xl w-full mx-auto">
+      <div className="bg-gradient-to-br from-amber-50 via-amber-100 to-amber-200 p-1 sm:p-4 lg:p-6 rounded-xl sm:rounded-2xl shadow-2xl w-full mx-auto">
         {/* Board border with wood grain effect */}
-        <div className="bg-gradient-to-br from-amber-900 via-amber-800 to-amber-900 p-2 sm:p-3 lg:p-4 rounded-lg sm:rounded-xl shadow-inner">
-          <div className="bg-gradient-to-br from-amber-100 to-amber-50 p-2 sm:p-4 lg:p-6 rounded-md sm:rounded-lg">
+        <div className="bg-gradient-to-br from-amber-900 via-amber-800 to-amber-900 p-1 sm:p-3 lg:p-4 rounded-lg sm:rounded-xl shadow-inner">
+          <div className="bg-gradient-to-br from-amber-100 to-amber-50 p-1 sm:p-4 lg:p-6 rounded-md sm:rounded-lg">
             
+            {/* Top player dice */}
+            {renderPlayerDice(true)}
+
             {/* Top numbers */}
             <div className="flex text-xs font-bold text-amber-900 opacity-50 mb-1">
               <div className="flex-1 flex justify-around">
@@ -334,7 +439,7 @@ const Game: React.FC = () => {
             </div>
 
             {/* Top half of board */}
-            <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-32 sm:h-48 lg:h-64 xl:h-72">
+            <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-40 sm:h-48 lg:h-64 xl:h-72">
               {/* Points 12-17 */}
               <div className="flex gap-0.5 flex-1">
                 {Array.from({ length: 6 }, (_, i) => (
@@ -345,70 +450,13 @@ const Game: React.FC = () => {
               </div>
               
               {/* Center bar with dice */}
-              <div className="w-6 sm:w-8 lg:w-10 xl:w-12 flex flex-col items-center justify-center px-0.5 sm:px-1">
+              <div className="w-8 sm:w-8 lg:w-10 xl:w-12 flex flex-col items-center justify-center px-0.5 sm:px-1">
                 <div className="
-                  bg-gradient-to-b from-amber-800 to-amber-900 w-full h-28 sm:h-44 lg:h-56 xl:h-64 rounded-md sm:rounded-lg shadow-inner
+                  bg-gradient-to-b from-amber-800 to-amber-900 w-full h-36 sm:h-44 lg:h-56 xl:h-64 rounded-md sm:rounded-lg shadow-inner
                   border border-amber-700 sm:border-2 flex flex-col items-center justify-center
                   relative overflow-hidden
                 ">
                   <div className="text-amber-200 text-xs font-bold mb-1 sm:mb-2 z-10">BAR</div>
-
-                  {/* Dice display */}
-                  {game?.dice && game.dice.length === 2 ? (
-                    <div className="flex flex-col gap-1 z-20">
-                      <div className={`relative ${usedDice[0] ? 'opacity-30' : ''} ${!usedDice[0] && usedDice.findIndex(used => !used) === 0 ? 'ring-2 ring-blue-400' : ''}`}>
-                        <Dice3D value={game.dice[0]} size="sm" isRolling={isRollingDice} />
-                        {usedDice[0] && (
-                          <div className="absolute inset-0 bg-gray-500 opacity-50 rounded flex items-center justify-center">
-                            <span className="text-white text-xs font-bold">✓</span>
-                          </div>
-                        )}
-                      </div>
-                      <div className={`relative ${usedDice[1] ? 'opacity-30' : ''} ${!usedDice[1] && usedDice.findIndex(used => !used) === 1 ? 'ring-2 ring-blue-400' : ''}`}>
-                        <Dice3D value={game.dice[1]} size="sm" isRolling={isRollingDice} />
-                        {usedDice[1] && (
-                          <div className="absolute inset-0 bg-gray-500 opacity-50 rounded flex items-center justify-center">
-                            <span className="text-white text-xs font-bold">✓</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col gap-1 z-20">
-                      <div
-                        className={`
-                          w-8 h-8 bg-white rounded-lg shadow-lg border border-gray-300 cursor-pointer
-                          transition-all duration-200 hover:scale-110 hover:shadow-xl
-                          flex items-center justify-center text-gray-400 font-bold text-xs
-                          ${isCurrentPlayer && game.gameState === 'in_progress' ? 'hover:bg-blue-50 hover:border-blue-300' : 'cursor-not-allowed opacity-50'}
-                          ${isRollingDice ? 'animate-spin' : ''}
-                        `}
-                        onClick={() => {
-                          if (isCurrentPlayer && game.gameState === 'in_progress' && !isRollingDice) {
-                            handleRollDice();
-                          }
-                        }}
-                      >
-                        ?
-                      </div>
-                      <div
-                        className={`
-                          w-8 h-8 bg-white rounded-lg shadow-lg border border-gray-300 cursor-pointer
-                          transition-all duration-200 hover:scale-110 hover:shadow-xl
-                          flex items-center justify-center text-gray-400 font-bold text-xs
-                          ${isCurrentPlayer && game.gameState === 'in_progress' ? 'hover:bg-blue-50 hover:border-blue-300' : 'cursor-not-allowed opacity-50'}
-                          ${isRollingDice ? 'animate-spin' : ''}
-                        `}
-                        onClick={() => {
-                          if (isCurrentPlayer && game.gameState === 'in_progress' && !isRollingDice) {
-                            handleRollDice();
-                          }
-                        }}
-                      >
-                        ?
-                      </div>
-                    </div>
-                  )}
 
                   {/* Wood grain effect */}
                   <div className="absolute inset-0 opacity-20">
@@ -434,7 +482,7 @@ const Game: React.FC = () => {
             </div>
             
             {/* Bottom half of board */}
-            <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-32 sm:h-48 lg:h-64 xl:h-72">
+            <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-40 sm:h-48 lg:h-64 xl:h-72">
               {/* Points 11-6 */}
               <div className="flex gap-0.5 flex-1">
                 {Array.from({ length: 6 }, (_, i) => (
@@ -480,6 +528,9 @@ const Game: React.FC = () => {
                 {Array.from({ length: 6 }, (_, i) => 6 - i).map(num => <div key={num} className="w-8 text-center">{num}</div>)}
               </div>
             </div>
+
+            {/* Bottom player dice */}
+            {renderPlayerDice(false)}
 
           </div>
         </div>
