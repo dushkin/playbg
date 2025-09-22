@@ -34,10 +34,19 @@ const Game: React.FC = () => {
       };
 
       const handleDiceRoll = (data: any) => {
+        console.log('🎲 handleDiceRoll called with data:', data);
+
         if (data.gameId === gameId) {
+          console.log('🛑 Stopping dice animation');
           setIsRollingDice(false);
+
           setGame(prevGame => {
             if (!prevGame) return null;
+
+            console.log('🎲 Updating game with new dice:', data.dice);
+            console.log('📊 Previous player:', prevGame.currentPlayer);
+            console.log('📊 New player:', data.state?.currentPlayer);
+
             const updatedGame = {
               ...prevGame,
               dice: data.dice,
@@ -46,6 +55,7 @@ const Game: React.FC = () => {
             };
 
             // Reset dice tracking when dice are rolled
+            console.log('🔄 Resetting dice usage tracking');
             setUsedDice([false, false]);
 
             return updatedGame;
@@ -54,25 +64,40 @@ const Game: React.FC = () => {
       };
 
       const handleGameMove = (data: any) => {
+        console.log('🎯 handleGameMove called with data:', data);
+
         if (data.gameId === gameId) {
           // Check if this move was made by the current user (optimistic update already applied)
           const moveKey = `${data.move?.from}-${data.move?.to}`
           const wasOptimistic = pendingMoves.has(moveKey)
 
+          console.log(`📝 Move ${moveKey} - wasOptimistic: ${wasOptimistic}`);
+          console.log('📋 Current pendingMoves:', Array.from(pendingMoves));
+
           if (wasOptimistic) {
+            console.log('✅ Processing optimistic move confirmation');
+
             // Remove from pending moves and only update non-board state
             setPendingMoves(prev => {
               const newSet = new Set(prev)
               newSet.delete(moveKey)
+              console.log('🗑️ Removing from pending moves:', moveKey);
+              console.log('📋 Updated pendingMoves:', Array.from(newSet));
               return newSet
             })
 
             setGame(prevGame => {
               if (!prevGame) return null;
 
+              console.log('🎮 Updating game state (optimistic move)');
+              console.log('📊 Previous currentPlayer:', prevGame.currentPlayer);
+              console.log('📊 Server currentPlayer:', data.state?.currentPlayer);
+
               // Check if current player changed - reset dice state for new player
               const playerChanged = data.state?.currentPlayer !== undefined && data.state.currentPlayer !== prevGame.currentPlayer;
+
               if (playerChanged) {
+                console.log('🔄 Player changed - resetting dice state');
                 setUsedDice([false, false]);
               }
 
@@ -86,13 +111,18 @@ const Game: React.FC = () => {
               };
             });
           } else {
+            console.log('👥 Processing opponent move');
+
             // This move was made by opponent, update everything
             setGame(prevGame => {
               if (!prevGame) return null;
 
+              console.log('🎮 Updating game state (opponent move)');
+
               // Check if current player changed - reset dice state for new player
               const playerChanged = data.state?.currentPlayer !== undefined && data.state.currentPlayer !== prevGame.currentPlayer;
               if (playerChanged) {
+                console.log('🔄 Player changed - resetting dice state');
                 setUsedDice([false, false]);
               }
 
@@ -142,24 +172,42 @@ const Game: React.FC = () => {
   }
 
   const handlePointClick = (pointIndex: number) => {
-    if (!game || game.gameState !== GameStateEnum.IN_PROGRESS || !game.dice) return
+    console.log('🖱️ Point clicked:', pointIndex);
+
+    if (!game || game.gameState !== GameStateEnum.IN_PROGRESS || !game.dice) {
+      console.log('❌ Early return - game conditions not met');
+      return;
+    }
 
     // Check if it's the current player's turn
     const currentPlayerIndex = game.players.findIndex(p => p.userId === user?.id)
-    if (currentPlayerIndex !== game.currentPlayer) return
+    if (currentPlayerIndex !== game.currentPlayer) {
+      console.log('❌ Not current player turn');
+      return;
+    }
 
     // Check if all dice are used
-    if (usedDice.every(used => used)) return
+    if (usedDice.every(used => used)) {
+      console.log('❌ All dice used');
+      return;
+    }
 
     // Check if the point has checkers belonging to the current player
     const point = game.board.points[pointIndex]
-    if (!point || point[currentPlayerIndex] === 0) return
+    if (!point || point[currentPlayerIndex] === 0) {
+      console.log('❌ No checkers at point');
+      return;
+    }
 
     // Find the next available dice (first unused)
     const nextDiceIndex = usedDice.findIndex(used => !used)
-    if (nextDiceIndex === -1) return
+    if (nextDiceIndex === -1) {
+      console.log('❌ No available dice');
+      return;
+    }
 
     const diceValue = game.dice[nextDiceIndex]
+    console.log('🎲 Using dice:', nextDiceIndex, 'value:', diceValue);
 
     // Calculate target point based on dice value and player direction
     let targetPoint: number
@@ -172,8 +220,11 @@ const Game: React.FC = () => {
       targetPoint = pointIndex + diceValue
     }
 
+    console.log(`📍 Move from ${pointIndex} to ${targetPoint}`);
+
     // Validate the move
     const isValidMove = isValidMoveForDice(pointIndex, targetPoint, diceValue, currentPlayerIndex)
+    console.log('✅ Move valid:', isValidMove);
 
     if (isValidMove && gameId) {
       // Make the move automatically
@@ -184,9 +235,16 @@ const Game: React.FC = () => {
 
       // Track this move as pending
       const moveKey = `${pointIndex}-${targetPoint}`
-      setPendingMoves(prev => new Set(prev).add(moveKey))
+      console.log('📝 Adding to pending moves:', moveKey);
+
+      setPendingMoves(prev => {
+        const newSet = new Set(prev).add(moveKey);
+        console.log('📋 New pending moves:', Array.from(newSet));
+        return newSet;
+      })
 
       // Optimistic update - update UI immediately with smooth transition
+      console.log('🚀 Applying optimistic update');
       setGame(prevGame => {
         if (!prevGame) return null
 
@@ -195,8 +253,11 @@ const Game: React.FC = () => {
 
         // Ensure we have valid checkers to move
         if (newBoard.points[pointIndex][playerIndex] <= 0) {
+          console.log('❌ Invalid move - no checkers');
           return prevGame // Don't make invalid moves
         }
+
+        console.log('✨ Updating board optimistically');
 
         // Move the checker
         newBoard.points[pointIndex][playerIndex]--
@@ -205,6 +266,7 @@ const Game: React.FC = () => {
         // If opponent has a single checker at target, capture it
         const opponentIndex = 1 - playerIndex
         if (newBoard.points[targetPoint][opponentIndex] === 1) {
+          console.log('💥 Capturing opponent checker');
           newBoard.points[targetPoint][opponentIndex] = 0
           newBoard.bar[opponentIndex]++
         }
@@ -218,9 +280,11 @@ const Game: React.FC = () => {
       // Mark this dice as used
       const newUsedDice = [...usedDice]
       newUsedDice[nextDiceIndex] = true
+      console.log('🎲 Marking dice as used:', nextDiceIndex);
       setUsedDice(newUsedDice)
 
       // Send move to backend
+      console.log('📡 Sending move to backend');
       socketService.makeMove(gameId, move)
     }
   }
