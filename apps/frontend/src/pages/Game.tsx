@@ -76,12 +76,13 @@ const Game: React.FC = () => {
                 setUsedDice([false, false]);
               }
 
+              // Only update non-board state to avoid conflicts with optimistic updates
               return {
                 ...prevGame,
-                // Keep optimistic board update for smooth animation
-                board: prevGame.board, // Don't overwrite optimistic update
+                // Keep the optimistic board state - don't overwrite it
                 currentPlayer: data.state?.currentPlayer !== undefined ? data.state.currentPlayer : prevGame.currentPlayer,
                 dice: playerChanged ? null : (data.state?.dice || prevGame.dice),
+                // Update any other state but preserve the board
               };
             });
           } else {
@@ -309,8 +310,11 @@ const Game: React.FC = () => {
                   transition-all duration-200 hover:scale-110 hover:shadow-xl
                   flex items-center justify-center text-gray-400 font-bold text-xs
                   hover:bg-blue-50 hover:border-blue-300
-                  ${isRollingDice ? 'animate-spin' : ''}
                 `}
+                style={{
+                  animation: isRollingDice ? 'dice-roll 1.2s ease-in-out infinite' : undefined,
+                  animationDelay: isRollingDice ? '0s' : undefined
+                }}
                 onClick={() => {
                   if (game?.gameState === 'in_progress' && !isRollingDice) {
                     handleRollDice();
@@ -325,8 +329,11 @@ const Game: React.FC = () => {
                   transition-all duration-200 hover:scale-110 hover:shadow-xl
                   flex items-center justify-center text-gray-400 font-bold text-xs
                   hover:bg-blue-50 hover:border-blue-300
-                  ${isRollingDice ? 'animate-spin' : ''}
                 `}
+                style={{
+                  animation: isRollingDice ? 'dice-roll 1.2s ease-in-out infinite' : undefined,
+                  animationDelay: isRollingDice ? '0.2s' : undefined
+                }}
                 onClick={() => {
                   if (game?.gameState === 'in_progress' && !isRollingDice) {
                     handleRollDice();
@@ -482,12 +489,16 @@ const Game: React.FC = () => {
 
             {/* Top numbers */}
             <div className="flex text-xs font-bold text-amber-900 opacity-50 mb-1">
-              <div className="flex-1 flex justify-around">
-                {Array.from({ length: 6 }, (_, i) => 13 + i).map(num => <div key={num} className="w-8 text-center">{num}</div>)}
+              <div className="flex-1 flex">
+                {Array.from({ length: 6 }, (_, i) => (
+                  <div key={13 + i} className="flex-1 text-center">{13 + i}</div>
+                ))}
               </div>
               <div className="w-10 sm:w-12 lg:w-14 xl:w-16" />
-              <div className="flex-1 flex justify-around">
-                {Array.from({ length: 6 }, (_, i) => 19 + i).map(num => <div key={num} className="w-8 text-center">{num}</div>)}
+              <div className="flex-1 flex">
+                {Array.from({ length: 6 }, (_, i) => (
+                  <div key={19 + i} className="flex-1 text-center">{19 + i}</div>
+                ))}
               </div>
             </div>
 
@@ -573,12 +584,16 @@ const Game: React.FC = () => {
 
             {/* Bottom numbers */}
             <div className="flex text-xs font-bold text-amber-900 opacity-50 mt-1">
-              <div className="flex-1 flex justify-around">
-                {Array.from({ length: 6 }, (_, i) => 12 - i).map(num => <div key={num} className="w-8 text-center">{num}</div>)}
+              <div className="flex-1 flex">
+                {Array.from({ length: 6 }, (_, i) => (
+                  <div key={12 - i} className="flex-1 text-center">{12 - i}</div>
+                ))}
               </div>
               <div className="w-10 sm:w-12 lg:w-14 xl:w-16" />
-              <div className="flex-1 flex justify-around">
-                {Array.from({ length: 6 }, (_, i) => 6 - i).map(num => <div key={num} className="w-8 text-center">{num}</div>)}
+              <div className="flex-1 flex">
+                {Array.from({ length: 6 }, (_, i) => (
+                  <div key={6 - i} className="flex-1 text-center">{6 - i}</div>
+                ))}
               </div>
             </div>
 
