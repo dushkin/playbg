@@ -17,7 +17,6 @@ const Game: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [isRollingDice, setIsRollingDice] = useState(false)
   const [usedDice, setUsedDice] = useState<boolean[]>([false, false])
-  const [pendingMoves, setPendingMoves] = useState<Set<string>>(new Set())
   const pendingMovesRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
@@ -35,18 +34,11 @@ const Game: React.FC = () => {
       };
 
       const handleDiceRoll = (data: any) => {
-        console.log('🎲 handleDiceRoll called with data:', data);
-
         if (data.gameId === gameId) {
-          console.log('🛑 Stopping dice animation');
           setIsRollingDice(false);
 
           setGame(prevGame => {
             if (!prevGame) return null;
-
-            console.log('🎲 Updating game with new dice:', data.dice);
-            console.log('📊 Previous player:', prevGame.currentPlayer);
-            console.log('📊 New player:', data.state?.currentPlayer);
 
             const updatedGame = {
               ...prevGame,
@@ -56,7 +48,6 @@ const Game: React.FC = () => {
             };
 
             // Reset dice tracking when dice are rolled
-            console.log('🔄 Resetting dice usage tracking');
             setUsedDice([false, false]);
 
             return updatedGame;
@@ -65,45 +56,22 @@ const Game: React.FC = () => {
       };
 
       const handleGameMove = (data: any) => {
-        console.log('🎯 handleGameMove called with data:', data);
-
         if (data.gameId === gameId) {
           // Check if this move was made by the current user (optimistic update already applied)
           const moveKey = `${data.move?.from}-${data.move?.to}`
           const wasOptimistic = pendingMovesRef.current.has(moveKey)
 
-          console.log(`📝 Move ${moveKey} - wasOptimistic: ${wasOptimistic}`);
-          console.log('📋 Current pendingMoves (ref):', Array.from(pendingMovesRef.current));
-          console.log('📋 Current pendingMoves (state):', Array.from(pendingMoves));
-
           if (wasOptimistic) {
-            console.log('✅ Processing optimistic move confirmation');
-
-            // Remove from pending moves and only update non-board state
-            setPendingMoves(prev => {
-              const newSet = new Set(prev)
-              newSet.delete(moveKey)
-              console.log('🗑️ Removing from pending moves:', moveKey);
-              console.log('📋 Updated pendingMoves:', Array.from(newSet));
-
-              // Update ref to keep it in sync
-              pendingMovesRef.current = newSet;
-
-              return newSet
-            })
+            // Remove from pending moves
+            pendingMovesRef.current.delete(moveKey)
 
             setGame(prevGame => {
               if (!prevGame) return null;
-
-              console.log('🎮 Updating game state (optimistic move)');
-              console.log('📊 Previous currentPlayer:', prevGame.currentPlayer);
-              console.log('📊 Server currentPlayer:', data.state?.currentPlayer);
 
               // Check if current player changed - reset dice state for new player
               const playerChanged = data.state?.currentPlayer !== undefined && data.state.currentPlayer !== prevGame.currentPlayer;
 
               if (playerChanged) {
-                console.log('🔄 Player changed - resetting dice state');
                 setUsedDice([false, false]);
               }
 
@@ -117,18 +85,13 @@ const Game: React.FC = () => {
               };
             });
           } else {
-            console.log('👥 Processing opponent move');
-
             // This move was made by opponent, update everything
             setGame(prevGame => {
               if (!prevGame) return null;
 
-              console.log('🎮 Updating game state (opponent move)');
-
               // Check if current player changed - reset dice state for new player
               const playerChanged = data.state?.currentPlayer !== undefined && data.state.currentPlayer !== prevGame.currentPlayer;
               if (playerChanged) {
-                console.log('🔄 Player changed - resetting dice state');
                 setUsedDice([false, false]);
               }
 
@@ -178,42 +141,24 @@ const Game: React.FC = () => {
   }
 
   const handlePointClick = (pointIndex: number) => {
-    console.log('🖱️ Point clicked:', pointIndex);
-
-    if (!game || game.gameState !== GameStateEnum.IN_PROGRESS || !game.dice) {
-      console.log('❌ Early return - game conditions not met');
-      return;
-    }
+    if (!game || game.gameState !== GameStateEnum.IN_PROGRESS || !game.dice) return
 
     // Check if it's the current player's turn
     const currentPlayerIndex = game.players.findIndex(p => p.userId === user?.id)
-    if (currentPlayerIndex !== game.currentPlayer) {
-      console.log('❌ Not current player turn');
-      return;
-    }
+    if (currentPlayerIndex !== game.currentPlayer) return
 
     // Check if all dice are used
-    if (usedDice.every(used => used)) {
-      console.log('❌ All dice used');
-      return;
-    }
+    if (usedDice.every(used => used)) return
 
     // Check if the point has checkers belonging to the current player
     const point = game.board.points[pointIndex]
-    if (!point || point[currentPlayerIndex] === 0) {
-      console.log('❌ No checkers at point');
-      return;
-    }
+    if (!point || point[currentPlayerIndex] === 0) return
 
     // Find the next available dice (first unused)
     const nextDiceIndex = usedDice.findIndex(used => !used)
-    if (nextDiceIndex === -1) {
-      console.log('❌ No available dice');
-      return;
-    }
+    if (nextDiceIndex === -1) return
 
     const diceValue = game.dice[nextDiceIndex]
-    console.log('🎲 Using dice:', nextDiceIndex, 'value:', diceValue);
 
     // Calculate target point based on dice value and player direction
     let targetPoint: number
@@ -226,11 +171,8 @@ const Game: React.FC = () => {
       targetPoint = pointIndex + diceValue
     }
 
-    console.log(`📍 Move from ${pointIndex} to ${targetPoint}`);
-
     // Validate the move
     const isValidMove = isValidMoveForDice(pointIndex, targetPoint, diceValue, currentPlayerIndex)
-    console.log('✅ Move valid:', isValidMove);
 
     if (isValidMove && gameId) {
       // Make the move automatically
@@ -241,26 +183,11 @@ const Game: React.FC = () => {
 
       // Track this move as pending
       const moveKey = `${pointIndex}-${targetPoint}`
-      console.log('📝 Adding to pending moves:', moveKey);
 
-      setPendingMoves(prev => {
-        const newSet = new Set(prev).add(moveKey);
-        console.log('📋 New pending moves:', Array.from(newSet));
-
-        // Update ref to keep it in sync
-        pendingMovesRef.current = newSet;
-
-        // Debug: Check pending moves after a delay to see if they're being cleared
-        setTimeout(() => {
-          console.log('⏰ Pending moves after 1s (ref):', Array.from(pendingMovesRef.current));
-          console.log('⏰ Pending moves after 1s (state):', Array.from(pendingMoves));
-        }, 1000);
-
-        return newSet;
-      })
+      // Add to pending moves
+      pendingMovesRef.current.add(moveKey)
 
       // Optimistic update - update UI immediately with smooth transition
-      console.log('🚀 Applying optimistic update');
       setGame(prevGame => {
         if (!prevGame) return null
 
@@ -269,11 +196,8 @@ const Game: React.FC = () => {
 
         // Ensure we have valid checkers to move
         if (newBoard.points[pointIndex][playerIndex] <= 0) {
-          console.log('❌ Invalid move - no checkers');
           return prevGame // Don't make invalid moves
         }
-
-        console.log('✨ Updating board optimistically');
 
         // Move the checker
         newBoard.points[pointIndex][playerIndex]--
@@ -282,7 +206,6 @@ const Game: React.FC = () => {
         // If opponent has a single checker at target, capture it
         const opponentIndex = 1 - playerIndex
         if (newBoard.points[targetPoint][opponentIndex] === 1) {
-          console.log('💥 Capturing opponent checker');
           newBoard.points[targetPoint][opponentIndex] = 0
           newBoard.bar[opponentIndex]++
         }
@@ -296,11 +219,9 @@ const Game: React.FC = () => {
       // Mark this dice as used
       const newUsedDice = [...usedDice]
       newUsedDice[nextDiceIndex] = true
-      console.log('🎲 Marking dice as used:', nextDiceIndex);
       setUsedDice(newUsedDice)
 
       // Send move to backend
-      console.log('📡 Sending move to backend');
       socketService.makeMove(gameId, move)
     }
   }
@@ -351,12 +272,11 @@ const Game: React.FC = () => {
     const currentPlayerIndex = game?.players.findIndex(p => p.userId === user?.id) ?? -1
     const isCurrentPlayer = currentPlayerIndex === game?.currentPlayer
 
-    // Show dice on the side of the current player
+    // Show dice on the side of the current active player (whoever's turn it is)
     const shouldShowDice = game?.currentPlayer === (isTopSide ? 1 : 0)
-    const shouldShowForCurrentPlayer = isCurrentPlayer && shouldShowDice
 
-    // Always show for the current player on their side, regardless of dice state
-    if (!shouldShowDice && !shouldShowForCurrentPlayer) return null
+    // Don't show dice if this side doesn't match the current player's turn
+    if (!shouldShowDice) return null
 
     return (
       <div className="flex flex-row gap-1 justify-center mb-2">
@@ -381,8 +301,8 @@ const Game: React.FC = () => {
             </div>
           </div>
         ) : (
-          // Show roll dice option only for current player on their side
-          shouldShowForCurrentPlayer && (
+          // Show roll dice option only for current player
+          isCurrentPlayer && (
             <div className="flex flex-row gap-1 z-20">
               <div
                 className={`
@@ -559,7 +479,8 @@ const Game: React.FC = () => {
     if (!game) return null
 
     return (
-      <div className="bg-gradient-to-br from-amber-50 via-amber-100 to-amber-200 p-1 sm:p-4 lg:p-6 rounded-xl sm:rounded-2xl shadow-2xl w-full mx-auto">
+      <div className="bg-gradient-to-br from-amber-50 via-amber-100 to-amber-200 p-1 sm:p-4 lg:p-6 rounded-xl sm:rounded-2xl shadow-2xl w-full mx-auto transform-gpu"
+        style={{ willChange: 'auto' }}>
         {/* Board border with wood grain effect */}
         <div className="bg-gradient-to-br from-amber-900 via-amber-800 to-amber-900 p-1 sm:p-3 lg:p-4 rounded-lg sm:rounded-xl shadow-inner">
           <div className="bg-gradient-to-br from-amber-100 to-amber-50 p-1 sm:p-4 lg:p-6 rounded-md sm:rounded-lg">
@@ -714,10 +635,6 @@ const Game: React.FC = () => {
   const currentPlayer = game.players[game.currentPlayer]
   const isCurrentPlayer = currentPlayer?.userId === user?.id
 
-  console.log('isCurrentPlayer', isCurrentPlayer);
-  console.log('game.gameState', game.gameState);
-  console.log('GameStateEnum.IN_PROGRESS', GameStateEnum.IN_PROGRESS);
-  console.log('game.gameState !== GameStateEnum.IN_PROGRESS', game.gameState !== GameStateEnum.IN_PROGRESS);
 
 
   return (

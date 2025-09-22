@@ -46,8 +46,8 @@ const Dashboard: React.FC = () => {
       socket.on('game:unavailable', handleGameUnavailable)
     }
 
-    // Refresh data every 30 seconds as backup
-    const interval = setInterval(loadGameData, 30000)
+    // Refresh data every 5 seconds as backup
+    const interval = setInterval(loadGameData, 5000)
     
     return () => {
       clearInterval(interval)
