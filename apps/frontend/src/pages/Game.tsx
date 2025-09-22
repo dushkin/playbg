@@ -17,6 +17,7 @@ const Game: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [isRollingDice, setIsRollingDice] = useState(false)
   const [usedDice, setUsedDice] = useState<boolean[]>([false, false])
+  const [isDoubles, setIsDoubles] = useState(false)
   const pendingMovesRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
@@ -47,8 +48,17 @@ const Game: React.FC = () => {
               currentPlayer: data.state?.currentPlayer !== undefined ? data.state.currentPlayer : prevGame.currentPlayer,
             };
 
+            // Check if it's doubles (same value on both dice)
+            const isDoublesRoll = data.dice && data.dice.length === 2 && data.dice[0] === data.dice[1];
+            setIsDoubles(isDoublesRoll);
+
             // Reset dice tracking when dice are rolled
-            setUsedDice([false, false]);
+            // For doubles, we get 4 moves; for regular rolls, we get 2 moves
+            if (isDoublesRoll) {
+              setUsedDice([false, false, false, false]);
+            } else {
+              setUsedDice([false, false]);
+            }
 
             return updatedGame;
           });
@@ -73,6 +83,7 @@ const Game: React.FC = () => {
 
               if (playerChanged) {
                 setUsedDice([false, false]);
+                setIsDoubles(false);
               }
 
               // Only update non-board state to avoid conflicts with optimistic updates
@@ -93,6 +104,7 @@ const Game: React.FC = () => {
               const playerChanged = data.state?.currentPlayer !== undefined && data.state.currentPlayer !== prevGame.currentPlayer;
               if (playerChanged) {
                 setUsedDice([false, false]);
+                setIsDoubles(false);
               }
 
               return {
@@ -158,7 +170,8 @@ const Game: React.FC = () => {
     const nextDiceIndex = usedDice.findIndex(used => !used)
     if (nextDiceIndex === -1) return
 
-    const diceValue = game.dice[nextDiceIndex]
+    // For doubles, all moves use the same dice value; for regular rolls, use the specific dice
+    const diceValue = isDoubles ? game.dice[0] : game.dice[nextDiceIndex]
 
     // Calculate target point based on dice value and player direction
     let targetPoint: number
@@ -283,22 +296,39 @@ const Game: React.FC = () => {
         {/* Dice display */}
         {game?.dice && game.dice.length === 2 ? (
           <div className="flex flex-row gap-1 z-20 group">
-            <div className={`relative transition-transform duration-200 ${usedDice[0] ? 'opacity-30' : ''} ${!usedDice[0] && usedDice.findIndex(used => !used) === 0 ? 'ring-2 ring-blue-400' : ''} group-hover:scale-110`}>
-              <Dice3D value={game.dice[0]} size="sm" isRolling={isRollingDice} animationDelay={0} />
-              {usedDice[0] && (
-                <div className="absolute inset-0 bg-gray-500 opacity-50 rounded flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">✓</span>
+            {isDoubles ? (
+              // Show 4 dice for doubles
+              Array.from({ length: 4 }, (_, i) => (
+                <div key={i} className={`relative transition-transform duration-200 ${usedDice[i] ? 'opacity-30' : ''} ${!usedDice[i] && usedDice.findIndex(used => !used) === i ? 'ring-2 ring-blue-400' : ''} group-hover:scale-110`}>
+                  <Dice3D value={game.dice?.[0] || 1} size="sm" isRolling={isRollingDice} animationDelay={i * 0.1} />
+                  {usedDice[i] && (
+                    <div className="absolute inset-0 bg-gray-500 opacity-50 rounded flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">✓</span>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-            <div className={`relative transition-transform duration-200 ${usedDice[1] ? 'opacity-30' : ''} ${!usedDice[1] && usedDice.findIndex(used => !used) === 1 ? 'ring-2 ring-blue-400' : ''} group-hover:scale-110`}>
-              <Dice3D value={game.dice[1]} size="sm" isRolling={isRollingDice} animationDelay={0.2} />
-              {usedDice[1] && (
-                <div className="absolute inset-0 bg-gray-500 opacity-50 rounded flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">✓</span>
+              ))
+            ) : (
+              // Show 2 dice for regular rolls
+              <>
+                <div className={`relative transition-transform duration-200 ${usedDice[0] ? 'opacity-30' : ''} ${!usedDice[0] && usedDice.findIndex(used => !used) === 0 ? 'ring-2 ring-blue-400' : ''} group-hover:scale-110`}>
+                  <Dice3D value={game.dice[0]} size="sm" isRolling={isRollingDice} animationDelay={0} />
+                  {usedDice[0] && (
+                    <div className="absolute inset-0 bg-gray-500 opacity-50 rounded flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">✓</span>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+                <div className={`relative transition-transform duration-200 ${usedDice[1] ? 'opacity-30' : ''} ${!usedDice[1] && usedDice.findIndex(used => !used) === 1 ? 'ring-2 ring-blue-400' : ''} group-hover:scale-110`}>
+                  <Dice3D value={game.dice[1]} size="sm" isRolling={isRollingDice} animationDelay={0.2} />
+                  {usedDice[1] && (
+                    <div className="absolute inset-0 bg-gray-500 opacity-50 rounded flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">✓</span>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         ) : (
           // Show roll dice option only for current player
@@ -362,7 +392,8 @@ const Game: React.FC = () => {
 
     let isValidMove = false
     if (canMove && game?.dice) {
-      const diceValue = game.dice[nextDiceIndex]
+      // For doubles, all moves use the same dice value; for regular rolls, use the specific dice
+      const diceValue = isDoubles ? game.dice[0] : game.dice[nextDiceIndex]
       let targetPoint: number
 
       if (currentPlayerIndex === 0) {
