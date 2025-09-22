@@ -17,6 +17,7 @@ const Game: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [isRollingDice, setIsRollingDice] = useState(false)
   const [usedDice, setUsedDice] = useState<boolean[]>([false, false])
+  const [pendingMoves, setPendingMoves] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (gameId) {
@@ -54,16 +55,53 @@ const Game: React.FC = () => {
 
       const handleGameMove = (data: any) => {
         if (data.gameId === gameId) {
-          setGame(prevGame => {
-            if (!prevGame) return null;
-            return {
-              ...prevGame,
-              board: data.state?.board || prevGame.board,
-              currentPlayer: data.state?.currentPlayer !== undefined ? data.state.currentPlayer : prevGame.currentPlayer,
-            };
-          });
+          // Check if this move was made by the current user (optimistic update already applied)
+          const moveKey = `${data.move?.from}-${data.move?.to}`
+          const wasOptimistic = pendingMoves.has(moveKey)
 
-          // Clear selected point when move is made
+          if (wasOptimistic) {
+            // Remove from pending moves and only update non-board state
+            setPendingMoves(prev => {
+              const newSet = new Set(prev)
+              newSet.delete(moveKey)
+              return newSet
+            })
+
+            setGame(prevGame => {
+              if (!prevGame) return null;
+
+              // Check if current player changed - reset dice state for new player
+              const playerChanged = data.state?.currentPlayer !== undefined && data.state.currentPlayer !== prevGame.currentPlayer;
+              if (playerChanged) {
+                setUsedDice([false, false]);
+              }
+
+              return {
+                ...prevGame,
+                // Don't update board - keep optimistic update
+                currentPlayer: data.state?.currentPlayer !== undefined ? data.state.currentPlayer : prevGame.currentPlayer,
+                dice: playerChanged ? null : (data.state?.dice || prevGame.dice),
+              };
+            });
+          } else {
+            // This move was made by opponent, update everything
+            setGame(prevGame => {
+              if (!prevGame) return null;
+
+              // Check if current player changed - reset dice state for new player
+              const playerChanged = data.state?.currentPlayer !== undefined && data.state.currentPlayer !== prevGame.currentPlayer;
+              if (playerChanged) {
+                setUsedDice([false, false]);
+              }
+
+              return {
+                ...prevGame,
+                board: data.state?.board || prevGame.board,
+                currentPlayer: data.state?.currentPlayer !== undefined ? data.state.currentPlayer : prevGame.currentPlayer,
+                dice: playerChanged ? null : (data.state?.dice || prevGame.dice),
+              };
+            });
+          }
         }
       };
 
@@ -141,6 +179,10 @@ const Game: React.FC = () => {
         from: pointIndex,
         to: targetPoint
       }
+
+      // Track this move as pending
+      const moveKey = `${pointIndex}-${targetPoint}`
+      setPendingMoves(prev => new Set(prev).add(moveKey))
 
       // Optimistic update - update UI immediately
       setGame(prevGame => {
@@ -452,7 +494,7 @@ const Game: React.FC = () => {
               {/* Center bar with dice */}
               <div className="w-8 sm:w-8 lg:w-10 xl:w-12 flex flex-col items-center justify-center px-0.5 sm:px-1">
                 <div className="
-                  bg-gradient-to-b from-amber-800 to-amber-900 w-full h-36 sm:h-44 lg:h-56 xl:h-64 rounded-md sm:rounded-lg shadow-inner
+                  bg-gradient-to-b from-amber-800 to-amber-900 w-full h-40 sm:h-48 lg:h-64 xl:h-72 rounded-md sm:rounded-lg shadow-inner
                   border border-amber-700 sm:border-2 flex flex-col items-center justify-center
                   relative overflow-hidden
                 ">
