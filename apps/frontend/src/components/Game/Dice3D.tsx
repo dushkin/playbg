@@ -4,9 +4,10 @@ interface Dice3DProps {
   value: number
   size?: 'sm' | 'md' | 'lg'
   isRolling?: boolean
+  animationDelay?: number
 }
 
-const Dice3D: React.FC<Dice3DProps> = ({ value, size = 'md', isRolling = false }) => {
+const Dice3D: React.FC<Dice3DProps> = ({ value, size = 'md', isRolling = false, animationDelay = 0 }) => {
   const sizeClasses = useMemo(() => {
     switch (size) {
       case 'sm':
@@ -70,7 +71,7 @@ const Dice3D: React.FC<Dice3DProps> = ({ value, size = 'md', isRolling = false }
     <div
       className={`
         ${sizeClasses} relative rounded-lg shadow-lg transition-all duration-300 ease-out
-        ${isRolling ? 'animate-spin' : 'hover:scale-110'}
+        ${isRolling ? 'animate-bounce' : 'hover:scale-110'}
         transform-gpu perspective-1000
       `}
       style={{
@@ -82,7 +83,9 @@ const Dice3D: React.FC<Dice3DProps> = ({ value, size = 'md', isRolling = false }
           inset 0 -1px 2px rgba(0,0,0,0.1)
         `,
         border: '1px solid rgba(0,0,0,0.1)',
-        transform: isRolling ? 'rotateX(45deg) rotateY(45deg)' : 'rotateX(5deg) rotateY(5deg)'
+        transform: isRolling ? 'rotateX(15deg) rotateY(15deg)' : 'rotateX(5deg) rotateY(5deg)',
+        animation: isRolling ? `dice-roll 1.2s ease-in-out infinite` : undefined,
+        animationDelay: isRolling ? `${animationDelay}s` : undefined
       }}
     >
       {/* Inner face highlight */}

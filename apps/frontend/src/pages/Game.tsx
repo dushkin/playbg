@@ -78,7 +78,8 @@ const Game: React.FC = () => {
 
               return {
                 ...prevGame,
-                // Don't update board - keep optimistic update
+                // Keep optimistic board update for smooth animation
+                board: prevGame.board, // Don't overwrite optimistic update
                 currentPlayer: data.state?.currentPlayer !== undefined ? data.state.currentPlayer : prevGame.currentPlayer,
                 dice: playerChanged ? null : (data.state?.dice || prevGame.dice),
               };
@@ -184,12 +185,17 @@ const Game: React.FC = () => {
       const moveKey = `${pointIndex}-${targetPoint}`
       setPendingMoves(prev => new Set(prev).add(moveKey))
 
-      // Optimistic update - update UI immediately
+      // Optimistic update - update UI immediately with smooth transition
       setGame(prevGame => {
         if (!prevGame) return null
 
         const newBoard = JSON.parse(JSON.stringify(prevGame.board))
         const playerIndex = prevGame.players.findIndex(p => p.userId === user?.id)
+
+        // Ensure we have valid checkers to move
+        if (newBoard.points[pointIndex][playerIndex] <= 0) {
+          return prevGame // Don't make invalid moves
+        }
 
         // Move the checker
         newBoard.points[pointIndex][playerIndex]--
@@ -251,6 +257,11 @@ const Game: React.FC = () => {
     if (gameId) {
       setIsRollingDice(true);
       socketService.rollDice(gameId);
+
+      // Ensure dice animation stops after a reasonable time even if server doesn't respond
+      setTimeout(() => {
+        setIsRollingDice(false);
+      }, 3000);
     }
   };
 
@@ -272,7 +283,7 @@ const Game: React.FC = () => {
         {game?.dice && game.dice.length === 2 ? (
           <div className="flex flex-row gap-1 z-20 group">
             <div className={`relative transition-transform duration-200 ${usedDice[0] ? 'opacity-30' : ''} ${!usedDice[0] && usedDice.findIndex(used => !used) === 0 ? 'ring-2 ring-blue-400' : ''} group-hover:scale-110`}>
-              <Dice3D value={game.dice[0]} size="sm" isRolling={isRollingDice} />
+              <Dice3D value={game.dice[0]} size="sm" isRolling={isRollingDice} animationDelay={0} />
               {usedDice[0] && (
                 <div className="absolute inset-0 bg-gray-500 opacity-50 rounded flex items-center justify-center">
                   <span className="text-white text-xs font-bold">✓</span>
@@ -280,7 +291,7 @@ const Game: React.FC = () => {
               )}
             </div>
             <div className={`relative transition-transform duration-200 ${usedDice[1] ? 'opacity-30' : ''} ${!usedDice[1] && usedDice.findIndex(used => !used) === 1 ? 'ring-2 ring-blue-400' : ''} group-hover:scale-110`}>
-              <Dice3D value={game.dice[1]} size="sm" isRolling={isRollingDice} />
+              <Dice3D value={game.dice[1]} size="sm" isRolling={isRollingDice} animationDelay={0.2} />
               {usedDice[1] && (
                 <div className="absolute inset-0 bg-gray-500 opacity-50 rounded flex items-center justify-center">
                   <span className="text-white text-xs font-bold">✓</span>
@@ -474,7 +485,7 @@ const Game: React.FC = () => {
               <div className="flex-1 flex justify-around">
                 {Array.from({ length: 6 }, (_, i) => 13 + i).map(num => <div key={num} className="w-8 text-center">{num}</div>)}
               </div>
-              <div className="w-6 sm:w-8 lg:w-10 xl:w-12" />
+              <div className="w-10 sm:w-12 lg:w-14 xl:w-16" />
               <div className="flex-1 flex justify-around">
                 {Array.from({ length: 6 }, (_, i) => 19 + i).map(num => <div key={num} className="w-8 text-center">{num}</div>)}
               </div>
@@ -492,7 +503,7 @@ const Game: React.FC = () => {
               </div>
               
               {/* Center bar with dice */}
-              <div className="w-8 sm:w-8 lg:w-10 xl:w-12 flex flex-col items-center justify-center px-0.5 sm:px-1">
+              <div className="w-10 sm:w-12 lg:w-14 xl:w-16 flex flex-col items-center justify-center px-0.5 sm:px-1">
                 <div className="
                   bg-gradient-to-b from-amber-800 to-amber-900 w-full h-40 sm:h-48 lg:h-64 xl:h-72 rounded-md sm:rounded-lg shadow-inner
                   border border-amber-700 sm:border-2 flex flex-col items-center justify-center
@@ -535,9 +546,9 @@ const Game: React.FC = () => {
               </div>
               
               {/* Center bar */}
-              <div className="w-6 sm:w-8 lg:w-10 xl:w-12 flex flex-col items-center justify-center px-0.5 sm:px-1">
+              <div className="w-10 sm:w-12 lg:w-14 xl:w-16 flex flex-col items-center justify-center px-0.5 sm:px-1">
                 <div className="
-                  bg-gradient-to-b from-amber-800 to-amber-900 w-full h-28 sm:h-44 lg:h-56 xl:h-64 rounded-md sm:rounded-lg shadow-inner
+                  bg-gradient-to-b from-amber-800 to-amber-900 w-full h-40 sm:h-48 lg:h-64 xl:h-72 rounded-md sm:rounded-lg shadow-inner
                   border border-amber-700 sm:border-2 flex flex-col items-center justify-center
                   relative overflow-hidden
                 ">
@@ -565,7 +576,7 @@ const Game: React.FC = () => {
               <div className="flex-1 flex justify-around">
                 {Array.from({ length: 6 }, (_, i) => 12 - i).map(num => <div key={num} className="w-8 text-center">{num}</div>)}
               </div>
-              <div className="w-6 sm:w-8 lg:w-10 xl:w-12" />
+              <div className="w-10 sm:w-12 lg:w-14 xl:w-16" />
               <div className="flex-1 flex justify-around">
                 {Array.from({ length: 6 }, (_, i) => 6 - i).map(num => <div key={num} className="w-8 text-center">{num}</div>)}
               </div>
