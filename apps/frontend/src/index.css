@@ -261,9 +261,20 @@
   .mobile-hidden {
     @apply hidden;
   }
-  
+
   .mobile-full {
     @apply w-full;
+  }
+
+  /* Improve touch targets on mobile */
+  .checker {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Reduce hover effects on touch devices */
+  .point:hover {
+    transform: none;
   }
 }
 

@@ -409,10 +409,15 @@ const Game: React.FC = () => {
         className={`
           relative flex ${isTopHalf ? 'flex-col' : 'flex-col-reverse'} items-center h-full
           transition-all duration-300 ease-out
-          ${isValidMove ? 'cursor-pointer hover:scale-105 hover:z-10' : 'cursor-default'}
+          ${isValidMove ? 'cursor-pointer hover:scale-105 hover:z-10 active:scale-110' : 'cursor-default'}
           ${isValidMove ? 'ring-2 ring-blue-400 ring-opacity-75' : ''}
+          touch-manipulation select-none
         `}
         onClick={() => handlePointClick(pointIndex)}
+        onTouchEnd={(e) => {
+          e.preventDefault();
+          handlePointClick(pointIndex);
+        }}
       >
         {/* Point triangle */}
         <div
