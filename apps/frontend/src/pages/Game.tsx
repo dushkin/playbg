@@ -296,39 +296,31 @@ const Game: React.FC = () => {
         {/* Dice display */}
         {game?.dice && game.dice.length === 2 ? (
           <div className="flex flex-row gap-1 z-20 group">
-            {isDoubles ? (
-              // Show 4 dice for doubles
-              Array.from({ length: 4 }, (_, i) => (
-                <div key={i} className={`relative transition-transform duration-200 ${usedDice[i] ? 'opacity-30' : ''} ${!usedDice[i] && usedDice.findIndex(used => !used) === i ? 'ring-2 ring-blue-400' : ''} group-hover:scale-110`}>
-                  <Dice3D value={game.dice?.[0] || 1} size="sm" isRolling={isRollingDice} animationDelay={i * 0.1} />
-                  {usedDice[i] && (
-                    <div className="absolute inset-0 bg-gray-500 opacity-50 rounded flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">✓</span>
-                    </div>
-                  )}
+            {/* Always show 2 dice visually */}
+            <div className={`relative transition-transform duration-200 ${usedDice.every(used => used) ? 'opacity-30' : ''} ${!usedDice.every(used => used) ? 'ring-2 ring-blue-400' : ''} group-hover:scale-110`}>
+              <Dice3D value={game.dice[0]} size="sm" isRolling={isRollingDice} animationDelay={0} />
+              {/* Show move counter for doubles */}
+              {isDoubles ? (
+                <div className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-lg z-30">
+                  {4 - usedDice.filter(used => used).length}
                 </div>
-              ))
-            ) : (
-              // Show 2 dice for regular rolls
-              <>
-                <div className={`relative transition-transform duration-200 ${usedDice[0] ? 'opacity-30' : ''} ${!usedDice[0] && usedDice.findIndex(used => !used) === 0 ? 'ring-2 ring-blue-400' : ''} group-hover:scale-110`}>
-                  <Dice3D value={game.dice[0]} size="sm" isRolling={isRollingDice} animationDelay={0} />
-                  {usedDice[0] && (
-                    <div className="absolute inset-0 bg-gray-500 opacity-50 rounded flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">✓</span>
-                    </div>
-                  )}
+              ) : (
+                usedDice[0] && (
+                  <div className="absolute inset-0 bg-gray-500 opacity-50 rounded flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">✓</span>
+                  </div>
+                )
+              )}
+            </div>
+            <div className={`relative transition-transform duration-200 ${isDoubles ? '' : (usedDice[1] ? 'opacity-30' : '')} ${isDoubles ? '' : (!usedDice[1] && usedDice.findIndex(used => !used) === 1 ? 'ring-2 ring-blue-400' : '')} group-hover:scale-110`}>
+              <Dice3D value={game.dice[1]} size="sm" isRolling={isRollingDice} animationDelay={0.2} />
+              {/* For regular rolls, show individual dice usage */}
+              {!isDoubles && usedDice[1] && (
+                <div className="absolute inset-0 bg-gray-500 opacity-50 rounded flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">✓</span>
                 </div>
-                <div className={`relative transition-transform duration-200 ${usedDice[1] ? 'opacity-30' : ''} ${!usedDice[1] && usedDice.findIndex(used => !used) === 1 ? 'ring-2 ring-blue-400' : ''} group-hover:scale-110`}>
-                  <Dice3D value={game.dice[1]} size="sm" isRolling={isRollingDice} animationDelay={0.2} />
-                  {usedDice[1] && (
-                    <div className="absolute inset-0 bg-gray-500 opacity-50 rounded flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">✓</span>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
+              )}
+            </div>
           </div>
         ) : (
           // Show roll dice option only for current player
