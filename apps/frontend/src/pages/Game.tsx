@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAppSelector } from '../hooks/redux'
 import { gamesAPI } from '../services/api'
@@ -6,6 +6,7 @@ import { Game as GameType, GameState as GameStateEnum } from '@playbg/shared'
 import LoadingSpinner from '../components/UI/LoadingSpinner'
 import socketService from '../services/socketService'
 import Dice3D from '../components/Game/Dice3D'
+import { isMobile } from '../utils/mobile'
 
 const Game: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>()
@@ -15,10 +16,8 @@ const Game: React.FC = () => {
   const [game, setGame] = useState<GameType | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selectedPoint, setSelectedPoint] = useState<number | null>(null)
   const [isRollingDice, setIsRollingDice] = useState(false)
-  const [usedDice, setUsedDice] = useState<boolean[]>([false, false])
-  const [isDoubles, setIsDoubles] = useState(false)
-  const pendingMovesRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     if (gameId) {
@@ -37,10 +36,8 @@ const Game: React.FC = () => {
       const handleDiceRoll = (data: any) => {
         if (data.gameId === gameId) {
           setIsRollingDice(false);
-
           setGame(prevGame => {
             if (!prevGame) return null;
-
             const updatedGame = {
               ...prevGame,
               dice: data.dice,
@@ -48,17 +45,8 @@ const Game: React.FC = () => {
               currentPlayer: data.state?.currentPlayer !== undefined ? data.state.currentPlayer : prevGame.currentPlayer,
             };
 
-            // Check if it's doubles (same value on both dice)
-            const isDoublesRoll = data.dice && data.dice.length === 2 && data.dice[0] === data.dice[1];
-            setIsDoubles(isDoublesRoll);
-
-            // Reset dice tracking when dice are rolled
-            // For doubles, we get 4 moves; for regular rolls, we get 2 moves
-            if (isDoublesRoll) {
-              setUsedDice([false, false, false, false]);
-            } else {
-              setUsedDice([false, false]);
-            }
+            // Clear selected point when dice are rolled
+            setSelectedPoint(null);
 
             return updatedGame;
           });
@@ -67,54 +55,17 @@ const Game: React.FC = () => {
 
       const handleGameMove = (data: any) => {
         if (data.gameId === gameId) {
-          // Check if this move was made by the current user (optimistic update already applied)
-          const moveKey = `${data.move?.from}-${data.move?.to}`
-          const wasOptimistic = pendingMovesRef.current.has(moveKey)
+          setGame(prevGame => {
+            if (!prevGame) return null;
+            return {
+              ...prevGame,
+              board: data.state?.board || prevGame.board,
+              currentPlayer: data.state?.currentPlayer !== undefined ? data.state.currentPlayer : prevGame.currentPlayer,
+            };
+          });
 
-          if (wasOptimistic) {
-            // Remove from pending moves
-            pendingMovesRef.current.delete(moveKey)
-
-            setGame(prevGame => {
-              if (!prevGame) return null;
-
-              // Check if current player changed - reset dice state for new player
-              const playerChanged = data.state?.currentPlayer !== undefined && data.state.currentPlayer !== prevGame.currentPlayer;
-
-              if (playerChanged) {
-                setUsedDice([false, false]);
-                setIsDoubles(false);
-              }
-
-              // Only update non-board state to avoid conflicts with optimistic updates
-              return {
-                ...prevGame,
-                // Keep the optimistic board state - don't overwrite it
-                currentPlayer: data.state?.currentPlayer !== undefined ? data.state.currentPlayer : prevGame.currentPlayer,
-                dice: playerChanged ? null : (data.state?.dice || prevGame.dice),
-                // Update any other state but preserve the board
-              };
-            });
-          } else {
-            // This move was made by opponent, update everything
-            setGame(prevGame => {
-              if (!prevGame) return null;
-
-              // Check if current player changed - reset dice state for new player
-              const playerChanged = data.state?.currentPlayer !== undefined && data.state.currentPlayer !== prevGame.currentPlayer;
-              if (playerChanged) {
-                setUsedDice([false, false]);
-                setIsDoubles(false);
-              }
-
-              return {
-                ...prevGame,
-                board: data.state?.board || prevGame.board,
-                currentPlayer: data.state?.currentPlayer !== undefined ? data.state.currentPlayer : prevGame.currentPlayer,
-                dice: playerChanged ? null : (data.state?.dice || prevGame.dice),
-              };
-            });
-          }
+          // Clear selected point when move is made
+          setSelectedPoint(null);
         }
       };
 
@@ -153,249 +104,87 @@ const Game: React.FC = () => {
   }
 
   const handlePointClick = (pointIndex: number) => {
-    if (!game || game.gameState !== GameStateEnum.IN_PROGRESS || !game.dice) return
+    if (!game || game.gameState !== GameStateEnum.IN_PROGRESS) return
 
     // Check if it's the current player's turn
     const currentPlayerIndex = game.players.findIndex(p => p.userId === user?.id)
     if (currentPlayerIndex !== game.currentPlayer) return
 
-    // Check if all dice are used
-    if (usedDice.every(used => used)) return
-
-    // Check if the point has checkers belonging to the current player
-    const point = game.board.points[pointIndex]
-    if (!point || point[currentPlayerIndex] === 0) return
-
-    // Find the next available dice (first unused)
-    const nextDiceIndex = usedDice.findIndex(used => !used)
-    if (nextDiceIndex === -1) return
-
-    // For doubles, all moves use the same dice value; for regular rolls, use the specific dice
-    const diceValue = isDoubles ? game.dice[0] : game.dice[nextDiceIndex]
-
-    // Calculate target point based on dice value and player direction
-    let targetPoint: number
-
-    if (currentPlayerIndex === 0) {
-      // Player 0 moves counter-clockwise (decreasing point numbers)
-      targetPoint = pointIndex - diceValue
-    } else {
-      // Player 1 moves clockwise (increasing point numbers)
-      targetPoint = pointIndex + diceValue
-    }
-
-    // Validate the move
-    const isValidMove = isValidMoveForDice(pointIndex, targetPoint, diceValue, currentPlayerIndex)
-
-    if (isValidMove && gameId) {
-      // Make the move automatically
-      const move = {
-        from: pointIndex,
-        to: targetPoint
+    if (selectedPoint === null) {
+      // Select a point if it has checkers belonging to the current player
+      const point = game.board.points[pointIndex]
+      if (point && point[currentPlayerIndex] > 0) {
+        setSelectedPoint(pointIndex)
       }
-
-      // Track this move as pending
-      const moveKey = `${pointIndex}-${targetPoint}`
-
-      // Add to pending moves
-      pendingMovesRef.current.add(moveKey)
-
-      // Optimistic update - update UI immediately with smooth transition
-      setGame(prevGame => {
-        if (!prevGame) return null
-
-        const newBoard = JSON.parse(JSON.stringify(prevGame.board))
-        const playerIndex = prevGame.players.findIndex(p => p.userId === user?.id)
-
-        // Ensure we have valid checkers to move
-        if (newBoard.points[pointIndex][playerIndex] <= 0) {
-          return prevGame // Don't make invalid moves
-        }
-
-        // Move the checker
-        newBoard.points[pointIndex][playerIndex]--
-        newBoard.points[targetPoint][playerIndex]++
-
-        // If opponent has a single checker at target, capture it
-        const opponentIndex = 1 - playerIndex
-        if (newBoard.points[targetPoint][opponentIndex] === 1) {
-          newBoard.points[targetPoint][opponentIndex] = 0
-          newBoard.bar[opponentIndex]++
-        }
-
-        return {
-          ...prevGame,
-          board: newBoard
-        }
-      })
-
-      // Mark this dice as used
-      const newUsedDice = [...usedDice]
-      newUsedDice[nextDiceIndex] = true
-      setUsedDice(newUsedDice)
-
-      // Send move to backend
-      socketService.makeMove(gameId, move)
-    }
-  }
-
-  // Function to validate a specific move with a dice value
-  const isValidMoveForDice = (fromPoint: number, toPoint: number, diceValue: number, currentPlayerIndex: number): boolean => {
-    // Calculate expected target based on dice value and player direction
-    let expectedTarget: number
-
-    if (currentPlayerIndex === 0) {
-      // Player 0 moves counter-clockwise (decreasing point numbers)
-      expectedTarget = fromPoint - diceValue
+    } else if (selectedPoint === pointIndex) {
+      // Deselect if clicking the same point
+      setSelectedPoint(null)
     } else {
-      // Player 1 moves clockwise (increasing point numbers)
-      expectedTarget = fromPoint + diceValue
+      // Try to make a move
+      if (validDestinations.has(pointIndex) && gameId) {
+        // Make the move (backend will add playerId and timestamp)
+        const move = {
+          from: selectedPoint,
+          to: pointIndex
+        }
+
+        socketService.makeMove(gameId, move)
+        setSelectedPoint(null)
+      } else {
+        // Invalid move, deselect
+        setSelectedPoint(null)
+      }
     }
-
-    // Check if the move matches the dice value
-    if (toPoint !== expectedTarget) return false
-
-    // Check if target point is within bounds
-    if (toPoint < 0 || toPoint > 23) return false
-
-    // Check if opponent has more than 1 checker at target
-    const targetPoint = game?.board.points[toPoint]
-    if (targetPoint) {
-      const opponentIndex = 1 - currentPlayerIndex
-      if (targetPoint[opponentIndex] > 1) return false
-    }
-
-    return true
   }
 
   const handleRollDice = () => {
     if (gameId) {
       setIsRollingDice(true);
       socketService.rollDice(gameId);
-
-      // Ensure dice animation stops after a reasonable time even if server doesn't respond
-      setTimeout(() => {
-        setIsRollingDice(false);
-      }, 3000);
     }
   };
 
-  // Render dice for a specific player position
-  const renderPlayerDice = (isTopSide: boolean) => {
-    const currentPlayerIndex = game?.players.findIndex(p => p.userId === user?.id) ?? -1
-    const isCurrentPlayer = currentPlayerIndex === game?.currentPlayer
+  // Calculate valid destination points for the selected point
+  const validDestinations = useMemo(() => {
+    if (selectedPoint === null || !game?.dice) return new Set<number>()
 
-    // Show dice on the side of the current active player (whoever's turn it is)
-    const shouldShowDice = game?.currentPlayer === (isTopSide ? 1 : 0)
+    const currentPlayerIndex = game.players.findIndex(p => p.userId === user?.id)
+    if (currentPlayerIndex === -1) return new Set<number>()
 
-    // Don't show dice if this side doesn't match the current player's turn
-    if (!shouldShowDice) return null
+    const validTargets = new Set<number>()
+    const dice = game.dice
 
-    return (
-      <div className="flex flex-row gap-1 justify-center mb-2">
-        {/* Dice display */}
-        {game?.dice && game.dice.length === 2 ? (
-          <div className="flex flex-row gap-1 z-20 group">
-            {/* Always show 2 dice visually */}
-            <div className={`relative transition-transform duration-200 ${usedDice.every(used => used) ? 'opacity-30' : ''} ${!usedDice.every(used => used) ? 'ring-2 ring-blue-400' : ''} group-hover:scale-110`}>
-              <Dice3D value={game.dice[0]} size="sm" isRolling={isRollingDice} animationDelay={0} />
-              {/* Show move counter for doubles */}
-              {isDoubles ? (
-                <div className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-lg z-30">
-                  {4 - usedDice.filter(used => used).length}
-                </div>
-              ) : (
-                usedDice[0] && (
-                  <div className="absolute inset-0 bg-gray-500 opacity-50 rounded flex items-center justify-center">
-                    <span className="text-white text-xs font-bold">✓</span>
-                  </div>
-                )
-              )}
-            </div>
-            <div className={`relative transition-transform duration-200 ${isDoubles ? '' : (usedDice[1] ? 'opacity-30' : '')} ${isDoubles ? '' : (!usedDice[1] && usedDice.findIndex(used => !used) === 1 ? 'ring-2 ring-blue-400' : '')} group-hover:scale-110`}>
-              <Dice3D value={game.dice[1]} size="sm" isRolling={isRollingDice} animationDelay={0.2} />
-              {/* For regular rolls, show individual dice usage */}
-              {!isDoubles && usedDice[1] && (
-                <div className="absolute inset-0 bg-gray-500 opacity-50 rounded flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">✓</span>
-                </div>
-              )}
-            </div>
-          </div>
-        ) : (
-          // Show roll dice option only for current player
-          isCurrentPlayer && (
-            <div className="flex flex-row gap-1 z-20">
-              <div
-                className={`
-                  w-8 h-8 bg-white rounded-lg shadow-lg border border-gray-300 cursor-pointer
-                  transition-all duration-200 hover:scale-110 hover:shadow-xl
-                  flex items-center justify-center text-gray-400 font-bold text-xs
-                  hover:bg-blue-50 hover:border-blue-300
-                `}
-                style={{
-                  animation: isRollingDice ? 'dice-roll 1.2s ease-in-out infinite' : undefined,
-                  animationDelay: isRollingDice ? '0s' : undefined
-                }}
-                onClick={() => {
-                  if (game?.gameState === 'in_progress' && !isRollingDice) {
-                    handleRollDice();
-                  }
-                }}
-              >
-                ?
-              </div>
-              <div
-                className={`
-                  w-8 h-8 bg-white rounded-lg shadow-lg border border-gray-300 cursor-pointer
-                  transition-all duration-200 hover:scale-110 hover:shadow-xl
-                  flex items-center justify-center text-gray-400 font-bold text-xs
-                  hover:bg-blue-50 hover:border-blue-300
-                `}
-                style={{
-                  animation: isRollingDice ? 'dice-roll 1.2s ease-in-out infinite' : undefined,
-                  animationDelay: isRollingDice ? '0.2s' : undefined
-                }}
-                onClick={() => {
-                  if (game?.gameState === 'in_progress' && !isRollingDice) {
-                    handleRollDice();
-                  }
-                }}
-              >
-                ?
-              </div>
-            </div>
-          )
-        )}
-      </div>
-    )
-  };
-
-
-  const renderPoint = (pointIndex: number, isTopHalf: boolean) => {
-    const point = game?.board.points[pointIndex]
-
-    // Check if this point has a checker that can be moved with the current dice
-    const currentPlayerIndex = game?.players.findIndex(p => p.userId === user?.id) ?? -1
-    const isCurrentPlayer = currentPlayerIndex === game?.currentPlayer
-    const hasPlayerChecker = point && point[currentPlayerIndex] > 0
-    const nextDiceIndex = usedDice.findIndex(used => !used)
-    const canMove = isCurrentPlayer && hasPlayerChecker && nextDiceIndex !== -1 && game?.dice
-
-    let isValidMove = false
-    if (canMove && game?.dice) {
-      // For doubles, all moves use the same dice value; for regular rolls, use the specific dice
-      const diceValue = isDoubles ? game.dice[0] : game.dice[nextDiceIndex]
+    // Calculate possible destinations based on dice values
+    dice.forEach(diceValue => {
       let targetPoint: number
 
       if (currentPlayerIndex === 0) {
-        targetPoint = pointIndex - diceValue
+        // Player 0 moves counter-clockwise (decreasing point numbers)
+        targetPoint = selectedPoint - diceValue
       } else {
-        targetPoint = pointIndex + diceValue
+        // Player 1 moves clockwise (increasing point numbers)
+        targetPoint = selectedPoint + diceValue
       }
 
-      isValidMove = isValidMoveForDice(pointIndex, targetPoint, diceValue, currentPlayerIndex)
-    }
+      // Check if target point is valid (within board bounds)
+      if (targetPoint >= 0 && targetPoint < 24) {
+        // Basic validation: check if opponent has more than 1 checker
+        const opponentIndex = 1 - currentPlayerIndex
+        const opponentCheckers = game.board.points[targetPoint][opponentIndex]
+
+        if (opponentCheckers <= 1) {
+          validTargets.add(targetPoint)
+        }
+      }
+    })
+
+    return validTargets
+  }, [selectedPoint, game?.dice, game?.board, user?.id, game?.players])
+
+  const renderPoint = (pointIndex: number, isTopHalf: boolean) => {
+    const point = game?.board.points[pointIndex]
+    const isSelected = selectedPoint === pointIndex
+    const isValidDestination = validDestinations.has(pointIndex)
     
     // Determine point color (alternating pattern)
     const isEvenPoint = pointIndex % 2 === 0
@@ -403,49 +192,46 @@ const Game: React.FC = () => {
       ? 'from-amber-100 to-amber-200' 
       : 'from-amber-800 to-amber-900'
     
+    const pointHandlers = {
+      onClick: () => handlePointClick(pointIndex),
+      ...(isMobile() && { onTouchEnd: (e: React.TouchEvent) => {
+        e.preventDefault()
+        handlePointClick(pointIndex)
+      }}),
+    }
+
     return (
       <div
         key={`point-${pointIndex}`}
         className={`
           relative flex ${isTopHalf ? 'flex-col' : 'flex-col-reverse'} items-center h-full
-          transition-all duration-300 ease-out
-          ${isValidMove ? 'cursor-pointer hover:scale-105 hover:z-10 active:scale-110' : 'cursor-default'}
-          ${isValidMove ? 'ring-2 ring-blue-400 ring-opacity-75' : ''}
-          touch-manipulation select-none
+          cursor-pointer transition-all duration-300 ease-out
+          ${isSelected ? 'scale-110 z-20' : 'hover:scale-105 hover:z-10'}
+          ${isSelected ? 'animate-pulse' : ''}
+          ${isValidDestination ? 'ring-2 ring-green-400 ring-opacity-75' : ''}
         `}
-        onClick={(e) => {
-          // Only handle click if it's not from a checker
-          if (e.target === e.currentTarget) {
-            handlePointClick(pointIndex);
-          }
-        }}
-        onTouchEnd={(e) => {
-          // Only handle touch if it's not from a checker
-          if (e.target === e.currentTarget) {
-            e.preventDefault();
-            handlePointClick(pointIndex);
-          }
-        }}
+        {...pointHandlers}
       >
         {/* Point triangle */}
         <div
           className={`
             absolute inset-0 transition-all duration-200
-            ${isValidMove ? 'ring-4 ring-blue-400 ring-opacity-75' : ''}
+            ${isSelected ? 'ring-4 ring-blue-400 ring-opacity-75' : ''}
+            ${isValidDestination ? 'ring-4 ring-green-400 ring-opacity-75' : ''}
           `}
           style={{
             background: `linear-gradient(to bottom, ${pointColorClass.includes('amber-100') ? '#fef3c7, #fde68a' : '#92400e, #78350f'})`,
-            clipPath: isTopHalf
+            clipPath: isTopHalf 
               ? 'polygon(50% 100%, 0% 0%, 100% 0%)'
               : 'polygon(0% 100%, 100% 100%, 50% 0%)',
-            boxShadow: isValidMove ? 'inset 0 0 20px rgba(59, 130, 246, 0.3)' : 'inset 0 2px 4px rgba(0,0,0,0.1)'
+            boxShadow: isSelected ? 'inset 0 0 20px rgba(59, 130, 246, 0.3)' : 'inset 0 2px 4px rgba(0,0,0,0.1)'
           }}
         />
         
         {/* Checkers */}        <div className={`
           relative z-20 flex ${isTopHalf ? 'flex-col' : 'flex-col-reverse'} items-center
           ${isTopHalf ? 'justify-start pt-1' : 'justify-start pt-1'}
-          h-full px-1 sm:px-2
+          h-full px-2
         `}>
           {point && point.map((playerCheckers, playerIndex) => {
             if (playerCheckers === 0) return null
@@ -456,24 +242,11 @@ const Game: React.FC = () => {
                 <div
                   key={checkerIndex}
                   className={`
-                    relative w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 xl:w-9 xl:h-9 rounded-full transition-all duration-300 ease-out
-                    ${checkerIndex === 0 ? '' : '-mt-1 sm:-mt-1'}
+                    relative w-4 h-4 sm:w-6 sm:h-6 lg:w-8 lg:h-8 xl:w-9 xl:h-9 rounded-full transition-all duration-300 ease-out
+                    ${checkerIndex === 0 ? '' : '-mt-0.5 sm:-mt-1'}
                     hover:scale-110 hover:z-30 cursor-pointer
-                    transform hover:-translate-y-1 active:scale-125
-                    touch-manipulation select-none
+                    transform hover:-translate-y-1
                   `}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handlePointClick(pointIndex);
-                  }}
-                  onTouchEnd={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handlePointClick(pointIndex);
-                  }}
-                  onTouchStart={(e) => {
-                    e.preventDefault();
-                  }}
                   style={{
                     background: playerIndex === 0
                       ? `radial-gradient(circle at 30% 30%, #ffffff, #f8f9fa 40%, #e5e7eb 70%, #d1d5db)`
@@ -520,40 +293,40 @@ const Game: React.FC = () => {
           })}
         </div>
 
+        {/* Valid destination indicator */}
+        {isValidDestination && (
+          <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
+            <div className="w-6 h-6 bg-green-500 rounded-full opacity-75 animate-ping"></div>
+            <div className="absolute w-4 h-4 bg-green-400 rounded-full"></div>
+          </div>
+        )}
       </div>
     )
   }
-
   const renderBoard = () => {
     if (!game) return null
 
-    return (
-      <div className="bg-gradient-to-br from-amber-50 via-amber-100 to-amber-200 p-1 sm:p-4 lg:p-6 rounded-xl sm:rounded-2xl shadow-2xl w-full mx-auto transform-gpu"
-        style={{ willChange: 'auto' }}>
-        {/* Board border with wood grain effect */}
-        <div className="bg-gradient-to-br from-amber-900 via-amber-800 to-amber-900 p-1 sm:p-3 lg:p-4 rounded-lg sm:rounded-xl shadow-inner">
-          <div className="bg-gradient-to-br from-amber-100 to-amber-50 p-1 sm:p-4 lg:p-6 rounded-md sm:rounded-lg">
-            
-            {/* Top player dice */}
-            {renderPlayerDice(true)}
+    const isCurrentPlayer = game.players[game.currentPlayer]?.userId === user?.id
 
+    return (
+      <div className="bg-gradient-to-br from-amber-50 via-amber-100 to-amber-200 p-2 sm:p-4 lg:p-6 rounded-xl sm:rounded-2xl shadow-2xl w-full mx-auto">
+        {/* Board border with wood grain effect */}
+        <div className="bg-gradient-to-br from-amber-900 via-amber-800 to-amber-900 p-2 sm:p-3 lg:p-4 rounded-lg sm:rounded-xl shadow-inner">
+          <div className="bg-gradient-to-br from-amber-100 to-amber-50 p-2 sm:p-4 lg:p-6 rounded-md sm:rounded-lg">
+            
             {/* Top numbers */}
             <div className="flex text-xs font-bold text-amber-900 opacity-50 mb-1">
-              <div className="flex-1 flex">
-                {Array.from({ length: 6 }, (_, i) => (
-                  <div key={13 + i} className="flex-1 text-center">{13 + i}</div>
-                ))}
+              <div className="flex-1 flex justify-around">
+                {Array.from({ length: 6 }, (_, i) => 13 + i).map(num => <div key={num} className="w-8 text-center">{num}</div>)}
               </div>
-              <div className="w-10 sm:w-12 lg:w-14 xl:w-16" />
-              <div className="flex-1 flex">
-                {Array.from({ length: 6 }, (_, i) => (
-                  <div key={19 + i} className="flex-1 text-center">{19 + i}</div>
-                ))}
+              <div className="w-6 sm:w-8 lg:w-10 xl:w-12" />
+              <div className="flex-1 flex justify-around">
+                {Array.from({ length: 6 }, (_, i) => 19 + i).map(num => <div key={num} className="w-8 text-center">{num}</div>)}
               </div>
             </div>
 
             {/* Top half of board */}
-            <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-40 sm:h-48 lg:h-64 xl:h-72">
+            <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-32 sm:h-48 lg:h-64 xl:h-72">
               {/* Points 12-17 */}
               <div className="flex gap-0.5 flex-1">
                 {Array.from({ length: 6 }, (_, i) => (
@@ -564,13 +337,56 @@ const Game: React.FC = () => {
               </div>
               
               {/* Center bar with dice */}
-              <div className="w-10 sm:w-12 lg:w-14 xl:w-16 flex flex-col items-center justify-center px-0.5 sm:px-1">
+              <div className="w-6 sm:w-8 lg:w-10 xl:w-12 flex flex-col items-center justify-center px-0.5 sm:px-1">
                 <div className="
-                  bg-gradient-to-b from-amber-800 to-amber-900 w-full h-40 sm:h-48 lg:h-64 xl:h-72 rounded-md sm:rounded-lg shadow-inner
+                  bg-gradient-to-b from-amber-800 to-amber-900 w-full h-28 sm:h-44 lg:h-56 xl:h-64 rounded-md sm:rounded-lg shadow-inner
                   border border-amber-700 sm:border-2 flex flex-col items-center justify-center
                   relative overflow-hidden
                 ">
                   <div className="text-amber-200 text-xs font-bold mb-1 sm:mb-2 z-10">BAR</div>
+
+                  {/* Dice display */}
+                  {game?.dice && game.dice.length === 2 ? (
+                    <div className="flex flex-col gap-1 z-20">
+                      <Dice3D value={game.dice[0]} size="sm" isRolling={isRollingDice} />
+                      <Dice3D value={game.dice[1]} size="sm" isRolling={isRollingDice} />
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-1 z-20">
+                      <div
+                        className={`
+                          w-8 h-8 bg-white rounded-lg shadow-lg border border-gray-300 cursor-pointer
+                          transition-all duration-200 hover:scale-110 hover:shadow-xl
+                          flex items-center justify-center text-gray-400 font-bold text-xs
+                          ${isCurrentPlayer && game.gameState === 'in_progress' ? 'hover:bg-blue-50 hover:border-blue-300' : 'cursor-not-allowed opacity-50'}
+                          ${isRollingDice ? 'animate-spin' : ''}
+                        `}
+                        onClick={() => {
+                          if (isCurrentPlayer && game.gameState === 'in_progress' && !isRollingDice) {
+                            handleRollDice();
+                          }
+                        }}
+                      >
+                        ?
+                      </div>
+                      <div
+                        className={`
+                          w-8 h-8 bg-white rounded-lg shadow-lg border border-gray-300 cursor-pointer
+                          transition-all duration-200 hover:scale-110 hover:shadow-xl
+                          flex items-center justify-center text-gray-400 font-bold text-xs
+                          ${isCurrentPlayer && game.gameState === 'in_progress' ? 'hover:bg-blue-50 hover:border-blue-300' : 'cursor-not-allowed opacity-50'}
+                          ${isRollingDice ? 'animate-spin' : ''}
+                        `}
+                        onClick={() => {
+                          if (isCurrentPlayer && game.gameState === 'in_progress' && !isRollingDice) {
+                            handleRollDice();
+                          }
+                        }}
+                      >
+                        ?
+                      </div>
+                    </div>
+                  )}
 
                   {/* Wood grain effect */}
                   <div className="absolute inset-0 opacity-20">
@@ -596,7 +412,7 @@ const Game: React.FC = () => {
             </div>
             
             {/* Bottom half of board */}
-            <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-40 sm:h-48 lg:h-64 xl:h-72">
+            <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-32 sm:h-48 lg:h-64 xl:h-72">
               {/* Points 11-6 */}
               <div className="flex gap-0.5 flex-1">
                 {Array.from({ length: 6 }, (_, i) => (
@@ -607,9 +423,9 @@ const Game: React.FC = () => {
               </div>
               
               {/* Center bar */}
-              <div className="w-10 sm:w-12 lg:w-14 xl:w-16 flex flex-col items-center justify-center px-0.5 sm:px-1">
+              <div className="w-6 sm:w-8 lg:w-10 xl:w-12 flex flex-col items-center justify-center px-0.5 sm:px-1">
                 <div className="
-                  bg-gradient-to-b from-amber-800 to-amber-900 w-full h-40 sm:h-48 lg:h-64 xl:h-72 rounded-md sm:rounded-lg shadow-inner
+                  bg-gradient-to-b from-amber-800 to-amber-900 w-full h-28 sm:h-44 lg:h-56 xl:h-64 rounded-md sm:rounded-lg shadow-inner
                   border border-amber-700 sm:border-2 flex flex-col items-center justify-center
                   relative overflow-hidden
                 ">
@@ -634,21 +450,14 @@ const Game: React.FC = () => {
 
             {/* Bottom numbers */}
             <div className="flex text-xs font-bold text-amber-900 opacity-50 mt-1">
-              <div className="flex-1 flex">
-                {Array.from({ length: 6 }, (_, i) => (
-                  <div key={12 - i} className="flex-1 text-center">{12 - i}</div>
-                ))}
+              <div className="flex-1 flex justify-around">
+                {Array.from({ length: 6 }, (_, i) => 12 - i).map(num => <div key={num} className="w-8 text-center">{num}</div>)}
               </div>
-              <div className="w-10 sm:w-12 lg:w-14 xl:w-16" />
-              <div className="flex-1 flex">
-                {Array.from({ length: 6 }, (_, i) => (
-                  <div key={6 - i} className="flex-1 text-center">{6 - i}</div>
-                ))}
+              <div className="w-6 sm:w-8 lg:w-10 xl:w-12" />
+              <div className="flex-1 flex justify-around">
+                {Array.from({ length: 6 }, (_, i) => 6 - i).map(num => <div key={num} className="w-8 text-center">{num}</div>)}
               </div>
             </div>
-
-            {/* Bottom player dice */}
-            {renderPlayerDice(false)}
 
           </div>
         </div>
