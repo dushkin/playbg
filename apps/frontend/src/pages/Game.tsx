@@ -413,10 +413,18 @@ const Game: React.FC = () => {
           ${isValidMove ? 'ring-2 ring-blue-400 ring-opacity-75' : ''}
           touch-manipulation select-none
         `}
-        onClick={() => handlePointClick(pointIndex)}
+        onClick={(e) => {
+          // Only handle click if it's not from a checker
+          if (e.target === e.currentTarget) {
+            handlePointClick(pointIndex);
+          }
+        }}
         onTouchEnd={(e) => {
-          e.preventDefault();
-          handlePointClick(pointIndex);
+          // Only handle touch if it's not from a checker
+          if (e.target === e.currentTarget) {
+            e.preventDefault();
+            handlePointClick(pointIndex);
+          }
         }}
       >
         {/* Point triangle */}
@@ -451,8 +459,21 @@ const Game: React.FC = () => {
                     relative w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 xl:w-9 xl:h-9 rounded-full transition-all duration-300 ease-out
                     ${checkerIndex === 0 ? '' : '-mt-1 sm:-mt-1'}
                     hover:scale-110 hover:z-30 cursor-pointer
-                    transform hover:-translate-y-1
+                    transform hover:-translate-y-1 active:scale-125
+                    touch-manipulation select-none
                   `}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePointClick(pointIndex);
+                  }}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handlePointClick(pointIndex);
+                  }}
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                  }}
                   style={{
                     background: playerIndex === 0
                       ? `radial-gradient(circle at 30% 30%, #ffffff, #f8f9fa 40%, #e5e7eb 70%, #d1d5db)`

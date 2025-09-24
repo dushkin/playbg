@@ -273,8 +273,19 @@
   }
 
   /* Reduce hover effects on touch devices */
-  .point:hover {
-    transform: none;
+  @media (hover: none) {
+    .point:hover {
+      transform: none;
+    }
+
+    /* Better touch feedback */
+    .point:active {
+      transform: scale(1.05);
+    }
+
+    .checker:active {
+      transform: scale(1.2) !important;
+    }
   }
 }
 
