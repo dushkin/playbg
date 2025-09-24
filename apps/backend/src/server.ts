@@ -73,11 +73,10 @@ const allowedOriginsProd: string[] = [
 // Setup Socket.IO
 const io = new SocketIOServer(server, {
   cors: {
-    // In development, reflect the request's origin (true) to simplify testing from
-    // various local ports and mobile webviews. In production, restrict to a list
-    // of allowed domains.
-    origin: process.env.NODE_ENV === 'development' ? allowedOriginsDev : allowedOriginsProd,
-    methods: ['GET', 'POST']
+    // Use combined origins to handle environment detection issues
+    origin: [...new Set([...allowedOriginsDev, ...allowedOriginsProd])],
+    methods: ['GET', 'POST'],
+    credentials: true
   }
 });
 
@@ -163,23 +162,25 @@ app.use(helmet({
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
 }));
 
-// CORS configuration - Updated for Render deployment compatibility
+// CORS configuration - Fixed for proper cross-origin handling
 app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (mobile apps, Postman, etc.)
     if (!origin) return callback(null, true);
-    
-    // Use the appropriate origin list based on environment
-    const allowedOrigins = process.env.NODE_ENV === 'production' ? allowedOriginsProd : allowedOriginsDev;
-    
-    logger.info(`CORS check for origin: ${origin}, environment: ${process.env.NODE_ENV}, allowed origins: ${JSON.stringify(allowedOrigins)}`);
-    
+
+    // Combine both dev and prod origins to be more permissive in cloud deployments
+    // This fixes issues where NODE_ENV might not be set correctly on Render
+    const allowedOrigins = [...new Set([...allowedOriginsDev, ...allowedOriginsProd])];
+
+    logger.info(`CORS check for origin: ${origin}, environment: ${process.env.NODE_ENV}`);
+
     if (allowedOrigins.includes(origin)) {
       logger.info(`CORS allowing origin: ${origin}`);
       callback(null, true);
     } else {
       logger.warn(`CORS blocked origin: ${origin}`);
-      callback(new Error(`CORS policy violation: Origin ${origin} not allowed`));
+      // Don't throw error, just return false to prevent CORS issues
+      callback(null, false);
     }
   },
   credentials: true,
@@ -196,21 +197,6 @@ app.use(cors({
   exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar'],
   optionsSuccessStatus: 200,
   preflightContinue: false
-}));
-
-// Handle preflight requests explicitly
-app.options('*', cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    const allowedOrigins = process.env.NODE_ENV === 'production' ? allowedOriginsProd : allowedOriginsDev;
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(null, false);
-    }
-  },
-  credentials: true,
-  optionsSuccessStatus: 200
 }));
 
 
