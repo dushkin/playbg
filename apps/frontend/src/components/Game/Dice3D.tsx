@@ -7,9 +7,10 @@ interface Dice3DProps {
   animationDelay?: number
   color?: 'white' | 'black'
   blank?: boolean
+  showR?: boolean
 }
 
-const Dice3D: React.FC<Dice3DProps> = ({ value, size = 'md', isRolling = false, animationDelay = 0, color = 'white', blank = false }) => {
+const Dice3D: React.FC<Dice3DProps> = ({ value, size = 'md', isRolling = false, animationDelay = 0, color = 'white', blank = false, showR = false }) => {
   const sizeClasses = useMemo(() => {
     switch (size) {
       case 'xs':
@@ -72,7 +73,7 @@ const Dice3D: React.FC<Dice3DProps> = ({ value, size = 'md', isRolling = false, 
     }
   }
 
-  const dotPositions = blank ? [] : getDotPositions(value)
+  const dotPositions = blank || showR ? [] : getDotPositions(value)
 
   const diceBackground = color === 'white'
     ? 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 25%, #e9ecef 50%, #dee2e6 75%, #ced4da 100%)'
@@ -117,6 +118,24 @@ const Dice3D: React.FC<Dice3DProps> = ({ value, size = 'md', isRolling = false, 
           }}
         />
       ))}
+
+      {/* R Letter */}
+      {showR && (
+        <div
+          className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-bold select-none ${
+            color === 'white' ? 'text-gray-800' : 'text-white'
+          } ${
+            size === 'xs' ? 'text-xs' :
+            size === 'sm' ? 'text-sm' :
+            size === 'lg' ? 'text-2xl' : 'text-lg'
+          }`}
+          style={{
+            textShadow: '0 1px 2px rgba(0,0,0,0.3)'
+          }}
+        >
+          R
+        </div>
+      )}
 
       {/* Edge highlights for 3D effect */}
       <div

@@ -136,12 +136,27 @@ const Game: React.FC = () => {
           // Normal server update (not our optimistic move)
           setGame(prevGame => {
             if (!prevGame) return null;
-            return {
-              ...prevGame,
-              board: data.state?.board || prevGame.board,
-              currentPlayer: data.state?.currentPlayer !== undefined ? data.state.currentPlayer : prevGame.currentPlayer,
-              dice: data.state?.dice || prevGame.dice,
-            };
+
+            // If we have a pending optimistic move, don't overwrite the board state
+            const currentOptimisticId = optimisticMoveRef.current || optimisticMoveId
+            const shouldPreserveBoardState = currentOptimisticId !== null
+
+            if (shouldPreserveBoardState) {
+              console.log('🔒 Preserving optimistic board state, only updating player/dice')
+              return {
+                ...prevGame,
+                currentPlayer: data.state?.currentPlayer !== undefined ? data.state.currentPlayer : prevGame.currentPlayer,
+                dice: data.state?.dice || prevGame.dice,
+              };
+            } else {
+              console.log('📋 Full server update (no pending optimistic moves)')
+              return {
+                ...prevGame,
+                board: data.state?.board || prevGame.board,
+                currentPlayer: data.state?.currentPlayer !== undefined ? data.state.currentPlayer : prevGame.currentPlayer,
+                dice: data.state?.dice || prevGame.dice,
+              };
+            }
           });
 
           // Update dice usage when move is made (only for non-optimistic moves)
@@ -829,7 +844,7 @@ const Game: React.FC = () => {
                           }
                         }}
                       >
-                        <Dice3D value={1} size="xs" isRolling={isRollingDice} color={game.currentPlayer === 0 ? 'white' : 'black'} blank={true} />
+                        <Dice3D value={1} size="xs" isRolling={isRollingDice} color={game.currentPlayer === 0 ? 'white' : 'black'} showR={true} />
                       </div>
                       <div
                         className={`${isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
@@ -845,7 +860,7 @@ const Game: React.FC = () => {
                           }
                         }}
                       >
-                        <Dice3D value={1} size="xs" isRolling={isRollingDice} color={game.currentPlayer === 0 ? 'white' : 'black'} blank={true} />
+                        <Dice3D value={1} size="xs" isRolling={isRollingDice} color={game.currentPlayer === 0 ? 'white' : 'black'} showR={true} />
                       </div>
                     </div>
                   )}
