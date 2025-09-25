@@ -348,8 +348,38 @@ const Game: React.FC = () => {
                   {/* Dice display */}
                   {game?.dice && game.dice.length === 2 ? (
                     <div className="flex flex-col gap-1 z-20">
-                      <Dice3D value={game.dice[0]} size="sm" isRolling={isRollingDice} />
-                      <Dice3D value={game.dice[1]} size="sm" isRolling={isRollingDice} />
+                      <div
+                        className={`${isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+                        onClick={() => {
+                          if (isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS && !isRollingDice) {
+                            handleRollDice();
+                          }
+                        }}
+                        onTouchEnd={(e) => {
+                          e.preventDefault()
+                          if (isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS && !isRollingDice) {
+                            handleRollDice();
+                          }
+                        }}
+                      >
+                        <Dice3D value={game.dice[0]} size="sm" isRolling={isRollingDice} />
+                      </div>
+                      <div
+                        className={`${isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+                        onClick={() => {
+                          if (isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS && !isRollingDice) {
+                            handleRollDice();
+                          }
+                        }}
+                        onTouchEnd={(e) => {
+                          e.preventDefault()
+                          if (isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS && !isRollingDice) {
+                            handleRollDice();
+                          }
+                        }}
+                      >
+                        <Dice3D value={game.dice[1]} size="sm" isRolling={isRollingDice} />
+                      </div>
                     </div>
                   ) : (
                     <div className="flex flex-col gap-1 z-20">
@@ -358,17 +388,17 @@ const Game: React.FC = () => {
                           w-8 h-8 bg-white rounded-lg shadow-lg border border-gray-300 cursor-pointer
                           transition-all duration-200 hover:scale-110 hover:shadow-xl
                           flex items-center justify-center text-gray-400 font-bold text-xs
-                          ${isCurrentPlayer && game.gameState === 'in_progress' ? 'hover:bg-blue-50 hover:border-blue-300' : 'cursor-not-allowed opacity-50'}
+                          ${isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS ? 'hover:bg-blue-50 hover:border-blue-300' : 'cursor-not-allowed opacity-50'}
                           ${isRollingDice ? 'animate-spin' : ''}
                         `}
                         onClick={() => {
-                          if (isCurrentPlayer && game.gameState === 'in_progress' && !isRollingDice) {
+                          if (isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS && !isRollingDice) {
                             handleRollDice();
                           }
                         }}
                         onTouchEnd={(e) => {
                           e.preventDefault()
-                          if (isCurrentPlayer && game.gameState === 'in_progress' && !isRollingDice) {
+                          if (isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS && !isRollingDice) {
                             handleRollDice();
                           }
                         }}
@@ -380,17 +410,17 @@ const Game: React.FC = () => {
                           w-8 h-8 bg-white rounded-lg shadow-lg border border-gray-300 cursor-pointer
                           transition-all duration-200 hover:scale-110 hover:shadow-xl
                           flex items-center justify-center text-gray-400 font-bold text-xs
-                          ${isCurrentPlayer && game.gameState === 'in_progress' ? 'hover:bg-blue-50 hover:border-blue-300' : 'cursor-not-allowed opacity-50'}
+                          ${isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS ? 'hover:bg-blue-50 hover:border-blue-300' : 'cursor-not-allowed opacity-50'}
                           ${isRollingDice ? 'animate-spin' : ''}
                         `}
                         onClick={() => {
-                          if (isCurrentPlayer && game.gameState === 'in_progress' && !isRollingDice) {
+                          if (isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS && !isRollingDice) {
                             handleRollDice();
                           }
                         }}
                         onTouchEnd={(e) => {
                           e.preventDefault()
-                          if (isCurrentPlayer && game.gameState === 'in_progress' && !isRollingDice) {
+                          if (isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS && !isRollingDice) {
                             handleRollDice();
                           }
                         }}
