@@ -201,11 +201,28 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
+      {/* Header with logout button */}
+      <div className="bg-white shadow">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <h1 className="text-2xl font-bold text-gray-900">
+              PlayBG Dashboard
+            </h1>
+            <button
+              onClick={handleLogout}
+              className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition-colors"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
-          <h1 className="text-3xl font-bold text-gray-900 mb-8">
+          <h2 className="text-3xl font-bold text-gray-900 mb-8">
             Welcome back, {user.username}!
-          </h1>
+          </h2>
           
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -307,12 +324,6 @@ const Dashboard: React.FC = () => {
                   className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors"
                 >
                   Tournaments
-                </button>
-                <button
-                  onClick={handleLogout}
-                  className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition-colors"
-                >
-                  Logout
                 </button>
               </div>
             </div>

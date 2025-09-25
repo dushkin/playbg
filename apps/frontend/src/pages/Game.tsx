@@ -173,33 +173,84 @@ const Game: React.FC = () => {
     const point = game.board.points[pointIndex]
     if (!point || point[currentPlayerIndex] === 0) return
 
-    // Auto-move: try to move checker by the first available dice value
-    const diceValue = availableDiceValues[0]
-    let targetPoint: number
+    // Try to find a valid move with any available dice value
+    const isDoubles = game.dice && game.dice[0] === game.dice[1]
+    let bestMove: { from: number; to: number; diceValue: number } | null = null
 
-    if (currentPlayerIndex === 0) {
-      // Player 0 moves counter-clockwise (decreasing point numbers)
-      targetPoint = pointIndex - diceValue
-    } else {
-      // Player 1 moves clockwise (increasing point numbers)
-      targetPoint = pointIndex + diceValue
+    for (const diceValue of availableDiceValues) {
+      let targetPoint: number
+
+      if (currentPlayerIndex === 0) {
+        // Player 0 moves counter-clockwise (decreasing point numbers)
+        targetPoint = pointIndex - diceValue
+      } else {
+        // Player 1 moves clockwise (increasing point numbers)
+        targetPoint = pointIndex + diceValue
+      }
+
+      // Check if target point is valid (within board bounds)
+      if (targetPoint >= 0 && targetPoint < 24) {
+        // Basic validation: check if opponent has more than 1 checker
+        const opponentIndex = 1 - currentPlayerIndex
+        const opponentCheckers = game.board.points[targetPoint][opponentIndex]
+
+        if (opponentCheckers <= 1) {
+          bestMove = { from: pointIndex, to: targetPoint, diceValue }
+          break // Use the first valid move found
+        }
+      }
     }
 
-    // Check if target point is valid (within board bounds)
-    if (targetPoint >= 0 && targetPoint < 24) {
-      // Basic validation: check if opponent has more than 1 checker
-      const opponentIndex = 1 - currentPlayerIndex
-      const opponentCheckers = game.board.points[targetPoint][opponentIndex]
+    if (bestMove && gameId) {
+      // Optimistic update: immediately update the UI
+      setGame(prevGame => {
+        if (!prevGame) return null
 
-      if (opponentCheckers <= 1 && gameId) {
-        // Make the move (backend will add playerId and timestamp)
-        const move = {
-          from: pointIndex,
-          to: targetPoint
+        const newBoard = { ...prevGame.board }
+        newBoard.points = prevGame.board.points.map(point => [...point])
+
+        // Move the checker
+        newBoard.points[bestMove.from][currentPlayerIndex]--
+        newBoard.points[bestMove.to][currentPlayerIndex]++
+
+        // Handle hitting opponent checker
+        const opponentIndex = 1 - currentPlayerIndex
+        if (newBoard.points[bestMove.to][opponentIndex] === 1) {
+          newBoard.points[bestMove.to][opponentIndex] = 0
+          newBoard.bar = [...prevGame.board.bar]
+          newBoard.bar[opponentIndex]++
         }
 
-        socketService.makeMove(gameId, move)
+        return { ...prevGame, board: newBoard }
+      })
+
+      // Update dice usage optimistically
+      setUsedDice(prev => {
+        const newUsed = [...prev]
+        if (isDoubles) {
+          // For doubles, mark first available die as used
+          const firstAvailable = newUsed.findIndex(used => !used)
+          if (firstAvailable !== -1) {
+            newUsed[firstAvailable] = true
+          }
+        } else {
+          // For regular dice, mark the appropriate die as used
+          if (bestMove.diceValue === game.dice![0] && !newUsed[0]) {
+            newUsed[0] = true
+          } else if (bestMove.diceValue === game.dice![1] && !newUsed[1]) {
+            newUsed[1] = true
+          }
+        }
+        return newUsed
+      })
+
+      // Send the move to the server (server will validate and correct if needed)
+      const move = {
+        from: bestMove.from,
+        to: bestMove.to
       }
+
+      socketService.makeMove(gameId, move)
     }
   }
 

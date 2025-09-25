@@ -17,11 +17,11 @@ class BackgammonEngine {
             Math.floor(Math.random() * 6) + 1,
             Math.floor(Math.random() * 6) + 1
         ];
-        // Sort dice with higher value first
+        // Sort dice with higher value first (proper swap)
         if (dice[1] > dice[0]) {
-            dice[0] = dice[0] + dice[1];
-            dice[1] = dice[0] - dice[1];
-            dice[0] = dice[0] - dice[1];
+            const temp = dice[0];
+            dice[0] = dice[1];
+            dice[1] = temp;
         }
         this.dice = dice;
         // For doubles, track 4 dice. For regular, track 2 dice
