@@ -18,6 +18,7 @@ const Game: React.FC = () => {
   const [isRollingDice, setIsRollingDice] = useState(false)
   const [usedDice, setUsedDice] = useState<boolean[]>([])
   const [optimisticMoveId, setOptimisticMoveId] = useState<string | null>(null)
+  const [hasRolledThisTurn, setHasRolledThisTurn] = useState<boolean>(false)
 
   useEffect(() => {
     if (gameId) {
@@ -56,6 +57,12 @@ const Game: React.FC = () => {
               setUsedDice([]);
             }
 
+            // Mark that current player has rolled this turn
+            const currentPlayerIndex = prevGame?.players.findIndex(p => p.userId === user?.id) ?? -1
+            if (data.playerId === user?.id || currentPlayerIndex === prevGame?.currentPlayer) {
+              setHasRolledThisTurn(true)
+            }
+
 
             return updatedGame;
           });
@@ -68,9 +75,9 @@ const Game: React.FC = () => {
           // If this is confirming our optimistic move, clear the optimistic flag
           // but don't override the UI state
           if (optimisticMoveId && data.move) {
-            const moveMatches = data.move.from === parseInt(optimisticMoveId.split('-')[0]) &&
-                               data.move.to === parseInt(optimisticMoveId.split('-')[1])
-            console.log('🔄 Checking optimistic move match:', optimisticMoveId, 'vs', data.move, '=', moveMatches)
+            const [expectedFrom, expectedTo] = optimisticMoveId.split('-').map(x => parseInt(x))
+            const moveMatches = data.move.from === expectedFrom && data.move.to === expectedTo
+            console.log('🔄 Checking optimistic move match:', `Expected: ${expectedFrom}-${expectedTo}`, 'vs', `Actual: ${data.move.from}-${data.move.to}`, '=', moveMatches)
             if (moveMatches) {
               console.log('✅ Confirmed optimistic move, skipping server update')
               setOptimisticMoveId(null)
@@ -86,6 +93,13 @@ const Game: React.FC = () => {
 
               // Check if game has finished or it's no longer the current player's turn
               const currentPlayerIndex = game?.players.findIndex(p => p.userId === user?.id)
+              if (data.state?.currentPlayer !== undefined &&
+                  currentPlayerIndex !== -1 &&
+                  data.state.currentPlayer !== currentPlayerIndex) {
+                // Turn changed - reset roll status
+                setHasRolledThisTurn(false)
+              }
+
               if (data.state?.gameState === 'finished' ||
                   (data.state?.currentPlayer !== undefined &&
                    currentPlayerIndex !== -1 &&
@@ -572,7 +586,7 @@ const Game: React.FC = () => {
                   <div className="text-amber-200 text-xs font-bold mb-1 sm:mb-2 z-10">BAR</div>
 
                   {/* Dice display */}
-                  {game?.dice && game.dice.length === 2 && availableDiceValues.length > 0 ? (
+                  {game?.dice && game.dice.length === 2 && hasRolledThisTurn ? (
                     <div className="flex flex-col gap-0.5 sm:gap-1 z-20">
                       <div>
                         <Dice3D value={game.dice[0]} size="xs" isRolling={isRollingDice} color={game.currentPlayer === 0 ? 'white' : 'black'} />
