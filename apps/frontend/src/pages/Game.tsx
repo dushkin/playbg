@@ -18,6 +18,7 @@ const Game: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [isRollingDice, setIsRollingDice] = useState(false)
   const [usedDice, setUsedDice] = useState<boolean[]>([])
+  const [optimisticMoveId, setOptimisticMoveId] = useState<string | null>(null)
 
   useEffect(() => {
     if (gameId) {
@@ -64,6 +65,27 @@ const Game: React.FC = () => {
 
       const handleGameMove = (data: any) => {
         if (data.gameId === gameId) {
+          // If this is confirming our optimistic move, clear the optimistic flag
+          // but don't override the UI state
+          if (optimisticMoveId && data.move) {
+            const moveMatches = data.move.from === parseInt(optimisticMoveId.split('-')[0]) &&
+                               data.move.to === parseInt(optimisticMoveId.split('-')[1])
+            if (moveMatches) {
+              setOptimisticMoveId(null)
+              // Only update currentPlayer and dice from server, keep our board state
+              setGame(prevGame => {
+                if (!prevGame) return null;
+                return {
+                  ...prevGame,
+                  currentPlayer: data.state?.currentPlayer !== undefined ? data.state.currentPlayer : prevGame.currentPlayer,
+                  dice: data.state?.dice || prevGame.dice,
+                };
+              });
+              return; // Don't update board from server
+            }
+          }
+
+          // Normal server update (not our optimistic move)
           setGame(prevGame => {
             if (!prevGame) return null;
             return {
@@ -104,6 +126,18 @@ const Game: React.FC = () => {
           if (usedDice.every(used => used)) {
             // All dice used, turn should end
             setUsedDice([]);
+          }
+
+          // Check if game has finished or it's no longer the current player's turn
+          const currentPlayerIndex = game?.players.findIndex(p => p.userId === user?.id)
+          if (data.state?.gameState === 'finished' ||
+              (data.state?.currentPlayer !== undefined &&
+               currentPlayerIndex !== -1 &&
+               data.state.currentPlayer !== currentPlayerIndex)) {
+            // Game finished or it's no longer our turn, check for next game or go to dashboard
+            setTimeout(() => {
+              checkForNextGameOrDashboard();
+            }, data.state?.gameState === 'finished' ? 3000 : 2000); // Wait longer for game finish
           }
         }
       };
@@ -202,6 +236,10 @@ const Game: React.FC = () => {
     }
 
     if (bestMove && gameId) {
+      // Set optimistic move ID to prevent server override
+      const moveId = `${bestMove.from}-${bestMove.to}`
+      setOptimisticMoveId(moveId)
+
       // Optimistic update: immediately update the UI
       setGame(prevGame => {
         if (!prevGame) return null
@@ -258,6 +296,36 @@ const Game: React.FC = () => {
     if (gameId) {
       setIsRollingDice(true);
       socketService.rollDice(gameId);
+    }
+  };
+
+  const checkForNextGameOrDashboard = async () => {
+    try {
+      // Get current user's games
+      const response = await gamesAPI.getMyGames()
+      if (response.success && response.data) {
+        // Find games where it's the current user's turn
+        const myTurnGames = response.data.filter((g: any) => {
+          const currentPlayerIndex = g.players.findIndex((p: any) => p.userId === user?.id)
+          return g.gameState === 'in_progress' &&
+                 g.currentPlayer === currentPlayerIndex &&
+                 g._id !== gameId // Don't include current game
+        })
+
+        if (myTurnGames.length > 0) {
+          // Navigate to the first game where it's the player's turn
+          navigate(`/game/${myTurnGames[0]._id}`)
+        } else {
+          // No more games with player's turn, go to dashboard
+          navigate('/dashboard')
+        }
+      } else {
+        // Error fetching games, go to dashboard
+        navigate('/dashboard')
+      }
+    } catch (error) {
+      console.error('Error checking for next game:', error)
+      navigate('/dashboard')
     }
   };
 
@@ -445,49 +513,17 @@ const Game: React.FC = () => {
                   {/* Dice display */}
                   {game?.dice && game.dice.length === 2 ? (
                     <div className="flex flex-col gap-0.5 sm:gap-1 z-20">
-                      <div
-                        className={`${isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS ? 'cursor-pointer' : 'cursor-not-allowed'}`}
-                        onClick={() => {
-                          if (isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS && !isRollingDice) {
-                            handleRollDice();
-                          }
-                        }}
-                        onTouchEnd={(e) => {
-                          e.preventDefault()
-                          if (isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS && !isRollingDice) {
-                            handleRollDice();
-                          }
-                        }}
-                      >
-                        <Dice3D value={game.dice[0]} size="xs" isRolling={isRollingDice} />
+                      <div>
+                        <Dice3D value={game.dice[0]} size="xs" isRolling={isRollingDice} color={game.currentPlayer === 0 ? 'white' : 'black'} />
                       </div>
-                      <div
-                        className={`${isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS ? 'cursor-pointer' : 'cursor-not-allowed'}`}
-                        onClick={() => {
-                          if (isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS && !isRollingDice) {
-                            handleRollDice();
-                          }
-                        }}
-                        onTouchEnd={(e) => {
-                          e.preventDefault()
-                          if (isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS && !isRollingDice) {
-                            handleRollDice();
-                          }
-                        }}
-                      >
-                        <Dice3D value={game.dice[1]} size="xs" isRolling={isRollingDice} />
+                      <div>
+                        <Dice3D value={game.dice[1]} size="xs" isRolling={isRollingDice} color={game.currentPlayer === 0 ? 'white' : 'black'} />
                       </div>
                     </div>
                   ) : (
                     <div className="flex flex-col gap-0.5 sm:gap-1 z-20">
                       <div
-                        className={`
-                          w-6 h-6 sm:w-8 sm:h-8 bg-white rounded-md sm:rounded-lg shadow-lg border border-gray-300 cursor-pointer
-                          transition-all duration-200 hover:scale-110 hover:shadow-xl
-                          flex items-center justify-center text-gray-400 font-bold text-xs
-                          ${isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS ? 'hover:bg-blue-50 hover:border-blue-300' : 'cursor-not-allowed opacity-50'}
-                          ${isRollingDice ? 'animate-spin' : ''}
-                        `}
+                        className={`${isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
                         onClick={() => {
                           if (isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS && !isRollingDice) {
                             handleRollDice();
@@ -500,16 +536,10 @@ const Game: React.FC = () => {
                           }
                         }}
                       >
-                        ?
+                        <Dice3D value={1} size="xs" isRolling={isRollingDice} color={game.currentPlayer === 0 ? 'white' : 'black'} />
                       </div>
                       <div
-                        className={`
-                          w-6 h-6 sm:w-8 sm:h-8 bg-white rounded-md sm:rounded-lg shadow-lg border border-gray-300 cursor-pointer
-                          transition-all duration-200 hover:scale-110 hover:shadow-xl
-                          flex items-center justify-center text-gray-400 font-bold text-xs
-                          ${isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS ? 'hover:bg-blue-50 hover:border-blue-300' : 'cursor-not-allowed opacity-50'}
-                          ${isRollingDice ? 'animate-spin' : ''}
-                        `}
+                        className={`${isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
                         onClick={() => {
                           if (isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS && !isRollingDice) {
                             handleRollDice();
@@ -522,7 +552,7 @@ const Game: React.FC = () => {
                           }
                         }}
                       >
-                        ?
+                        <Dice3D value={1} size="xs" isRolling={isRollingDice} color={game.currentPlayer === 0 ? 'white' : 'black'} />
                       </div>
                     </div>
                   )}
