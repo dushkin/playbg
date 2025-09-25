@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAppSelector } from '../hooks/redux'
 import { gamesAPI } from '../services/api'
@@ -18,6 +18,7 @@ const Game: React.FC = () => {
   const [isRollingDice, setIsRollingDice] = useState(false)
   const [usedDice, setUsedDice] = useState<boolean[]>([])
   const [optimisticMoveId, setOptimisticMoveId] = useState<string | null>(null)
+  const optimisticMoveRef = useRef<string | null>(null)
   const [hasRolledThisTurn, setHasRolledThisTurn] = useState<boolean>(false)
 
   useEffect(() => {
@@ -76,13 +77,15 @@ const Game: React.FC = () => {
         if (data.gameId === gameId) {
           // If this is confirming our optimistic move, clear the optimistic flag
           // but don't override the UI state
-          if (optimisticMoveId && data.move) {
-            const [expectedFrom, expectedTo] = optimisticMoveId.split('-').map(x => parseInt(x))
+          const currentOptimisticId = optimisticMoveRef.current || optimisticMoveId
+          if (currentOptimisticId && data.move) {
+            const [expectedFrom, expectedTo] = currentOptimisticId.split('-').map(x => parseInt(x))
             const moveMatches = data.move.from === expectedFrom && data.move.to === expectedTo
             console.log('🔄 Checking optimistic move match:', `Expected: ${expectedFrom}-${expectedTo}`, 'vs', `Actual: ${data.move.from}-${data.move.to}`, '=', moveMatches)
             if (moveMatches) {
               console.log('✅ Confirmed optimistic move, skipping server update')
               setOptimisticMoveId(null)
+              optimisticMoveRef.current = null
               // Only update currentPlayer and dice from server, keep our board state
               setGame(prevGame => {
                 if (!prevGame) return null;
@@ -120,8 +123,8 @@ const Game: React.FC = () => {
               console.log('❌ Move does not match optimistic move')
             }
           } else {
-            if (!optimisticMoveId) {
-              console.log('ℹ️ No optimistic move ID to match')
+            if (!currentOptimisticId) {
+              console.log('ℹ️ No optimistic move ID to match (state:', optimisticMoveId, 'ref:', optimisticMoveRef.current, ')')
             }
             if (!data.move) {
               console.log('ℹ️ No move data in server response')
@@ -284,6 +287,20 @@ const Game: React.FC = () => {
     for (const diceValue of availableDiceValues) {
       let targetPoint: number
 
+      // Check if player has checkers on bar - must handle bar moves first
+      if (game.board.bar[currentPlayerIndex] > 0) {
+        // This is a bar move - calculate entry point
+        targetPoint = currentPlayerIndex === 0 ? 24 - diceValue : diceValue - 1
+
+        if (isValidBarMove(targetPoint, diceValue, currentPlayerIndex)) {
+          bestMove = { from: -1, to: targetPoint, diceValue } // from: -1 indicates bar move
+          console.log('✅ Found valid bar move:', bestMove)
+          break
+        }
+        continue // Skip regular moves when on bar
+      }
+
+      // Regular move calculation
       if (currentPlayerIndex === 0) {
         // Player 0 moves counter-clockwise (decreasing point numbers)
         targetPoint = pointIndex - diceValue
@@ -294,23 +311,21 @@ const Game: React.FC = () => {
 
       console.log(`🎯 Trying dice ${diceValue}: ${pointIndex} → ${targetPoint}`)
 
-      // Check if target point is valid (within board bounds)
-      if (targetPoint >= 0 && targetPoint < 24) {
-        // Basic validation: check if opponent has more than 1 checker
-        const opponentIndex = 1 - currentPlayerIndex
-        const opponentCheckers = game.board.points[targetPoint][opponentIndex]
-
-        console.log(`📍 Target point ${targetPoint}: opponent checkers = ${opponentCheckers}`)
-
-        if (opponentCheckers <= 1) {
-          bestMove = { from: pointIndex, to: targetPoint, diceValue }
-          console.log('✅ Found valid move:', bestMove)
-          break // Use the first valid move found
-        } else {
-          console.log(`❌ Invalid move: opponent has ${opponentCheckers} checkers`)
+      // Check for bearing off
+      if (targetPoint < 0 || targetPoint >= 24) {
+        if (isValidBearOffMove(pointIndex, diceValue, currentPlayerIndex)) {
+          bestMove = { from: pointIndex, to: -1, diceValue } // to: -1 indicates bear off
+          console.log('✅ Found valid bear off move:', bestMove)
+          break
         }
-      } else {
-        console.log(`❌ Target point ${targetPoint} out of bounds`)
+        continue
+      }
+
+      // Regular move validation
+      if (isValidMove(pointIndex, targetPoint, diceValue, currentPlayerIndex)) {
+        bestMove = { from: pointIndex, to: targetPoint, diceValue }
+        console.log('✅ Found valid regular move:', bestMove)
+        break // Use the first valid move found
       }
     }
 
@@ -319,33 +334,56 @@ const Game: React.FC = () => {
 
       // Set optimistic move ID to prevent server override
       const moveId = `${bestMove.from}-${bestMove.to}`
+      console.log('🔄 Setting optimistic move ID:', moveId)
       setOptimisticMoveId(moveId)
-      console.log('🔄 Set optimistic move ID:', moveId)
+      optimisticMoveRef.current = moveId
 
       // Optimistic update: immediately update the UI
       setGame(prevGame => {
         if (!prevGame) return null
 
-        console.log('🎮 Before optimistic update - point', bestMove.from, ':', prevGame.board.points[bestMove.from])
-        console.log('🎮 Before optimistic update - point', bestMove.to, ':', prevGame.board.points[bestMove.to])
+        console.log('🎮 Optimistic update - Move type:',
+          bestMove.from === -1 ? 'Bar move' : bestMove.to === -1 ? 'Bear off' : 'Regular move')
 
         const newBoard = { ...prevGame.board }
         newBoard.points = prevGame.board.points.map(point => [...point])
+        newBoard.bar = [...prevGame.board.bar]
+        newBoard.off = [...prevGame.board.off]
 
-        // Move the checker
-        newBoard.points[bestMove.from][currentPlayerIndex]--
-        newBoard.points[bestMove.to][currentPlayerIndex]++
-
-        // Handle hitting opponent checker
         const opponentIndex = 1 - currentPlayerIndex
-        if (newBoard.points[bestMove.to][opponentIndex] === 1) {
-          newBoard.points[bestMove.to][opponentIndex] = 0
-          newBoard.bar = [...prevGame.board.bar]
-          newBoard.bar[opponentIndex]++
-        }
 
-        console.log('🎮 After optimistic update - point', bestMove.from, ':', newBoard.points[bestMove.from])
-        console.log('🎮 After optimistic update - point', bestMove.to, ':', newBoard.points[bestMove.to])
+        if (bestMove.from === -1) {
+          // Bar move: move from bar to board
+          console.log('🎮 Bar move: moving to point', bestMove.to)
+          newBoard.bar[currentPlayerIndex]--
+
+          // Handle hitting opponent checker at destination
+          if (newBoard.points[bestMove.to][opponentIndex] === 1) {
+            newBoard.points[bestMove.to][opponentIndex] = 0
+            newBoard.bar[opponentIndex]++
+            console.log('🎮 Hit opponent checker, sent to bar')
+          }
+
+          newBoard.points[bestMove.to][currentPlayerIndex]++
+        } else if (bestMove.to === -1) {
+          // Bear off move: move from board to off
+          console.log('🎮 Bear off: removing from point', bestMove.from)
+          newBoard.points[bestMove.from][currentPlayerIndex]--
+          newBoard.off[currentPlayerIndex]++
+        } else {
+          // Regular move: move from one point to another
+          console.log('🎮 Regular move:', bestMove.from, '→', bestMove.to)
+          newBoard.points[bestMove.from][currentPlayerIndex]--
+
+          // Handle hitting opponent checker at destination
+          if (newBoard.points[bestMove.to][opponentIndex] === 1) {
+            newBoard.points[bestMove.to][opponentIndex] = 0
+            newBoard.bar[opponentIndex]++
+            console.log('🎮 Hit opponent checker, sent to bar')
+          }
+
+          newBoard.points[bestMove.to][currentPlayerIndex]++
+        }
 
         return { ...prevGame, board: newBoard }
       })
@@ -394,6 +432,165 @@ const Game: React.FC = () => {
       socketService.rollDice(gameId);
     }
   };
+
+  // Comprehensive client-side move validation
+  const isValidMove = (from: number, to: number, diceValue: number, playerIndex: number) => {
+    if (!game) return false
+
+    console.log(`🔍 Validating move: Player ${playerIndex} from ${from} to ${to} using dice ${diceValue}`)
+
+    // 1. Basic bounds check
+    if (from < 0 || from >= 24 || to < 0 || to >= 24) {
+      console.log('❌ Invalid: Move out of bounds')
+      return false
+    }
+
+    // 2. Direction validation
+    const expectedDistance = playerIndex === 0 ? from - to : to - from
+    if (expectedDistance !== diceValue) {
+      console.log(`❌ Invalid: Wrong distance. Expected ${diceValue}, got ${expectedDistance}`)
+      return false
+    }
+
+    // 3. Source point validation - must have player's checkers
+    const sourcePoint = game.board.points[from]
+    if (!sourcePoint || sourcePoint[playerIndex] === 0) {
+      console.log('❌ Invalid: No checkers at source point')
+      return false
+    }
+
+    // 4. Destination point validation
+    const destPoint = game.board.points[to]
+    const opponentIndex = 1 - playerIndex
+    const opponentCheckersAtDest = destPoint ? destPoint[opponentIndex] : 0
+
+    if (opponentCheckersAtDest > 1) {
+      console.log(`❌ Invalid: Opponent has ${opponentCheckersAtDest} checkers at destination`)
+      return false
+    }
+
+    // 5. Check if player has checkers on the bar (must move bar checkers first)
+    const playerCheckersOnBar = game.board.bar[playerIndex]
+    if (playerCheckersOnBar > 0) {
+      console.log('❌ Invalid: Must move checkers from bar first')
+      return false
+    }
+
+    console.log('✅ Valid move')
+    return true
+  }
+
+  // Enhanced validation for bar moves (entering from bar)
+  const isValidBarMove = (to: number, diceValue: number, playerIndex: number) => {
+    if (!game) return false
+
+    console.log(`🔍 Validating bar move: Player ${playerIndex} entering at ${to} using dice ${diceValue}`)
+
+    // Must have checkers on bar
+    if (game.board.bar[playerIndex] === 0) {
+      console.log('❌ Invalid: No checkers on bar')
+      return false
+    }
+
+    // Calculate entry point based on dice value
+    const entryPoint = playerIndex === 0 ? 24 - diceValue : diceValue - 1
+
+    if (to !== entryPoint) {
+      console.log(`❌ Invalid: Wrong entry point. Expected ${entryPoint}, got ${to}`)
+      return false
+    }
+
+    // Check destination point
+    const destPoint = game.board.points[to]
+    const opponentIndex = 1 - playerIndex
+    const opponentCheckersAtDest = destPoint ? destPoint[opponentIndex] : 0
+
+    if (opponentCheckersAtDest > 1) {
+      console.log(`❌ Invalid: Opponent has ${opponentCheckersAtDest} checkers at entry point`)
+      return false
+    }
+
+    console.log('✅ Valid bar move')
+    return true
+  }
+
+  // Check if player can bear off (all checkers in home board)
+  const canBearOff = (playerIndex: number) => {
+    if (!game) return false
+
+    const homeBoard = playerIndex === 0
+      ? [0, 1, 2, 3, 4, 5] // Player 0 home board
+      : [18, 19, 20, 21, 22, 23] // Player 1 home board
+
+    // Check if all checkers are in home board or already borne off
+    for (let i = 0; i < 24; i++) {
+      if (!homeBoard.includes(i) && game.board.points[i][playerIndex] > 0) {
+        return false // Found checkers outside home board
+      }
+    }
+
+    // Also check bar
+    if (game.board.bar[playerIndex] > 0) {
+      return false // Can't bear off with checkers on bar
+    }
+
+    return true
+  }
+
+  // Validate bearing off moves
+  const isValidBearOffMove = (from: number, diceValue: number, playerIndex: number) => {
+    if (!game) return false
+
+    console.log(`🔍 Validating bear off: Player ${playerIndex} from ${from} using dice ${diceValue}`)
+
+    // Must be able to bear off
+    if (!canBearOff(playerIndex)) {
+      console.log('❌ Invalid: Cannot bear off yet')
+      return false
+    }
+
+    // Must be moving from home board
+    const homeBoard = playerIndex === 0
+      ? [0, 1, 2, 3, 4, 5]
+      : [18, 19, 20, 21, 22, 23]
+
+    if (!homeBoard.includes(from)) {
+      console.log('❌ Invalid: Not moving from home board')
+      return false
+    }
+
+    // Must have checkers at source
+    if (!game.board.points[from] || game.board.points[from][playerIndex] === 0) {
+      console.log('❌ Invalid: No checkers at source for bearing off')
+      return false
+    }
+
+    // Validate dice usage for bearing off
+    const distanceToEnd = playerIndex === 0 ? from + 1 : 24 - from
+
+    if (diceValue >= distanceToEnd) {
+      // Can use this dice value
+      console.log('✅ Valid bear off move')
+      return true
+    } else {
+      // Check if there are checkers on higher points that must be moved first
+      const higherPoints = playerIndex === 0
+        ? homeBoard.filter(p => p > from)
+        : homeBoard.filter(p => p < from)
+
+      const hasCheckersOnHigherPoints = higherPoints.some(p =>
+        game.board.points[p] && game.board.points[p][playerIndex] > 0
+      )
+
+      if (hasCheckersOnHigherPoints) {
+        console.log('❌ Invalid: Must move checkers from higher points first')
+        return false
+      }
+
+      console.log('✅ Valid bear off move (no higher checkers)')
+      return true
+    }
+  }
 
   const checkForNextGameOrDashboard = async () => {
     try {
@@ -632,7 +829,7 @@ const Game: React.FC = () => {
                           }
                         }}
                       >
-                        <Dice3D value={1} size="xs" isRolling={isRollingDice} color={game.currentPlayer === 0 ? 'white' : 'black'} />
+                        <Dice3D value={1} size="xs" isRolling={isRollingDice} color={game.currentPlayer === 0 ? 'white' : 'black'} blank={true} />
                       </div>
                       <div
                         className={`${isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
@@ -648,7 +845,7 @@ const Game: React.FC = () => {
                           }
                         }}
                       >
-                        <Dice3D value={1} size="xs" isRolling={isRollingDice} color={game.currentPlayer === 0 ? 'white' : 'black'} />
+                        <Dice3D value={1} size="xs" isRolling={isRollingDice} color={game.currentPlayer === 0 ? 'white' : 'black'} blank={true} />
                       </div>
                     </div>
                   )}

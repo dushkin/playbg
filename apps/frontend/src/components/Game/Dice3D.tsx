@@ -6,9 +6,10 @@ interface Dice3DProps {
   isRolling?: boolean
   animationDelay?: number
   color?: 'white' | 'black'
+  blank?: boolean
 }
 
-const Dice3D: React.FC<Dice3DProps> = ({ value, size = 'md', isRolling = false, animationDelay = 0, color = 'white' }) => {
+const Dice3D: React.FC<Dice3DProps> = ({ value, size = 'md', isRolling = false, animationDelay = 0, color = 'white', blank = false }) => {
   const sizeClasses = useMemo(() => {
     switch (size) {
       case 'xs':
@@ -71,7 +72,7 @@ const Dice3D: React.FC<Dice3DProps> = ({ value, size = 'md', isRolling = false, 
     }
   }
 
-  const dotPositions = getDotPositions(value)
+  const dotPositions = blank ? [] : getDotPositions(value)
 
   const diceBackground = color === 'white'
     ? 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 25%, #e9ecef 50%, #dee2e6 75%, #ced4da 100%)'
