@@ -69,14 +69,31 @@ const Game: React.FC = () => {
         }
       };
 
+      const handlePlayerJoined = (data: any) => {
+        if (data.gameId === gameId) {
+          setGame(prevGame => {
+            if (!prevGame) return null;
+            return {
+              ...prevGame,
+              players: data.state?.players || prevGame.players,
+              gameState: data.state?.gameState || prevGame.gameState,
+              currentPlayer: data.state?.currentPlayer !== undefined ? data.state.currentPlayer : prevGame.currentPlayer,
+              board: data.state?.board || prevGame.board,
+            };
+          });
+        }
+      };
+
       socket.on('game:joined', handleGameJoined);
       socket.on('game:dice_roll', handleDiceRoll);
       socket.on('game:move', handleGameMove);
+      socket.on('game:player_joined', handlePlayerJoined);
 
       return () => {
         socket.off('game:joined', handleGameJoined);
         socket.off('game:dice_roll', handleDiceRoll);
         socket.off('game:move', handleGameMove);
+        socket.off('game:player_joined', handlePlayerJoined);
         if (gameId) {
           socketService.leaveGame(gameId);
         }
