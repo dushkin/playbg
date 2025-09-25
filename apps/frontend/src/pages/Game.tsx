@@ -63,13 +63,16 @@ const Game: React.FC = () => {
       };
 
       const handleGameMove = (data: any) => {
+        console.log('📨 Server move response:', data)
         if (data.gameId === gameId) {
           // If this is confirming our optimistic move, clear the optimistic flag
           // but don't override the UI state
           if (optimisticMoveId && data.move) {
             const moveMatches = data.move.from === parseInt(optimisticMoveId.split('-')[0]) &&
                                data.move.to === parseInt(optimisticMoveId.split('-')[1])
+            console.log('🔄 Checking optimistic move match:', optimisticMoveId, 'vs', data.move, '=', moveMatches)
             if (moveMatches) {
+              console.log('✅ Confirmed optimistic move, skipping server update')
               setOptimisticMoveId(null)
               // Only update currentPlayer and dice from server, keep our board state
               setGame(prevGame => {
@@ -96,6 +99,8 @@ const Game: React.FC = () => {
               return; // Don't process further for our optimistic moves
             }
           }
+
+          console.log('🔄 Processing non-optimistic server move')
 
           // Normal server update (not our optimistic move)
           setGame(prevGame => {
@@ -312,10 +317,12 @@ const Game: React.FC = () => {
 
       // Update dice usage optimistically
       setUsedDice(prev => {
+        console.log('🎲 Before dice usage update:', prev)
         const newUsed = [...prev]
         if (isDoubles) {
           // For doubles, mark first available die as used
           const firstAvailable = newUsed.findIndex(used => !used)
+          console.log('🎲 First available die index:', firstAvailable)
           if (firstAvailable !== -1) {
             newUsed[firstAvailable] = true
           }
@@ -327,6 +334,7 @@ const Game: React.FC = () => {
             newUsed[1] = true
           }
         }
+        console.log('🎲 After dice usage update:', newUsed)
         return newUsed
       })
 
@@ -564,7 +572,7 @@ const Game: React.FC = () => {
                   <div className="text-amber-200 text-xs font-bold mb-1 sm:mb-2 z-10">BAR</div>
 
                   {/* Dice display */}
-                  {game?.dice && game.dice.length === 2 ? (
+                  {game?.dice && game.dice.length === 2 && availableDiceValues.length > 0 ? (
                     <div className="flex flex-col gap-0.5 sm:gap-1 z-20">
                       <div>
                         <Dice3D value={game.dice[0]} size="xs" isRolling={isRollingDice} color={game.currentPlayer === 0 ? 'white' : 'black'} />
