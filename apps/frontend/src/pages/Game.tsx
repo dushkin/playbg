@@ -71,6 +71,8 @@ const Game: React.FC = () => {
 
       const handleGameMove = (data: any) => {
         console.log('📨 Server move response:', data)
+        console.log('🔄 Current optimistic move ID:', optimisticMoveId)
+        console.log('🔄 Server move data:', data.move)
         if (data.gameId === gameId) {
           // If this is confirming our optimistic move, clear the optimistic flag
           // but don't override the UI state
@@ -91,13 +93,16 @@ const Game: React.FC = () => {
                 };
               });
 
-              // Check if game has finished or it's no longer the current player's turn
+              // Check for turn changes
               const currentPlayerIndex = game?.players.findIndex(p => p.userId === user?.id)
-              if (data.state?.currentPlayer !== undefined &&
-                  currentPlayerIndex !== -1 &&
-                  data.state.currentPlayer !== currentPlayerIndex) {
-                // Turn changed - reset roll status
-                setHasRolledThisTurn(false)
+              if (data.state?.currentPlayer !== undefined) {
+                if (currentPlayerIndex !== -1 && data.state.currentPlayer === currentPlayerIndex) {
+                  // It's now our turn - reset roll status
+                  setHasRolledThisTurn(false)
+                } else if (currentPlayerIndex !== -1 && data.state.currentPlayer !== currentPlayerIndex) {
+                  // Turn changed to opponent - also reset
+                  setHasRolledThisTurn(false)
+                }
               }
 
               if (data.state?.gameState === 'finished' ||
@@ -111,6 +116,15 @@ const Game: React.FC = () => {
               }
 
               return; // Don't process further for our optimistic moves
+            } else {
+              console.log('❌ Move does not match optimistic move')
+            }
+          } else {
+            if (!optimisticMoveId) {
+              console.log('ℹ️ No optimistic move ID to match')
+            }
+            if (!data.move) {
+              console.log('ℹ️ No move data in server response')
             }
           }
 
@@ -159,8 +173,15 @@ const Game: React.FC = () => {
             setUsedDice([]);
           }
 
-          // Check if game has finished or it's no longer the current player's turn (for non-optimistic moves)
+          // Check for turn changes and game end (for non-optimistic moves)
           const currentPlayerIndex = game?.players.findIndex(p => p.userId === user?.id)
+          if (data.state?.currentPlayer !== undefined) {
+            if (currentPlayerIndex !== -1 && data.state.currentPlayer === currentPlayerIndex) {
+              // It's now our turn - reset roll status
+              setHasRolledThisTurn(false)
+            }
+          }
+
           if (data.state?.gameState === 'finished' ||
               (data.state?.currentPlayer !== undefined &&
                currentPlayerIndex !== -1 &&
