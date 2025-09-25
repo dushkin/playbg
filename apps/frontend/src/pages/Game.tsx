@@ -6,7 +6,6 @@ import { Game as GameType, GameState as GameStateEnum } from '@playbg/shared'
 import LoadingSpinner from '../components/UI/LoadingSpinner'
 import socketService from '../services/socketService'
 import Dice3D from '../components/Game/Dice3D'
-import { isMobile } from '../utils/mobile'
 
 const Game: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>()
@@ -81,7 +80,20 @@ const Game: React.FC = () => {
                   dice: data.state?.dice || prevGame.dice,
                 };
               });
-              return; // Don't update board from server
+
+              // Check if game has finished or it's no longer the current player's turn
+              const currentPlayerIndex = game?.players.findIndex(p => p.userId === user?.id)
+              if (data.state?.gameState === 'finished' ||
+                  (data.state?.currentPlayer !== undefined &&
+                   currentPlayerIndex !== -1 &&
+                   data.state.currentPlayer !== currentPlayerIndex)) {
+                // Game finished or it's no longer our turn, check for next game or go to dashboard
+                setTimeout(() => {
+                  checkForNextGameOrDashboard();
+                }, data.state?.gameState === 'finished' ? 3000 : 2000); // Wait longer for game finish
+              }
+
+              return; // Don't process further for our optimistic moves
             }
           }
 
@@ -96,7 +108,7 @@ const Game: React.FC = () => {
             };
           });
 
-          // Update dice usage when move is made
+          // Update dice usage when move is made (only for non-optimistic moves)
           if (data.move && game?.dice) {
             const distance = Math.abs(data.move.to - data.move.from);
             const isDoubles = game.dice[0] === game.dice[1];
@@ -128,7 +140,7 @@ const Game: React.FC = () => {
             setUsedDice([]);
           }
 
-          // Check if game has finished or it's no longer the current player's turn
+          // Check if game has finished or it's no longer the current player's turn (for non-optimistic moves)
           const currentPlayerIndex = game?.players.findIndex(p => p.userId === user?.id)
           if (data.state?.gameState === 'finished' ||
               (data.state?.currentPlayer !== undefined &&
@@ -368,10 +380,10 @@ const Game: React.FC = () => {
     
     const pointHandlers = {
       onClick: () => handlePointClick(pointIndex),
-      ...(isMobile() && { onTouchEnd: (e: React.TouchEvent) => {
+      onTouchEnd: (e: React.TouchEvent) => {
         e.preventDefault()
         handlePointClick(pointIndex)
-      }}),
+      },
     }
 
     return (
