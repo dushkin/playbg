@@ -16,8 +16,8 @@ const Game: React.FC = () => {
   const [game, setGame] = useState<GameType | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [selectedPoint, setSelectedPoint] = useState<number | null>(null)
   const [isRollingDice, setIsRollingDice] = useState(false)
+  const [usedDice, setUsedDice] = useState<boolean[]>([])
 
   useEffect(() => {
     if (gameId) {
@@ -45,8 +45,17 @@ const Game: React.FC = () => {
               currentPlayer: data.state?.currentPlayer !== undefined ? data.state.currentPlayer : prevGame.currentPlayer,
             };
 
-            // Clear selected point when dice are rolled
-            setSelectedPoint(null);
+            // Initialize dice usage tracking
+            if (data.dice && data.dice[0] === data.dice[1]) {
+              // Doubles: 4 moves
+              setUsedDice([false, false, false, false]);
+            } else if (data.dice) {
+              // Regular: 2 moves
+              setUsedDice([false, false]);
+            } else {
+              setUsedDice([]);
+            }
+
 
             return updatedGame;
           });
@@ -61,11 +70,41 @@ const Game: React.FC = () => {
               ...prevGame,
               board: data.state?.board || prevGame.board,
               currentPlayer: data.state?.currentPlayer !== undefined ? data.state.currentPlayer : prevGame.currentPlayer,
+              dice: data.state?.dice || prevGame.dice,
             };
           });
 
-          // Clear selected point when move is made
-          setSelectedPoint(null);
+          // Update dice usage when move is made
+          if (data.move && game?.dice) {
+            const distance = Math.abs(data.move.to - data.move.from);
+            const isDoubles = game.dice[0] === game.dice[1];
+
+            setUsedDice(prev => {
+              const newUsed = [...prev];
+              if (isDoubles) {
+                // For doubles, mark first available die as used
+                const firstAvailable = newUsed.findIndex(used => !used);
+                if (firstAvailable !== -1) {
+                  newUsed[firstAvailable] = true;
+                }
+              } else {
+                // For regular dice, mark the appropriate die as used
+                if (distance === game.dice![0] && !newUsed[0]) {
+                  newUsed[0] = true;
+                } else if (distance === game.dice![1] && !newUsed[1]) {
+                  newUsed[1] = true;
+                }
+              }
+              return newUsed;
+            });
+          }
+
+
+          // Check if all dice are used and end turn automatically
+          if (usedDice.every(used => used)) {
+            // All dice used, turn should end
+            setUsedDice([]);
+          }
         }
       };
 
@@ -127,29 +166,39 @@ const Game: React.FC = () => {
     const currentPlayerIndex = game.players.findIndex(p => p.userId === user?.id)
     if (currentPlayerIndex !== game.currentPlayer) return
 
-    if (selectedPoint === null) {
-      // Select a point if it has checkers belonging to the current player
-      const point = game.board.points[pointIndex]
-      if (point && point[currentPlayerIndex] > 0) {
-        setSelectedPoint(pointIndex)
-      }
-    } else if (selectedPoint === pointIndex) {
-      // Deselect if clicking the same point
-      setSelectedPoint(null)
+    // Check if there are available dice values
+    if (availableDiceValues.length === 0) return
+
+    // Check if the clicked point has checkers belonging to the current player
+    const point = game.board.points[pointIndex]
+    if (!point || point[currentPlayerIndex] === 0) return
+
+    // Auto-move: try to move checker by the first available dice value
+    const diceValue = availableDiceValues[0]
+    let targetPoint: number
+
+    if (currentPlayerIndex === 0) {
+      // Player 0 moves counter-clockwise (decreasing point numbers)
+      targetPoint = pointIndex - diceValue
     } else {
-      // Try to make a move
-      if (validDestinations.has(pointIndex) && gameId) {
+      // Player 1 moves clockwise (increasing point numbers)
+      targetPoint = pointIndex + diceValue
+    }
+
+    // Check if target point is valid (within board bounds)
+    if (targetPoint >= 0 && targetPoint < 24) {
+      // Basic validation: check if opponent has more than 1 checker
+      const opponentIndex = 1 - currentPlayerIndex
+      const opponentCheckers = game.board.points[targetPoint][opponentIndex]
+
+      if (opponentCheckers <= 1 && gameId) {
         // Make the move (backend will add playerId and timestamp)
         const move = {
-          from: selectedPoint,
-          to: pointIndex
+          from: pointIndex,
+          to: targetPoint
         }
 
         socketService.makeMove(gameId, move)
-        setSelectedPoint(null)
-      } else {
-        // Invalid move, deselect
-        setSelectedPoint(null)
       }
     }
   }
@@ -161,47 +210,36 @@ const Game: React.FC = () => {
     }
   };
 
-  // Calculate valid destination points for the selected point
-  const validDestinations = useMemo(() => {
-    if (selectedPoint === null || !game?.dice) return new Set<number>()
+  // Get available dice values (unused dice)
+  const availableDiceValues = useMemo(() => {
+    if (!game?.dice || !usedDice.length) return []
 
-    const currentPlayerIndex = game.players.findIndex(p => p.userId === user?.id)
-    if (currentPlayerIndex === -1) return new Set<number>()
+    const values: number[] = []
+    const isDoubles = game.dice[0] === game.dice[1]
 
-    const validTargets = new Set<number>()
-    const dice = game.dice
+    if (isDoubles) {
+      // For doubles, add the dice value for each unused die
+      usedDice.forEach(used => {
+        if (!used) values.push(game.dice![0])
+      })
+    } else {
+      // For regular dice, add each unused die value
+      if (!usedDice[0]) values.push(game.dice[0])
+      if (!usedDice[1]) values.push(game.dice[1])
+    }
 
-    // Calculate possible destinations based on dice values
-    dice.forEach(diceValue => {
-      let targetPoint: number
+    return values
+  }, [game?.dice, usedDice])
 
-      if (currentPlayerIndex === 0) {
-        // Player 0 moves counter-clockwise (decreasing point numbers)
-        targetPoint = selectedPoint - diceValue
-      } else {
-        // Player 1 moves clockwise (increasing point numbers)
-        targetPoint = selectedPoint + diceValue
-      }
-
-      // Check if target point is valid (within board bounds)
-      if (targetPoint >= 0 && targetPoint < 24) {
-        // Basic validation: check if opponent has more than 1 checker
-        const opponentIndex = 1 - currentPlayerIndex
-        const opponentCheckers = game.board.points[targetPoint][opponentIndex]
-
-        if (opponentCheckers <= 1) {
-          validTargets.add(targetPoint)
-        }
-      }
-    })
-
-    return validTargets
-  }, [selectedPoint, game?.dice, game?.board, user?.id, game?.players])
 
   const renderPoint = (pointIndex: number, isTopHalf: boolean) => {
     const point = game?.board.points[pointIndex]
-    const isSelected = selectedPoint === pointIndex
-    const isValidDestination = validDestinations.has(pointIndex)
+
+    // Check if this point has checkers that can be moved by current player
+    const currentPlayerIndex = game?.players.findIndex(p => p.userId === user?.id) ?? -1
+    const isCurrentPlayer = game?.players[game?.currentPlayer || 0]?.userId === user?.id
+    const hasCurrentPlayerCheckers = point && point[currentPlayerIndex] > 0
+    const canMove = isCurrentPlayer && hasCurrentPlayerCheckers && availableDiceValues.length > 0
     
     // Determine point color (alternating pattern)
     const isEvenPoint = pointIndex % 2 === 0
@@ -222,10 +260,9 @@ const Game: React.FC = () => {
         key={`point-${pointIndex}`}
         className={`
           relative flex ${isTopHalf ? 'flex-col' : 'flex-col-reverse'} items-center h-full
-          cursor-pointer transition-all duration-300 ease-out
-          ${isSelected ? 'scale-110 z-20' : 'hover:scale-105 hover:z-10'}
-          ${isSelected ? 'animate-pulse' : ''}
-          ${isValidDestination ? 'ring-2 ring-green-400 ring-opacity-75' : ''}
+          transition-all duration-300 ease-out
+          ${canMove ? 'cursor-pointer hover:scale-105 hover:z-10' : 'cursor-default'}
+          ${canMove ? 'ring-2 ring-blue-400 ring-opacity-50' : ''}
         `}
         {...pointHandlers}
       >
@@ -233,15 +270,14 @@ const Game: React.FC = () => {
         <div
           className={`
             absolute inset-0 transition-all duration-200
-            ${isSelected ? 'ring-4 ring-blue-400 ring-opacity-75' : ''}
-            ${isValidDestination ? 'ring-4 ring-green-400 ring-opacity-75' : ''}
+            ${canMove ? 'ring-4 ring-blue-400 ring-opacity-75' : ''}
           `}
           style={{
             background: `linear-gradient(to bottom, ${pointColorClass.includes('amber-100') ? '#fef3c7, #fde68a' : '#92400e, #78350f'})`,
             clipPath: isTopHalf 
               ? 'polygon(50% 100%, 0% 0%, 100% 0%)'
               : 'polygon(0% 100%, 100% 100%, 50% 0%)',
-            boxShadow: isSelected ? 'inset 0 0 20px rgba(59, 130, 246, 0.3)' : 'inset 0 2px 4px rgba(0,0,0,0.1)'
+            boxShadow: canMove ? 'inset 0 0 20px rgba(59, 130, 246, 0.3)' : 'inset 0 2px 4px rgba(0,0,0,0.1)'
           }}
         />
         
@@ -310,13 +346,6 @@ const Game: React.FC = () => {
           })}
         </div>
 
-        {/* Valid destination indicator */}
-        {isValidDestination && (
-          <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
-            <div className="w-6 h-6 bg-green-500 rounded-full opacity-75 animate-ping"></div>
-            <div className="absolute w-4 h-4 bg-green-400 rounded-full"></div>
-          </div>
-        )}
       </div>
     )
   }
@@ -326,19 +355,19 @@ const Game: React.FC = () => {
     const isCurrentPlayer = game.players[game.currentPlayer]?.userId === user?.id
 
     return (
-      <div className="bg-gradient-to-br from-amber-50 via-amber-100 to-amber-200 p-2 sm:p-4 lg:p-6 rounded-xl sm:rounded-2xl shadow-2xl w-full mx-auto">
+      <div className="bg-gradient-to-br from-amber-50 via-amber-100 to-amber-200 p-1 sm:p-4 lg:p-6 rounded-xl sm:rounded-2xl shadow-2xl w-full mx-auto max-w-full overflow-hidden">
         {/* Board border with wood grain effect */}
-        <div className="bg-gradient-to-br from-amber-900 via-amber-800 to-amber-900 p-2 sm:p-3 lg:p-4 rounded-lg sm:rounded-xl shadow-inner">
-          <div className="bg-gradient-to-br from-amber-100 to-amber-50 p-2 sm:p-4 lg:p-6 rounded-md sm:rounded-lg">
+        <div className="bg-gradient-to-br from-amber-900 via-amber-800 to-amber-900 p-1 sm:p-3 lg:p-4 rounded-lg sm:rounded-xl shadow-inner">
+          <div className="bg-gradient-to-br from-amber-100 to-amber-50 p-1 sm:p-4 lg:p-6 rounded-md sm:rounded-lg">
             
             {/* Top numbers */}
             <div className="flex text-xs font-bold text-amber-900 opacity-50 mb-1">
               <div className="flex-1 flex justify-around">
-                {Array.from({ length: 6 }, (_, i) => 13 + i).map(num => <div key={num} className="w-8 text-center">{num}</div>)}
+                {Array.from({ length: 6 }, (_, i) => 13 + i).map(num => <div key={num} className="w-4 sm:w-8 text-center text-xs sm:text-sm overflow-hidden">{num}</div>)}
               </div>
               <div className="w-6 sm:w-8 lg:w-10 xl:w-12" />
               <div className="flex-1 flex justify-around">
-                {Array.from({ length: 6 }, (_, i) => 19 + i).map(num => <div key={num} className="w-8 text-center">{num}</div>)}
+                {Array.from({ length: 6 }, (_, i) => 19 + i).map(num => <div key={num} className="w-4 sm:w-8 text-center text-xs sm:text-sm overflow-hidden">{num}</div>)}
               </div>
             </div>
 
@@ -354,7 +383,7 @@ const Game: React.FC = () => {
               </div>
               
               {/* Center bar with dice */}
-              <div className="w-6 sm:w-8 lg:w-10 xl:w-12 flex flex-col items-center justify-center px-0.5 sm:px-1">
+              <div className="w-8 sm:w-10 lg:w-12 xl:w-14 flex flex-col items-center justify-center px-1">
                 <div className="
                   bg-gradient-to-b from-amber-800 to-amber-900 w-full h-28 sm:h-44 lg:h-56 xl:h-64 rounded-md sm:rounded-lg shadow-inner
                   border border-amber-700 sm:border-2 flex flex-col items-center justify-center
@@ -364,7 +393,7 @@ const Game: React.FC = () => {
 
                   {/* Dice display */}
                   {game?.dice && game.dice.length === 2 ? (
-                    <div className="flex flex-col gap-1 z-20">
+                    <div className="flex flex-col gap-0.5 sm:gap-1 z-20">
                       <div
                         className={`${isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS ? 'cursor-pointer' : 'cursor-not-allowed'}`}
                         onClick={() => {
@@ -379,7 +408,7 @@ const Game: React.FC = () => {
                           }
                         }}
                       >
-                        <Dice3D value={game.dice[0]} size="sm" isRolling={isRollingDice} />
+                        <Dice3D value={game.dice[0]} size="xs" isRolling={isRollingDice} />
                       </div>
                       <div
                         className={`${isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS ? 'cursor-pointer' : 'cursor-not-allowed'}`}
@@ -395,14 +424,14 @@ const Game: React.FC = () => {
                           }
                         }}
                       >
-                        <Dice3D value={game.dice[1]} size="sm" isRolling={isRollingDice} />
+                        <Dice3D value={game.dice[1]} size="xs" isRolling={isRollingDice} />
                       </div>
                     </div>
                   ) : (
-                    <div className="flex flex-col gap-1 z-20">
+                    <div className="flex flex-col gap-0.5 sm:gap-1 z-20">
                       <div
                         className={`
-                          w-8 h-8 bg-white rounded-lg shadow-lg border border-gray-300 cursor-pointer
+                          w-6 h-6 sm:w-8 sm:h-8 bg-white rounded-md sm:rounded-lg shadow-lg border border-gray-300 cursor-pointer
                           transition-all duration-200 hover:scale-110 hover:shadow-xl
                           flex items-center justify-center text-gray-400 font-bold text-xs
                           ${isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS ? 'hover:bg-blue-50 hover:border-blue-300' : 'cursor-not-allowed opacity-50'}
@@ -424,7 +453,7 @@ const Game: React.FC = () => {
                       </div>
                       <div
                         className={`
-                          w-8 h-8 bg-white rounded-lg shadow-lg border border-gray-300 cursor-pointer
+                          w-6 h-6 sm:w-8 sm:h-8 bg-white rounded-md sm:rounded-lg shadow-lg border border-gray-300 cursor-pointer
                           transition-all duration-200 hover:scale-110 hover:shadow-xl
                           flex items-center justify-center text-gray-400 font-bold text-xs
                           ${isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS ? 'hover:bg-blue-50 hover:border-blue-300' : 'cursor-not-allowed opacity-50'}
@@ -482,7 +511,7 @@ const Game: React.FC = () => {
               </div>
               
               {/* Center bar */}
-              <div className="w-6 sm:w-8 lg:w-10 xl:w-12 flex flex-col items-center justify-center px-0.5 sm:px-1">
+              <div className="w-8 sm:w-10 lg:w-12 xl:w-14 flex flex-col items-center justify-center px-1">
                 <div className="
                   bg-gradient-to-b from-amber-800 to-amber-900 w-full h-28 sm:h-44 lg:h-56 xl:h-64 rounded-md sm:rounded-lg shadow-inner
                   border border-amber-700 sm:border-2 flex flex-col items-center justify-center
@@ -510,11 +539,11 @@ const Game: React.FC = () => {
             {/* Bottom numbers */}
             <div className="flex text-xs font-bold text-amber-900 opacity-50 mt-1">
               <div className="flex-1 flex justify-around">
-                {Array.from({ length: 6 }, (_, i) => 12 - i).map(num => <div key={num} className="w-8 text-center">{num}</div>)}
+                {Array.from({ length: 6 }, (_, i) => 12 - i).map(num => <div key={num} className="w-4 sm:w-8 text-center text-xs sm:text-sm overflow-hidden">{num}</div>)}
               </div>
               <div className="w-6 sm:w-8 lg:w-10 xl:w-12" />
               <div className="flex-1 flex justify-around">
-                {Array.from({ length: 6 }, (_, i) => 6 - i).map(num => <div key={num} className="w-8 text-center">{num}</div>)}
+                {Array.from({ length: 6 }, (_, i) => 6 - i).map(num => <div key={num} className="w-4 sm:w-8 text-center text-xs sm:text-sm overflow-hidden">{num}</div>)}
               </div>
             </div>
 
@@ -613,7 +642,14 @@ const Game: React.FC = () => {
           <div className="flex flex-col sm:flex-row gap-2 sm:space-x-4 sm:gap-0">
             <button
               className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50 text-sm sm:text-base"
-              disabled={!isCurrentPlayer || game.gameState !== GameStateEnum.IN_PROGRESS}
+              disabled={!isCurrentPlayer || game.gameState !== GameStateEnum.IN_PROGRESS || availableDiceValues.length > 0}
+              onClick={() => {
+                if (gameId && isCurrentPlayer && availableDiceValues.length === 0) {
+                  // End turn - send socket event
+                  socketService.getSocket()?.emit('game:end_turn', { gameId });
+                  setUsedDice([]);
+                }
+              }}
             >
               End Turn
             </button>
@@ -623,7 +659,10 @@ const Game: React.FC = () => {
           </div>
           <p className="text-sm text-gray-600 mt-2">
             {!game?.dice ? 'Click the dice on the board to roll them!' :
-             isCurrentPlayer ? 'Click a checker to move it automatically. First move uses the higher dice value.' :
+             isCurrentPlayer ?
+               availableDiceValues.length > 0 ?
+                 `Available moves: ${availableDiceValues.join(', ')}. Click a checker to move it.` :
+                 'All dice used. Click "End Turn" to pass turn to opponent.' :
              "Waiting for opponent's move..."}
           </p>
         </div>

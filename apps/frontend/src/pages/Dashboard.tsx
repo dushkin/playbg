@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAppSelector } from '../hooks/redux'
+import { useAppSelector, useAppDispatch } from '../hooks/redux'
+import { logout } from '../store/slices/authSlice'
 import { gamesAPI } from '../services/api'
 import toast from 'react-hot-toast'
 import LoadingSpinner from '../components/UI/LoadingSpinner'
@@ -26,6 +27,7 @@ interface GameItem {
 
 const Dashboard: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth)
+  const dispatch = useAppDispatch()
   const navigate = useNavigate()
 
   const [availableGames, setAvailableGames] = useState<GameItem[]>([])
@@ -146,6 +148,15 @@ const Dashboard: React.FC = () => {
 
   const handleViewGame = (gameId: string) => {
     navigate(`/game/${gameId}`)
+  }
+
+  const handleLogout = async () => {
+    try {
+      await dispatch(logout()).unwrap()
+      navigate('/login')
+    } catch (error) {
+      console.error('Logout error:', error)
+    }
   }
 
   const formatGamePeriod = (period: string) => {
@@ -291,11 +302,17 @@ const Dashboard: React.FC = () => {
                   )}
                   <span>{refreshing ? 'Refreshing...' : 'Refresh Games'}</span>
                 </button>
-                <button 
+                <button
                   onClick={() => navigate('/tournaments')}
                   className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors"
                 >
                   Tournaments
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition-colors"
+                >
+                  Logout
                 </button>
               </div>
             </div>

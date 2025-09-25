@@ -2,7 +2,7 @@ import React, { useMemo } from 'react'
 
 interface Dice3DProps {
   value: number
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'xs' | 'sm' | 'md' | 'lg'
   isRolling?: boolean
   animationDelay?: number
 }
@@ -10,6 +10,8 @@ interface Dice3DProps {
 const Dice3D: React.FC<Dice3DProps> = ({ value, size = 'md', isRolling = false, animationDelay = 0 }) => {
   const sizeClasses = useMemo(() => {
     switch (size) {
+      case 'xs':
+        return 'w-6 h-6'
       case 'sm':
         return 'w-8 h-8'
       case 'lg':
@@ -21,6 +23,8 @@ const Dice3D: React.FC<Dice3DProps> = ({ value, size = 'md', isRolling = false, 
 
   const dotSize = useMemo(() => {
     switch (size) {
+      case 'xs':
+        return 'w-0.5 h-0.5'
       case 'sm':
         return 'w-1 h-1'
       case 'lg':

@@ -18,16 +18,19 @@ class SocketService {
     // Extract WebSocket URL - if VITE_API_URL has /api, remove it for Socket.IO
     const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000/api'
     const WS_BASE_URL = apiUrl.replace('/api', '')
-    
+
+    console.log('Socket connecting to:', WS_BASE_URL);
+
     this.socket = io(WS_BASE_URL, {
       auth: { token },
       autoConnect: true,
       reconnection: true,
-      reconnectionAttempts: 3,
+      reconnectionAttempts: 5,
       reconnectionDelay: 2000,
-      reconnectionDelayMax: 10000,
-      timeout: 10000,
+      reconnectionDelayMax: 15000,
+      timeout: 15000,
       forceNew: false,
+      transports: ['websocket', 'polling'] // Ensure both transports are available
     })
 
     this.setupEventListeners()
@@ -55,7 +58,13 @@ class SocketService {
 
     this.socket.on('connect_error', (error) => {
       console.error('Socket connection error:', error)
-      toast.error('Connection error. Please refresh the page.')
+      if (error.message.includes('502') || error.message.includes('Bad Gateway')) {
+        toast.error('Server is temporarily unavailable. Retrying...')
+      } else if (error.message.includes('CORS')) {
+        toast.error('Connection blocked by CORS policy. Please contact support.')
+      } else {
+        toast.error('Connection error. Please refresh the page.')
+      }
     })
 
     // Matchmaking events
