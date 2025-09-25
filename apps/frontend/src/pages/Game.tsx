@@ -206,22 +206,40 @@ const Game: React.FC = () => {
   }
 
   const handlePointClick = (pointIndex: number) => {
-    if (!game || game.gameState !== GameStateEnum.IN_PROGRESS) return
+    console.log('🎯 Point clicked:', pointIndex)
+    if (!game || game.gameState !== GameStateEnum.IN_PROGRESS) {
+      console.log('❌ Game not in progress')
+      return
+    }
 
     // Check if it's the current player's turn
     const currentPlayerIndex = game.players.findIndex(p => p.userId === user?.id)
-    if (currentPlayerIndex !== game.currentPlayer) return
+    console.log('👤 Current player index:', currentPlayerIndex, 'Game current player:', game.currentPlayer)
+    if (currentPlayerIndex !== game.currentPlayer) {
+      console.log('❌ Not current player turn')
+      return
+    }
 
     // Check if there are available dice values
-    if (availableDiceValues.length === 0) return
+    console.log('🎲 Available dice values:', availableDiceValues)
+    if (availableDiceValues.length === 0) {
+      console.log('❌ No available dice values')
+      return
+    }
 
     // Check if the clicked point has checkers belonging to the current player
     const point = game.board.points[pointIndex]
-    if (!point || point[currentPlayerIndex] === 0) return
+    console.log('📍 Point data:', point, 'Current player checkers:', point?.[currentPlayerIndex])
+    if (!point || point[currentPlayerIndex] === 0) {
+      console.log('❌ No checkers for current player at this point')
+      return
+    }
 
     // Try to find a valid move with any available dice value
     const isDoubles = game.dice && game.dice[0] === game.dice[1]
     let bestMove: { from: number; to: number; diceValue: number } | null = null
+
+    console.log('🎲 Dice:', game.dice, 'Is doubles:', isDoubles)
 
     for (const diceValue of availableDiceValues) {
       let targetPoint: number
@@ -234,27 +252,42 @@ const Game: React.FC = () => {
         targetPoint = pointIndex + diceValue
       }
 
+      console.log(`🎯 Trying dice ${diceValue}: ${pointIndex} → ${targetPoint}`)
+
       // Check if target point is valid (within board bounds)
       if (targetPoint >= 0 && targetPoint < 24) {
         // Basic validation: check if opponent has more than 1 checker
         const opponentIndex = 1 - currentPlayerIndex
         const opponentCheckers = game.board.points[targetPoint][opponentIndex]
 
+        console.log(`📍 Target point ${targetPoint}: opponent checkers = ${opponentCheckers}`)
+
         if (opponentCheckers <= 1) {
           bestMove = { from: pointIndex, to: targetPoint, diceValue }
+          console.log('✅ Found valid move:', bestMove)
           break // Use the first valid move found
+        } else {
+          console.log(`❌ Invalid move: opponent has ${opponentCheckers} checkers`)
         }
+      } else {
+        console.log(`❌ Target point ${targetPoint} out of bounds`)
       }
     }
 
     if (bestMove && gameId) {
+      console.log('🚀 Executing move:', bestMove)
+
       // Set optimistic move ID to prevent server override
       const moveId = `${bestMove.from}-${bestMove.to}`
       setOptimisticMoveId(moveId)
+      console.log('🔄 Set optimistic move ID:', moveId)
 
       // Optimistic update: immediately update the UI
       setGame(prevGame => {
         if (!prevGame) return null
+
+        console.log('🎮 Before optimistic update - point', bestMove.from, ':', prevGame.board.points[bestMove.from])
+        console.log('🎮 Before optimistic update - point', bestMove.to, ':', prevGame.board.points[bestMove.to])
 
         const newBoard = { ...prevGame.board }
         newBoard.points = prevGame.board.points.map(point => [...point])
@@ -270,6 +303,9 @@ const Game: React.FC = () => {
           newBoard.bar = [...prevGame.board.bar]
           newBoard.bar[opponentIndex]++
         }
+
+        console.log('🎮 After optimistic update - point', bestMove.from, ':', newBoard.points[bestMove.from])
+        console.log('🎮 After optimistic update - point', bestMove.to, ':', newBoard.points[bestMove.to])
 
         return { ...prevGame, board: newBoard }
       })
@@ -300,7 +336,12 @@ const Game: React.FC = () => {
         to: bestMove.to
       }
 
+      console.log('📡 Sending move to server:', move)
       socketService.makeMove(gameId, move)
+    } else if (!bestMove) {
+      console.log('❌ No valid move found')
+    } else if (!gameId) {
+      console.log('❌ No game ID')
     }
   }
 
@@ -343,7 +384,7 @@ const Game: React.FC = () => {
 
   // Get available dice values (unused dice)
   const availableDiceValues = useMemo(() => {
-    if (!game?.dice || !usedDice.length) return []
+    if (!game?.dice || usedDice.length === 0) return []
 
     const values: number[] = []
     const isDoubles = game.dice[0] === game.dice[1]
