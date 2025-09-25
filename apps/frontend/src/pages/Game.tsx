@@ -366,6 +366,12 @@ const Game: React.FC = () => {
                             handleRollDice();
                           }
                         }}
+                        onTouchEnd={(e) => {
+                          e.preventDefault()
+                          if (isCurrentPlayer && game.gameState === 'in_progress' && !isRollingDice) {
+                            handleRollDice();
+                          }
+                        }}
                       >
                         ?
                       </div>
@@ -378,6 +384,12 @@ const Game: React.FC = () => {
                           ${isRollingDice ? 'animate-spin' : ''}
                         `}
                         onClick={() => {
+                          if (isCurrentPlayer && game.gameState === 'in_progress' && !isRollingDice) {
+                            handleRollDice();
+                          }
+                        }}
+                        onTouchEnd={(e) => {
+                          e.preventDefault()
                           if (isCurrentPlayer && game.gameState === 'in_progress' && !isRollingDice) {
                             handleRollDice();
                           }
