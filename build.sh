@@ -184,44 +184,65 @@ else
   # Debug: Check JSON payload size
   echo "Debug: JSON payload size: $(echo "$JSON_PAYLOAD" | wc -c) characters"
 
-  # Retry logic for Gemini API calls
-  MAX_RETRIES=3
-  RETRY_COUNT=0
+  # Available models to try (in order of stability)
+  MODELS=("gemini-pro" "gemini-1.5-flash" "text-bison")
   COMMIT_MSG=""
 
-  while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ -z "$COMMIT_MSG" ]; do
-      if [ $RETRY_COUNT -gt 0 ]; then
-          echo "🔄 Retry attempt $RETRY_COUNT of $MAX_RETRIES..."
-          sleep 2
+  # Try each model until one works
+  for MODEL in "${MODELS[@]}"; do
+      echo "🤖 Trying model: $MODEL"
+      MAX_RETRIES=2
+      RETRY_COUNT=0
+
+      while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ -z "$COMMIT_MSG" ]; do
+          if [ $RETRY_COUNT -gt 0 ]; then
+              echo "🔄 Retry attempt $RETRY_COUNT of $MAX_RETRIES for $MODEL..."
+              sleep 1
+          fi
+
+          # Call the Gemini API with current model
+          API_RESPONSE=$(curl -s -X POST \
+            "https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GOOGLE_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "$JSON_PAYLOAD" 2>/dev/null)
+
+          # Check curl success
+          if [ $? -ne 0 ]; then
+              echo "⚠️  Network error calling API"
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              continue
+          fi
+
+          # Parse response
+          COMMIT_MSG=$(echo "$API_RESPONSE" | jq -r '.candidates[0].content.parts[0].text' 2>/dev/null | sed 's/`//g' | tr -d '\r')
+          API_ERROR=$(echo "$API_RESPONSE" | jq -r '.error.message' 2>/dev/null)
+
+          # Check if successful
+          if [ "$COMMIT_MSG" != "null" ] && [ -n "$COMMIT_MSG" ] && [ "$API_ERROR" == "null" ] && [ "$COMMIT_MSG" != "" ]; then
+              echo "✅ Successfully generated commit message using $MODEL"
+              break 2  # Break out of both loops
+          fi
+
+          # Report error
+          if [ "$API_ERROR" != "null" ] && [ "$API_ERROR" != "" ]; then
+              echo "⚠️  API Error with $MODEL: $API_ERROR"
+          else
+              echo "⚠️  Empty/invalid response from $MODEL"
+          fi
+
+          RETRY_COUNT=$((RETRY_COUNT + 1))
+          COMMIT_MSG=""
+      done
+
+      # Try next model if this one failed
+      if [ -z "$COMMIT_MSG" ]; then
+          echo "❌ Model $MODEL failed, trying next..."
       fi
-
-      # Call the Gemini API using the 'gemini-1.5-flash' model
-      API_RESPONSE=$(curl -s -X POST \
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GOOGLE_API_KEY}" \
-        -H "Content-Type: application/json" \
-        -d "$JSON_PAYLOAD")
-
-      # Parse the response to get the commit message text and clean it up
-      COMMIT_MSG=$(echo "$API_RESPONSE" | jq -r '.candidates[0].content.parts[0].text' 2>/dev/null | sed 's/`//g')
-
-      # Check if the commit message was generated successfully
-      API_ERROR=$(echo "$API_RESPONSE" | jq -r '.error.message' 2>/dev/null)
-      if [ "$COMMIT_MSG" != "null" ] && [ -n "$COMMIT_MSG" ] && [ "$API_ERROR" == "null" ]; then
-          break
-      fi
-
-      echo "⚠️  API call failed (attempt $((RETRY_COUNT + 1)))"
-      if [ "$API_ERROR" != "null" ]; then
-          echo "API Error: $API_ERROR"
-      fi
-
-      RETRY_COUNT=$((RETRY_COUNT + 1))
-      COMMIT_MSG=""
   done
 
-  # Check if all retries failed
+  # Check if all models failed
   if [ -z "$COMMIT_MSG" ] || [ "$COMMIT_MSG" == "null" ]; then
-      echo "❌ Error: Failed to generate AI commit message after $MAX_RETRIES attempts."
+      echo "❌ Error: All AI models failed to generate commit message."
       echo "⚠️  Falling back to simple commit message..."
 
       COMMIT_MSG="dev: build v${NEW_VERSION}

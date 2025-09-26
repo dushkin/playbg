@@ -719,7 +719,8 @@ const Game: React.FC = () => {
         `}
         style={{
           WebkitTapHighlightColor: canMove ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
-          minHeight: '44px'
+          minHeight: '48px',
+          minWidth: '24px'
         }}
         {...pointHandlers}
       >
@@ -755,8 +756,8 @@ const Game: React.FC = () => {
                 <div
                   key={checkerIndex}
                   className={`
-                    relative w-4 h-4 sm:w-6 sm:h-6 lg:w-8 lg:h-8 xl:w-9 xl:h-9 rounded-full transition-all duration-300 ease-out
-                    ${checkerIndex === 0 ? '' : '-mt-0.5 sm:-mt-1'}
+                    relative w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 xl:w-9 xl:h-9 rounded-full transition-all duration-300 ease-out
+                    ${checkerIndex === 0 ? '' : '-mt-1 sm:-mt-1'}
                     ${canMoveThisChecker ? 'hover:scale-110 hover:z-30 cursor-pointer ring-2 ring-green-400 ring-opacity-60' : 'cursor-default'}
                     transform ${canMoveThisChecker ? 'hover:-translate-y-1' : ''}
                     ${canMoveThisChecker ? 'animate-pulse' : ''}
@@ -795,8 +796,8 @@ const Game: React.FC = () => {
                 ))}
                 {playerCheckers > 5 && (
                   <div className={`
-                    absolute ${isTopHalf ? 'top-0.5' : 'bottom-0.5'} right-0.5 sm:${isTopHalf ? 'top-1' : 'bottom-1'} sm:right-1
-                    bg-blue-600 text-white text-xs font-bold rounded-full w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5
+                    absolute ${isTopHalf ? 'top-0' : 'bottom-0'} right-0 sm:${isTopHalf ? 'top-1' : 'bottom-1'} sm:right-1
+                    bg-blue-600 text-white text-xs font-bold rounded-full w-4 h-4 sm:w-4 sm:h-4 lg:w-5 lg:h-5
                     flex items-center justify-center shadow-lg z-30
                   `}>
                     {playerCheckers}
@@ -816,26 +817,26 @@ const Game: React.FC = () => {
     const isCurrentPlayer = game.players[game.currentPlayer]?.userId === user?.id
 
     return (
-      <div className="bg-gradient-to-br from-amber-50 via-amber-100 to-amber-200 p-1 sm:p-4 lg:p-6 rounded-xl sm:rounded-2xl shadow-2xl w-full mx-auto max-w-full overflow-hidden">
+      <div className="bg-gradient-to-br from-amber-50 via-amber-100 to-amber-200 p-0.5 sm:p-4 lg:p-6 rounded-lg sm:rounded-2xl shadow-2xl w-full mx-auto max-w-full overflow-hidden">
         {/* Board border with wood grain effect */}
-        <div className="bg-gradient-to-br from-amber-900 via-amber-800 to-amber-900 p-1 sm:p-3 lg:p-4 rounded-lg sm:rounded-xl shadow-inner">
-          <div className="bg-gradient-to-br from-amber-100 to-amber-50 p-1 sm:p-4 lg:p-6 rounded-md sm:rounded-lg">
+        <div className="bg-gradient-to-br from-amber-900 via-amber-800 to-amber-900 p-0.5 sm:p-3 lg:p-4 rounded-md sm:rounded-xl shadow-inner">
+          <div className="bg-gradient-to-br from-amber-100 to-amber-50 p-0.5 sm:p-4 lg:p-6 rounded-sm sm:rounded-lg">
             
             {/* Top numbers */}
-            <div className="flex text-xs font-bold text-amber-900 opacity-50 mb-1">
+            <div className="flex text-xs font-bold text-amber-900 opacity-50 mb-0.5 sm:mb-1">
               <div className="flex-1 flex justify-around">
-                {Array.from({ length: 6 }, (_, i) => 13 + i).map(num => <div key={num} className="w-4 sm:w-8 text-center text-xs sm:text-sm overflow-hidden">{num}</div>)}
+                {Array.from({ length: 6 }, (_, i) => 13 + i).map(num => <div key={num} className="flex-1 text-center text-xs sm:text-sm overflow-hidden">{num}</div>)}
               </div>
               <div className="w-6 sm:w-8 lg:w-10 xl:w-12" />
               <div className="flex-1 flex justify-around">
-                {Array.from({ length: 6 }, (_, i) => 19 + i).map(num => <div key={num} className="w-4 sm:w-8 text-center text-xs sm:text-sm overflow-hidden">{num}</div>)}
+                {Array.from({ length: 6 }, (_, i) => 19 + i).map(num => <div key={num} className="flex-1 text-center text-xs sm:text-sm overflow-hidden">{num}</div>)}
               </div>
             </div>
 
             {/* Top half of board */}
-            <div className="flex gap-1 sm:gap-1 lg:gap-2 h-32 sm:h-48 lg:h-64 xl:h-72">
+            <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-24 sm:h-48 lg:h-64 xl:h-72">
               {/* Points 12-17 */}
-              <div className="flex gap-1 flex-1">
+              <div className="flex gap-0.5 sm:gap-1 flex-1">
                 {Array.from({ length: 6 }, (_, i) => (
                   <div key={`top-left-${i}`} className="flex-1 min-w-0">
                     {renderPoint(12 + i, true)}
@@ -844,9 +845,9 @@ const Game: React.FC = () => {
               </div>
               
               {/* Center bar with dice */}
-              <div className="w-8 sm:w-10 lg:w-12 xl:w-14 flex flex-col items-center justify-center px-1">
+              <div className="w-6 sm:w-10 lg:w-12 xl:w-14 flex flex-col items-center justify-center px-0.5 sm:px-1">
                 <div className="
-                  bg-gradient-to-b from-amber-800 to-amber-900 w-full h-28 sm:h-44 lg:h-56 xl:h-64 rounded-md sm:rounded-lg shadow-inner
+                  bg-gradient-to-b from-amber-800 to-amber-900 w-full h-20 sm:h-44 lg:h-56 xl:h-64 rounded-sm sm:rounded-lg shadow-inner
                   border border-amber-700 sm:border-2 flex flex-col items-center justify-center
                   relative overflow-hidden
                 ">
@@ -908,7 +909,7 @@ const Game: React.FC = () => {
               </div>
               
               {/* Points 18-23 */}
-              <div className="flex gap-1 flex-1">
+              <div className="flex gap-0.5 sm:gap-1 flex-1">
                 {Array.from({ length: 6 }, (_, i) => (
                   <div key={`top-right-${i}`} className="flex-1 min-w-0">
                     {renderPoint(18 + i, true)}
@@ -918,14 +919,14 @@ const Game: React.FC = () => {
             </div>
             
             {/* Center divider */}
-            <div className="h-2 sm:h-3 lg:h-4 bg-gradient-to-r from-amber-800 via-amber-700 to-amber-800 my-1 sm:my-2 rounded shadow-inner relative overflow-hidden">
+            <div className="h-1 sm:h-3 lg:h-4 bg-gradient-to-r from-amber-800 via-amber-700 to-amber-800 my-0.5 sm:my-2 rounded shadow-inner relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-600 to-transparent opacity-30" />
             </div>
             
             {/* Bottom half of board */}
-            <div className="flex gap-1 sm:gap-1 lg:gap-2 h-32 sm:h-48 lg:h-64 xl:h-72">
+            <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-24 sm:h-48 lg:h-64 xl:h-72">
               {/* Points 11-6 */}
-              <div className="flex gap-1 flex-1">
+              <div className="flex gap-0.5 sm:gap-1 flex-1">
                 {Array.from({ length: 6 }, (_, i) => (
                   <div key={`bottom-left-${i}`} className="flex-1 min-w-0">
                     {renderPoint(11 - i, false)}
@@ -934,9 +935,9 @@ const Game: React.FC = () => {
               </div>
               
               {/* Center bar */}
-              <div className="w-8 sm:w-10 lg:w-12 xl:w-14 flex flex-col items-center justify-center px-1">
+              <div className="w-6 sm:w-10 lg:w-12 xl:w-14 flex flex-col items-center justify-center px-0.5 sm:px-1">
                 <div className="
-                  bg-gradient-to-b from-amber-800 to-amber-900 w-full h-28 sm:h-44 lg:h-56 xl:h-64 rounded-md sm:rounded-lg shadow-inner
+                  bg-gradient-to-b from-amber-800 to-amber-900 w-full h-20 sm:h-44 lg:h-56 xl:h-64 rounded-sm sm:rounded-lg shadow-inner
                   border border-amber-700 sm:border-2 flex flex-col items-center justify-center
                   relative overflow-hidden
                 ">
@@ -950,7 +951,7 @@ const Game: React.FC = () => {
               </div>
               
               {/* Points 5-0 */}
-              <div className="flex gap-1 flex-1">
+              <div className="flex gap-0.5 sm:gap-1 flex-1">
                 {Array.from({ length: 6 }, (_, i) => (
                   <div key={`bottom-right-${i}`} className="flex-1 min-w-0">
                     {renderPoint(5 - i, false)}
@@ -960,13 +961,13 @@ const Game: React.FC = () => {
             </div>
 
             {/* Bottom numbers */}
-            <div className="flex text-xs font-bold text-amber-900 opacity-50 mt-1">
+            <div className="flex text-xs font-bold text-amber-900 opacity-50 mt-0.5 sm:mt-1">
               <div className="flex-1 flex justify-around">
-                {Array.from({ length: 6 }, (_, i) => 12 - i).map(num => <div key={num} className="w-4 sm:w-8 text-center text-xs sm:text-sm overflow-hidden">{num}</div>)}
+                {Array.from({ length: 6 }, (_, i) => 12 - i).map(num => <div key={num} className="flex-1 text-center text-xs sm:text-sm overflow-hidden">{num}</div>)}
               </div>
               <div className="w-6 sm:w-8 lg:w-10 xl:w-12" />
               <div className="flex-1 flex justify-around">
-                {Array.from({ length: 6 }, (_, i) => 6 - i).map(num => <div key={num} className="w-4 sm:w-8 text-center text-xs sm:text-sm overflow-hidden">{num}</div>)}
+                {Array.from({ length: 6 }, (_, i) => 6 - i).map(num => <div key={num} className="flex-1 text-center text-xs sm:text-sm overflow-hidden">{num}</div>)}
               </div>
             </div>
 
@@ -1008,7 +1009,7 @@ const Game: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <div className="max-w-7xl mx-auto py-2 sm:py-4 lg:py-6 px-2 sm:px-4">
+      <div className="max-w-7xl mx-auto py-1 sm:py-4 lg:py-6 px-1 sm:px-4">
         {/* Game Header */}
         <div className="bg-white shadow rounded-lg p-3 sm:p-4 lg:p-6 mb-3 sm:mb-4 lg:mb-6">
           <div className="flex justify-between items-center mb-3 sm:mb-4">
@@ -1054,8 +1055,8 @@ const Game: React.FC = () => {
         </div>
 
         {/* Game Board */}
-        <div className="bg-white shadow rounded-lg p-2 sm:p-4 lg:p-6">
-          <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 sm:mb-4 text-center">Game Board</h2>
+        <div className="bg-white shadow rounded-lg p-1 sm:p-4 lg:p-6">
+          <h2 className="text-base sm:text-xl font-bold text-gray-900 mb-1 sm:mb-4 text-center">Game Board</h2>
           {renderBoard()}
         </div>
 
