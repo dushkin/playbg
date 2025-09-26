@@ -137,8 +137,22 @@ export class GameStateManager {
 
       // Restore BackgammonEngine state if not already loaded
       if (!this.engines.has(gameId)) {
-        const engine = new BackgammonEngine();
-        // TODO: Implement state restoration when needed
+        // Create engine with the restored board state
+        const engine = new BackgammonEngine(gameDoc.board || undefined);
+
+        // Set the current player and dice state manually since BackgammonEngine doesn't expose setters
+        // We'll use reflection to set internal state to match database
+        if (gameDoc.currentPlayer !== undefined) {
+          (engine as any).currentPlayer = gameDoc.currentPlayer;
+        }
+        if (gameDoc.dice) {
+          (engine as any).dice = gameDoc.dice;
+          // Initialize dice tracking - assume fresh dice roll state
+          const isDoubles = gameDoc.dice[0] === gameDoc.dice[1];
+          (engine as any).usedDice = isDoubles ? [false, false, false, false] : [false, false];
+        }
+
+        logger.info(`Restored game ${gameId} with player ${gameDoc.currentPlayer}, ${gameDoc.moves?.length || 0} moves`);
         this.engines.set(gameId, engine);
       }
 
@@ -447,21 +461,23 @@ export class GameStateManager {
     try {
       // Try cache first
       let state = await getRedisService().getCachedGameState(gameId);
-      
+
       if (!state) {
         // Load from database
         const gameDoc = await GameModel.findById(gameId);
         if (!gameDoc) {
           return null;
         }
-        // For now, return a basic state
+
+        // Return actual game state from database
         state = {
-          board: null,
-          currentPlayer: 0,
-          dice: null,
-          moves: []
-        };
-        
+          board: gameDoc.board,
+          currentPlayer: gameDoc.currentPlayer,
+          dice: gameDoc.dice,
+          moves: gameDoc.moves,
+          gameState: gameDoc.gameState
+        } as unknown as GameState;
+
         // Cache for future use
         await getRedisService().cacheGameState(gameId, state);
       }

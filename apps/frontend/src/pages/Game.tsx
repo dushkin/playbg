@@ -114,15 +114,14 @@ const Game: React.FC = () => {
                 }
               }
 
-              if (data.state?.gameState === 'finished' ||
-                  (data.state?.currentPlayer !== undefined &&
-                   currentPlayerIndex !== -1 &&
-                   data.state.currentPlayer !== currentPlayerIndex)) {
-                // Game finished or it's no longer our turn, check for next game or go to dashboard
+              if (data.state?.gameState === 'finished') {
+                // Game finished, check for next game or go to dashboard
                 setTimeout(() => {
                   checkForNextGameOrDashboard();
-                }, data.state?.gameState === 'finished' ? 3000 : 2000); // Wait longer for game finish
+                }, 3000); // Wait longer for game finish
               }
+              // Note: Removed currentPlayer check here as it was causing premature navigation
+              // Navigation should only happen when game actually ends, not on player turn changes
 
               return; // Don't process further for our optimistic moves
             } else {
@@ -201,15 +200,13 @@ const Game: React.FC = () => {
             }
           }
 
-          if (data.state?.gameState === 'finished' ||
-              (data.state?.currentPlayer !== undefined &&
-               currentPlayerIndex !== -1 &&
-               data.state.currentPlayer !== currentPlayerIndex)) {
-            // Game finished or it's no longer our turn, check for next game or go to dashboard
+          if (data.state?.gameState === 'finished') {
+            // Game finished, check for next game or go to dashboard
             setTimeout(() => {
               checkForNextGameOrDashboard();
-            }, data.state?.gameState === 'finished' ? 3000 : 2000); // Wait longer for game finish
+            }, 3000); // Wait longer for game finish
           }
+          // Note: Removed currentPlayer check here as it was causing premature navigation
         }
       };
 
