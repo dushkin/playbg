@@ -119,9 +119,33 @@ const Game: React.FC = () => {
                 setTimeout(() => {
                   checkForNextGameOrDashboard();
                 }, 3000); // Wait longer for game finish
+              } else if (data.state?.currentPlayer !== undefined &&
+                        currentPlayerIndex !== -1 &&
+                        data.state.currentPlayer !== currentPlayerIndex) {
+                // Player turn changed - check if it's a complete turn change (not just a move)
+                // A complete turn change means either no dice or the turn naturally ended
+                const turnCompleted = !data.state.dice ||
+                                    data.state.dice.length === 0 ||
+                                    data.state.dice.every((d: number) => d === 0);
+
+                if (turnCompleted) {
+                  console.log('🔄 Complete turn finished, checking for next game in 1.5s...', {
+                    currentPlayer: data.state.currentPlayer,
+                    myIndex: currentPlayerIndex,
+                    dice: data.state.dice,
+                    reason: 'Turn completed'
+                  });
+                  setTimeout(() => {
+                    checkForNextGameOrDashboard();
+                  }, 1500);
+                } else {
+                  console.log('🎲 Player changed but dice still available, continuing current game...', {
+                    currentPlayer: data.state.currentPlayer,
+                    myIndex: currentPlayerIndex,
+                    dice: data.state.dice
+                  });
+                }
               }
-              // Note: Removed currentPlayer check here as it was causing premature navigation
-              // Navigation should only happen when game actually ends, not on player turn changes
 
               return; // Don't process further for our optimistic moves
             } else {
@@ -205,8 +229,32 @@ const Game: React.FC = () => {
             setTimeout(() => {
               checkForNextGameOrDashboard();
             }, 3000); // Wait longer for game finish
+          } else if (data.state?.currentPlayer !== undefined &&
+                    currentPlayerIndex !== -1 &&
+                    data.state.currentPlayer !== currentPlayerIndex) {
+            // Player turn changed - check if it's a complete turn change (not just a move)
+            const turnCompleted = !data.state.dice ||
+                                data.state.dice.length === 0 ||
+                                data.state.dice.every((d: number) => d === 0);
+
+            if (turnCompleted) {
+              console.log('🔄 Complete turn finished (non-optimistic), checking for next game in 1.5s...', {
+                currentPlayer: data.state.currentPlayer,
+                myIndex: currentPlayerIndex,
+                dice: data.state.dice,
+                reason: 'Turn completed'
+              });
+              setTimeout(() => {
+                checkForNextGameOrDashboard();
+              }, 1500);
+            } else {
+              console.log('🎲 Player changed but dice still available (non-optimistic), continuing...', {
+                currentPlayer: data.state.currentPlayer,
+                myIndex: currentPlayerIndex,
+                dice: data.state.dice
+              });
+            }
           }
-          // Note: Removed currentPlayer check here as it was causing premature navigation
         }
       };
 
