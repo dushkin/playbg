@@ -138,18 +138,45 @@ if git diff --quiet && git diff --cached --quiet; then
   echo "ℹ️  No changes to commit."
 else
   # --- AI Commit Message Generation BEFORE staging ---
-  if [ -z "$GOOGLE_API_KEY" ]; then
+  # Quick disable: set SKIP_AI=1 to bypass AI entirely
+  if [ "${SKIP_AI:-}" = "1" ]; then
+      echo "⚠️  SKIP_AI=1 set, using simple commit message..."
+      COMMIT_MSG="dev: build v${NEW_VERSION}
+
+📦 Development build:
+- Version bump to ${NEW_VERSION}
+- Frontend and backend built successfully
+- Debug APK generated"
+      echo -e "📄 Using Simple Commit Message:\n---\n$COMMIT_MSG\n---"
+  elif [ -z "$GOOGLE_API_KEY" ]; then
       echo "❌ Error: GOOGLE_API_KEY environment variable is not set."
       echo "Please export your Google API key before running this script:"
       echo "export GOOGLE_API_KEY=\"YOUR_API_KEY_HERE\""
+      echo "Or set SKIP_AI=1 to bypass AI commit messages entirely."
       exit 1
-  fi
+  else
 
   # Get the diff that WOULD BE staged (but don't stage yet)
   STAGED_DIFF=$(git diff --stat)
   STAGED_DIFF_SAMPLE=$(git diff | head -n 200)
 
   echo "🤖 Asking the AI to generate a commit message..."
+
+  # First, discover available models
+  echo "🔍 Discovering available models..."
+  AVAILABLE_MODELS=$(curl -s "https://generativelanguage.googleapis.com/v1beta/models?key=${GOOGLE_API_KEY}" | jq -r '.models[]?.name // empty' 2>/dev/null | grep -E "(gemini|text)" | head -3)
+
+  if [ -n "$AVAILABLE_MODELS" ]; then
+      echo "📋 Found available models:"
+      echo "$AVAILABLE_MODELS" | while read model; do
+          echo "   - $model"
+      done
+      # Convert full model names to just the model part
+      DISCOVERED_MODELS=($(echo "$AVAILABLE_MODELS" | sed 's|models/||g'))
+  else
+      echo "⚠️  Could not discover models, using fallback list"
+      DISCOVERED_MODELS=("gemini-1.5-flash" "gemini-1.5-pro" "gemini-pro")
+  fi
 
   # Create a summary of changes for the AI, excluding version-only changes
   CHANGED_FILES=$(git diff --name-only | tr '\n' ', ' | sed 's/,$//')
@@ -184,8 +211,8 @@ else
   # Debug: Check JSON payload size
   echo "Debug: JSON payload size: $(echo "$JSON_PAYLOAD" | wc -c) characters"
 
-  # Available models to try (in order of stability)
-  MODELS=("gemini-pro" "gemini-1.5-flash" "text-bison")
+  # Use discovered models or fallback list
+  MODELS=("${DISCOVERED_MODELS[@]}")
   COMMIT_MSG=""
 
   # Try each model until one works
@@ -200,11 +227,19 @@ else
               sleep 1
           fi
 
-          # Call the Gemini API with current model
+          # Call the Gemini API with current model - try both v1beta and v1 endpoints
           API_RESPONSE=$(curl -s -X POST \
-            "https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GOOGLE_API_KEY}" \
+            "https://generativelanguage.googleapis.com/v1/models/${MODEL}:generateContent?key=${GOOGLE_API_KEY}" \
             -H "Content-Type: application/json" \
             -d "$JSON_PAYLOAD" 2>/dev/null)
+
+          # If v1 fails, try v1beta
+          if [ $? -ne 0 ] || echo "$API_RESPONSE" | grep -q "not found"; then
+              API_RESPONSE=$(curl -s -X POST \
+                "https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GOOGLE_API_KEY}" \
+                -H "Content-Type: application/json" \
+                -d "$JSON_PAYLOAD" 2>/dev/null)
+          fi
 
           # Check curl success
           if [ $? -ne 0 ]; then
@@ -253,6 +288,8 @@ else
       # AI-generated message is ready as-is
       echo "✅ Using AI-generated commit message"
   fi
+
+  fi  # Close the SKIP_AI/GOOGLE_API_KEY conditional
 
   echo -e "📄 Generated Commit Message:\n---\n$COMMIT_MSG\n---"
 
