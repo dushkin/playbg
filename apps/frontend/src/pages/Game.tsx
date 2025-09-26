@@ -43,6 +43,11 @@ const Game: React.FC = () => {
       const handleDiceRoll = (data: any) => {
         if (data.gameId === gameId) {
           setIsRollingDice(false);
+
+          // Always set hasRolledThisTurn to true when any dice are rolled
+          // This ensures the dice display correctly
+          setHasRolledThisTurn(true);
+
           setGame(prevGame => {
             if (!prevGame) return null;
             const updatedGame = {
@@ -62,12 +67,6 @@ const Game: React.FC = () => {
             } else {
               setUsedDice([]);
             }
-
-            // Mark that current player has rolled this turn
-            if (data.playerId === user?.id) {
-              setHasRolledThisTurn(true)
-            }
-
 
             return updatedGame;
           });
@@ -273,8 +272,13 @@ const Game: React.FC = () => {
               gameState: data.state?.gameState || prevGame.gameState,
               currentPlayer: data.state?.currentPlayer !== undefined ? data.state.currentPlayer : prevGame.currentPlayer,
               board: data.state?.board || prevGame.board,
+              dice: data.state?.dice || null, // Reset dice when player joins
             };
           });
+
+          // Reset dice-related state when player joins (fresh game start)
+          setHasRolledThisTurn(false);
+          setUsedDice([]);
         }
       };
 
@@ -305,6 +309,20 @@ const Game: React.FC = () => {
       if (response.success && response.data) {
         console.log('🎮 Loaded game from API:', response.data)
         setGame(response.data)
+
+        // Initialize dice state based on loaded game
+        if (response.data.dice && response.data.dice.length === 2) {
+          setHasRolledThisTurn(true)
+          // Initialize dice usage tracking
+          if (response.data.dice[0] === response.data.dice[1]) {
+            setUsedDice([false, false, false, false]); // Doubles
+          } else {
+            setUsedDice([false, false]); // Regular
+          }
+        } else {
+          setHasRolledThisTurn(false)
+          setUsedDice([])
+        }
       } else {
         setError(response.error || 'Failed to load game')
       }
@@ -742,7 +760,7 @@ const Game: React.FC = () => {
 
     // Check if this point has checkers that can be moved by current player
     const currentPlayerIndex = game?.players.findIndex(p => p.userId === user?.id) ?? -1
-    const isCurrentPlayer = game?.players[game?.currentPlayer || 0]?.userId === user?.id
+    const isCurrentPlayer = game?.currentPlayer !== undefined && game?.players[game?.currentPlayer]?.userId === user?.id
     const hasCurrentPlayerCheckers = point && point[currentPlayerIndex] > 0
     const canMove = isCurrentPlayer && hasCurrentPlayerCheckers && availableDiceValues.length > 0
     
@@ -867,7 +885,7 @@ const Game: React.FC = () => {
   const renderBoard = () => {
     if (!game) return null
 
-    const isCurrentPlayer = game.players[game.currentPlayer]?.userId === user?.id
+    const isCurrentPlayer = game.currentPlayer !== undefined && game.players[game.currentPlayer]?.userId === user?.id
 
     return (
       <div className="bg-gradient-to-br from-amber-50 via-amber-100 to-amber-200 p-1 sm:p-4 lg:p-6 rounded-xl sm:rounded-2xl shadow-2xl w-full mx-auto max-w-full overflow-hidden">
@@ -1055,7 +1073,7 @@ const Game: React.FC = () => {
     )
   }
 
-  const currentPlayer = game.players[game.currentPlayer]
+  const currentPlayer = game.currentPlayer !== undefined ? game.players[game.currentPlayer] : null
   const isCurrentPlayer = currentPlayer?.userId === user?.id
 
 
