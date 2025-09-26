@@ -60,8 +60,7 @@ const Game: React.FC = () => {
             }
 
             // Mark that current player has rolled this turn
-            const currentPlayerIndex = prevGame?.players.findIndex(p => p.userId === user?.id) ?? -1
-            if (data.playerId === user?.id || currentPlayerIndex === prevGame?.currentPlayer) {
+            if (data.playerId === user?.id) {
               setHasRolledThisTurn(true)
             }
 
