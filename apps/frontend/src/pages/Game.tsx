@@ -286,11 +286,18 @@ const Game: React.FC = () => {
       return
     }
 
+    // Debug: Show all points with current player's checkers
+    const pointsWithMyCheckers = game.board.points
+      .map((point, index) => ({ index, checkers: point[currentPlayerIndex] }))
+      .filter(p => p.checkers > 0)
+    console.log('🔍 Points with my checkers:', pointsWithMyCheckers)
+
     // Check if the clicked point has checkers belonging to the current player
     const point = game.board.points[pointIndex]
     console.log('📍 Point data:', point, 'Current player checkers:', point?.[currentPlayerIndex])
     if (!point || point[currentPlayerIndex] === 0) {
       console.log('❌ No checkers for current player at this point')
+      console.log('💡 Try clicking on points:', pointsWithMyCheckers.map(p => p.index).join(', '))
       return
     }
 
@@ -691,8 +698,14 @@ const Game: React.FC = () => {
           relative flex ${isTopHalf ? 'flex-col' : 'flex-col-reverse'} items-center h-full
           transition-all duration-300 ease-out
           ${canMove ? 'cursor-pointer hover:scale-105 hover:z-10' : 'cursor-default'}
-          ${canMove ? 'ring-2 ring-blue-400 ring-opacity-50' : ''}
+          ${canMove ? 'ring-2 ring-blue-400 ring-opacity-50 bg-blue-50' : ''}
+          ${canMove ? 'touch-manipulation' : ''}
+          min-h-0 min-w-0
         `}
+        style={{
+          WebkitTapHighlightColor: canMove ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
+          minHeight: '44px'
+        }}
         {...pointHandlers}
       >
         {/* Point triangle */}
@@ -718,6 +731,9 @@ const Game: React.FC = () => {
           {point && point.map((playerCheckers, playerIndex) => {
             if (playerCheckers === 0) return null
             
+            const isMyChecker = playerIndex === currentPlayerIndex
+            const canMoveThisChecker = isMyChecker && canMove
+
             return (
               <div key={playerIndex} className={`flex ${isTopHalf ? 'flex-col' : 'flex-col-reverse'} items-center`}>
                 {Array.from({ length: Math.min(playerCheckers, 5) }, (_, checkerIndex) => (
@@ -726,8 +742,9 @@ const Game: React.FC = () => {
                   className={`
                     relative w-4 h-4 sm:w-6 sm:h-6 lg:w-8 lg:h-8 xl:w-9 xl:h-9 rounded-full transition-all duration-300 ease-out
                     ${checkerIndex === 0 ? '' : '-mt-0.5 sm:-mt-1'}
-                    hover:scale-110 hover:z-30 cursor-pointer
-                    transform hover:-translate-y-1
+                    ${canMoveThisChecker ? 'hover:scale-110 hover:z-30 cursor-pointer ring-2 ring-green-400 ring-opacity-60' : 'cursor-default'}
+                    transform ${canMoveThisChecker ? 'hover:-translate-y-1' : ''}
+                    ${canMoveThisChecker ? 'animate-pulse' : ''}
                   `}
                   style={{
                     background: playerIndex === 0
@@ -801,9 +818,9 @@ const Game: React.FC = () => {
             </div>
 
             {/* Top half of board */}
-            <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-32 sm:h-48 lg:h-64 xl:h-72">
+            <div className="flex gap-1 sm:gap-1 lg:gap-2 h-32 sm:h-48 lg:h-64 xl:h-72">
               {/* Points 12-17 */}
-              <div className="flex gap-0.5 flex-1">
+              <div className="flex gap-1 flex-1">
                 {Array.from({ length: 6 }, (_, i) => (
                   <div key={`top-left-${i}`} className="flex-1 min-w-0">
                     {renderPoint(12 + i, true)}
@@ -876,7 +893,7 @@ const Game: React.FC = () => {
               </div>
               
               {/* Points 18-23 */}
-              <div className="flex gap-0.5 flex-1">
+              <div className="flex gap-1 flex-1">
                 {Array.from({ length: 6 }, (_, i) => (
                   <div key={`top-right-${i}`} className="flex-1 min-w-0">
                     {renderPoint(18 + i, true)}
@@ -891,9 +908,9 @@ const Game: React.FC = () => {
             </div>
             
             {/* Bottom half of board */}
-            <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-32 sm:h-48 lg:h-64 xl:h-72">
+            <div className="flex gap-1 sm:gap-1 lg:gap-2 h-32 sm:h-48 lg:h-64 xl:h-72">
               {/* Points 11-6 */}
-              <div className="flex gap-0.5 flex-1">
+              <div className="flex gap-1 flex-1">
                 {Array.from({ length: 6 }, (_, i) => (
                   <div key={`bottom-left-${i}`} className="flex-1 min-w-0">
                     {renderPoint(11 - i, false)}
@@ -918,7 +935,7 @@ const Game: React.FC = () => {
               </div>
               
               {/* Points 5-0 */}
-              <div className="flex gap-0.5 flex-1">
+              <div className="flex gap-1 flex-1">
                 {Array.from({ length: 6 }, (_, i) => (
                   <div key={`bottom-right-${i}`} className="flex-1 min-w-0">
                     {renderPoint(5 - i, false)}
