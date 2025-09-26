@@ -616,8 +616,19 @@ const Game: React.FC = () => {
     }
   }
 
+  const [isCheckingNextGame, setIsCheckingNextGame] = useState(false)
+
   const checkForNextGameOrDashboard = async () => {
+    // Prevent multiple simultaneous calls
+    if (isCheckingNextGame) {
+      console.log('🔄 Already checking for next game, skipping...')
+      return
+    }
+
     try {
+      setIsCheckingNextGame(true)
+      console.log('🔍 Checking for next game or navigating to dashboard...')
+
       // Get current user's games
       const response = await gamesAPI.getMyGames()
       if (response.success && response.data) {
@@ -630,19 +641,26 @@ const Game: React.FC = () => {
         })
 
         if (myTurnGames.length > 0) {
+          console.log(`🎮 Found ${myTurnGames.length} games waiting for your turn, navigating to first one...`)
           // Navigate to the first game where it's the player's turn
           navigate(`/game/${myTurnGames[0]._id}`)
         } else {
+          console.log('📊 No more games waiting for your turn, going to dashboard...')
           // No more games with player's turn, go to dashboard
           navigate('/dashboard')
         }
       } else {
+        console.log('❌ Failed to fetch games, going to dashboard...')
         // Error fetching games, go to dashboard
         navigate('/dashboard')
       }
     } catch (error) {
       console.error('Error checking for next game:', error)
-      navigate('/dashboard')
+      // Don't navigate to dashboard immediately on network errors
+      // This could be a temporary network issue during gameplay
+      console.log('🌐 Network error - staying in current game for now')
+    } finally {
+      setIsCheckingNextGame(false)
     }
   };
 

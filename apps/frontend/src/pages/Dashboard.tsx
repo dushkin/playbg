@@ -37,6 +37,7 @@ const Dashboard: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false)
   const [activeTab, setActiveTab] = useState<'available' | 'my-games'>('available')
   const [joiningGameId, setJoiningGameId] = useState<string | null>(null)
+  const [initialTabSet, setInitialTabSet] = useState(false)
 
   useEffect(() => {
     loadGameData()
@@ -62,6 +63,15 @@ const Dashboard: React.FC = () => {
     }
   }, [])
 
+  // Helper function to check if user has ongoing matches
+  const hasOngoingMatches = (games: GameItem[]) => {
+    return games.some(game =>
+      game.gameState === 'in_progress' ||
+      game.gameState === 'waiting' ||
+      (game.status && ['Your turn', "Opponent's turn", 'Waiting for opponent'].includes(game.status))
+    )
+  }
+
   const loadGameData = async (isRefresh = false) => {
     try {
       if (isRefresh) {
@@ -75,7 +85,20 @@ const Dashboard: React.FC = () => {
       ])
 
       if (availableRes.success) setAvailableGames(availableRes.data || [])
-      if (myGamesRes.success) setMyGames(myGamesRes.data || [])
+      if (myGamesRes.success) {
+        const myGamesData = myGamesRes.data || []
+        setMyGames(myGamesData)
+
+        // Set initial tab based on ongoing matches (only on first load, not refresh)
+        if (!initialTabSet && !isRefresh) {
+          if (hasOngoingMatches(myGamesData)) {
+            setActiveTab('my-games')
+          } else {
+            setActiveTab('available')
+          }
+          setInitialTabSet(true)
+        }
+      }
       if (historyRes.success) setGameHistory(historyRes.data || [])
 
       if (isRefresh) {
@@ -127,10 +150,23 @@ const Dashboard: React.FC = () => {
       const response = await gamesAPI.joinGame(gameId)
       if (response.success) {
         toast.success('Successfully joined game!')
-        // Add a small delay to show the animation before navigating
-        setTimeout(() => {
-          navigate(`/game/${gameId}`)
-        }, 500)
+
+        // Check if we need to navigate to next game or stay here
+        const gameData = response.data
+        const isMyTurn = gameData?.currentPlayer !== undefined &&
+                        gameData?.players?.findIndex((p: any) => p.userId === user?.id) === gameData.currentPlayer
+
+        if (isMyTurn) {
+          // It's my turn, navigate to the game
+          setTimeout(() => {
+            navigate(`/game/${gameId}`)
+          }, 500)
+        } else {
+          // It's not my turn, check for other games where it's my turn
+          setTimeout(async () => {
+            await checkForMyTurnGamesOrDashboard()
+          }, 500)
+        }
       } else {
         toast.error(response.error || 'Failed to join game')
         setJoiningGameId(null)
@@ -148,6 +184,40 @@ const Dashboard: React.FC = () => {
 
   const handleViewGame = (gameId: string) => {
     navigate(`/game/${gameId}`)
+  }
+
+  // Check for games where it's the user's turn after joining a game
+  const checkForMyTurnGamesOrDashboard = async () => {
+    try {
+      console.log('🔍 Checking for games where it\'s my turn after joining...')
+
+      // Refresh game data first
+      const response = await gamesAPI.getMyGames()
+      if (response.success && response.data) {
+        // Find games where it's the current user's turn
+        const myTurnGames = response.data.filter((g: any) => {
+          const currentPlayerIndex = g.players.findIndex((p: any) => p.userId === user?.id)
+          return g.gameState === 'in_progress' &&
+                 g.currentPlayer === currentPlayerIndex
+        })
+
+        if (myTurnGames.length > 0) {
+          console.log(`🎮 Found ${myTurnGames.length} games waiting for your turn, navigating to first one...`)
+          // Navigate to the first game where it's the player's turn
+          navigate(`/game/${myTurnGames[0]._id}`)
+        } else {
+          console.log('📊 No games waiting for your turn, staying on dashboard...')
+          // No games with player's turn, refresh data and stay on dashboard
+          loadGameData()
+        }
+      } else {
+        console.log('❌ Failed to fetch games for turn check')
+        loadGameData()
+      }
+    } catch (error) {
+      console.error('Error checking for my turn games:', error)
+      loadGameData()
+    }
   }
 
   const handleLogout = async () => {
@@ -342,7 +412,7 @@ const Dashboard: React.FC = () => {
                   <nav className="-mb-px flex space-x-8">
                     <button
                       onClick={() => setActiveTab('available')}
-                      className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                      className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
                         activeTab === 'available'
                           ? 'border-indigo-500 text-indigo-600'
                           : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -352,13 +422,16 @@ const Dashboard: React.FC = () => {
                     </button>
                     <button
                       onClick={() => setActiveTab('my-games')}
-                      className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                      className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
                         activeTab === 'my-games'
                           ? 'border-indigo-500 text-indigo-600'
                           : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                      }`}
+                      } ${hasOngoingMatches(myGames) ? 'relative' : ''}`}
                     >
                       My Games ({myGames.length})
+                      {hasOngoingMatches(myGames) && (
+                        <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full animate-pulse"></span>
+                      )}
                     </button>
                   </nav>
                 </div>
@@ -434,8 +507,11 @@ const Dashboard: React.FC = () => {
               <div className={`${activeTab !== 'my-games' ? 'hidden lg:block' : ''}`}>
                 <div className="bg-white shadow rounded-lg">
                   <div className="px-4 py-5 sm:p-6">
-                    <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4 flex items-center">
                       My Games ({myGames.length})
+                      {hasOngoingMatches(myGames) && (
+                        <span className="ml-2 h-3 w-3 bg-red-500 rounded-full animate-pulse"></span>
+                      )}
                     </h3>
                     
                     {myGames.length === 0 ? (
