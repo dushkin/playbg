@@ -32,7 +32,11 @@ const Game: React.FC = () => {
     if (socket) {
       const handleGameJoined = (data: any) => {
         if (data.gameId === gameId) {
-          setGame(data.gameData);
+          console.log('🎮 Game joined, setting state:', data);
+          // Backend sends the state in data.state, not data.gameData
+          if (data.state) {
+            setGame(data.state);
+          }
         }
       };
 
@@ -102,8 +106,9 @@ const Game: React.FC = () => {
                 };
               });
 
-              // Check for turn changes
-              const currentPlayerIndex = game?.players.findIndex(p => p.userId === user?.id)
+              // Check for turn changes after the optimistic move confirmation
+              const currentPlayerIndex = game?.players.findIndex(p => p.userId === user?.id) ?? -1
+
               if (data.state?.currentPlayer !== undefined) {
                 if (currentPlayerIndex !== -1 && data.state.currentPlayer === currentPlayerIndex) {
                   // It's now our turn - reset roll status
@@ -216,7 +221,7 @@ const Game: React.FC = () => {
           }
 
           // Check for turn changes and game end (for non-optimistic moves)
-          const currentPlayerIndex = game?.players.findIndex(p => p.userId === user?.id)
+          const currentPlayerIndex = game?.players.findIndex(p => p.userId === user?.id) ?? -1
           if (data.state?.currentPlayer !== undefined) {
             if (currentPlayerIndex !== -1 && data.state.currentPlayer === currentPlayerIndex) {
               // It's now our turn - reset roll status
@@ -298,6 +303,7 @@ const Game: React.FC = () => {
       const response = await gamesAPI.getGame(gameId)
 
       if (response.success && response.data) {
+        console.log('🎮 Loaded game from API:', response.data)
         setGame(response.data)
       } else {
         setError(response.error || 'Failed to load game')
