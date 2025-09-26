@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { AuthenticatedSocket } from '../types/socket';
 import { User } from '../models/User';
 import { TournamentModel } from '../models/Tournament';
-import { SocketEvents, GamePeriod, GameType, MatchStatus } from '@playbg/shared';
+import { SocketEvents, GamePeriod, GameType, MatchStatus, GameState } from '@playbg/shared';
 import { gameStateManager } from '../services/gameStateManager';
 import { getRedisService, MatchmakingQueue } from '../services/redisService';
 import { rateLimitService } from '../services/rateLimitService';
@@ -242,7 +242,7 @@ export const setupSocketHandlers = (io: SocketIOServer): void => {
             state: await gameStateManager.getGameState(data.gameId),
             chatMessages: game.chatMessages
           });
-        } else if (game.players.length < 2 && game.gameState === 'waiting') {
+        } else if (game.gameState === GameState.WAITING && game.players.some(p => p.userId === 'waiting')) {
           // Add as second player
           const updatedGame = await gameStateManager.addPlayer(gameId, socket.userId!);
           
