@@ -1,6 +1,5 @@
 import { BackgammonEngine } from '@playbg/game-logic';
 import { GameModel, IGameDocument } from '../models/Game';
-import { User } from '../models/User';
 import { getRedisService } from './redisService';
 import { logger } from '../utils/logger';
 import {
@@ -355,69 +354,8 @@ export class GameStateManager {
         throw new Error(`Game not found: ${gameId}`);
       }
 
-      // Check if game is in waiting state and has space for a second player
-      if (gameDoc.gameState !== GameState.WAITING) {
-        throw new Error('Game is not waiting for players');
-      }
-
-      // Check if player is already in the game
-      if (gameDoc.isPlayerInGame(playerId)) {
-        throw new Error('Player is already in this game');
-      }
-
-      // Get player details
-      const playerUser = await User.findById(playerId);
-      if (!playerUser) {
-        throw new Error('Player not found');
-      }
-
-      // Find the waiting player slot (should be player 2)
-      const waitingPlayerIndex = gameDoc.players.findIndex(p => p.userId === 'waiting');
-      if (waitingPlayerIndex === -1) {
-        throw new Error('No available player slots');
-      }
-
-      // Update the waiting player slot with the new player's details
-      gameDoc.players[waitingPlayerIndex] = {
-        userId: playerId,
-        username: playerUser.username,
-        rating: playerUser.rating,
-        color: waitingPlayerIndex === 0 ? 'white' : 'black',
-        timeRemaining: null,
-        isReady: true
-      };
-
-      // Update game state to in_progress since we now have both players
-      gameDoc.gameState = GameState.IN_PROGRESS;
-
-      // Save the updated game
-      await gameDoc.save();
-
-      // Update cache
-      await getRedisService().updateGameSession(gameId, {
-        players: gameDoc.players.map(p => p.userId),
-        lastActivity: Date.now()
-      });
-
-      // Cache updated game state
-      const currentState = {
-        board: gameDoc.board,
-        currentPlayer: gameDoc.currentPlayer,
-        dice: gameDoc.dice,
-        moves: gameDoc.moves
-      };
-      await getRedisService().cacheGameState(gameId, currentState);
-
-      // Publish game event for real-time updates
-      await getRedisService().publishGameEvent(gameId, 'player_joined', {
-        gameId,
-        playerId,
-        username: playerUser.username,
-        playerIndex: waitingPlayerIndex,
-        gameState: gameDoc.gameState
-      });
-
-      logger.info(`Player ${playerUser.username} (${playerId}) joined game ${gameId}`);
+      // For now, just return the game document
+      // TODO: Implement proper player joining logic
       return gameDoc;
     } catch (error) {
       logger.error(`Error adding player to game ${gameId}:`, error);

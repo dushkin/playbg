@@ -32,22 +32,13 @@ const Game: React.FC = () => {
     if (socket) {
       const handleGameJoined = (data: any) => {
         if (data.gameId === gameId) {
-          console.log('🎮 Game joined, setting state:', data);
-          // Backend sends the state in data.state, not data.gameData
-          if (data.state) {
-            setGame(data.state);
-          }
+          setGame(data.gameData);
         }
       };
 
       const handleDiceRoll = (data: any) => {
         if (data.gameId === gameId) {
           setIsRollingDice(false);
-
-          // Always set hasRolledThisTurn to true when any dice are rolled
-          // This ensures the dice display correctly
-          setHasRolledThisTurn(true);
-
           setGame(prevGame => {
             if (!prevGame) return null;
             const updatedGame = {
@@ -67,6 +58,12 @@ const Game: React.FC = () => {
             } else {
               setUsedDice([]);
             }
+
+            // Mark that current player has rolled this turn
+            if (data.playerId === user?.id) {
+              setHasRolledThisTurn(true)
+            }
+
 
             return updatedGame;
           });
@@ -105,9 +102,8 @@ const Game: React.FC = () => {
                 };
               });
 
-              // Check for turn changes after the optimistic move confirmation
-              const currentPlayerIndex = game?.players.findIndex(p => p.userId === user?.id) ?? -1
-
+              // Check for turn changes
+              const currentPlayerIndex = game?.players.findIndex(p => p.userId === user?.id)
               if (data.state?.currentPlayer !== undefined) {
                 if (currentPlayerIndex !== -1 && data.state.currentPlayer === currentPlayerIndex) {
                   // It's now our turn - reset roll status
@@ -123,33 +119,9 @@ const Game: React.FC = () => {
                 setTimeout(() => {
                   checkForNextGameOrDashboard();
                 }, 3000); // Wait longer for game finish
-              } else if (data.state?.currentPlayer !== undefined &&
-                        currentPlayerIndex !== -1 &&
-                        data.state.currentPlayer !== currentPlayerIndex) {
-                // Player turn changed - check if it's a complete turn change (not just a move)
-                // A complete turn change means either no dice or the turn naturally ended
-                const turnCompleted = !data.state.dice ||
-                                    data.state.dice.length === 0 ||
-                                    data.state.dice.every((d: number) => d === 0);
-
-                if (turnCompleted) {
-                  console.log('🔄 Complete turn finished, checking for next game in 1.5s...', {
-                    currentPlayer: data.state.currentPlayer,
-                    myIndex: currentPlayerIndex,
-                    dice: data.state.dice,
-                    reason: 'Turn completed'
-                  });
-                  setTimeout(() => {
-                    checkForNextGameOrDashboard();
-                  }, 1500);
-                } else {
-                  console.log('🎲 Player changed but dice still available, continuing current game...', {
-                    currentPlayer: data.state.currentPlayer,
-                    myIndex: currentPlayerIndex,
-                    dice: data.state.dice
-                  });
-                }
               }
+              // Note: Removed currentPlayer check here as it was causing premature navigation
+              // Navigation should only happen when game actually ends, not on player turn changes
 
               return; // Don't process further for our optimistic moves
             } else {
@@ -220,7 +192,7 @@ const Game: React.FC = () => {
           }
 
           // Check for turn changes and game end (for non-optimistic moves)
-          const currentPlayerIndex = game?.players.findIndex(p => p.userId === user?.id) ?? -1
+          const currentPlayerIndex = game?.players.findIndex(p => p.userId === user?.id)
           if (data.state?.currentPlayer !== undefined) {
             if (currentPlayerIndex !== -1 && data.state.currentPlayer === currentPlayerIndex) {
               // It's now our turn - reset roll status
@@ -233,32 +205,8 @@ const Game: React.FC = () => {
             setTimeout(() => {
               checkForNextGameOrDashboard();
             }, 3000); // Wait longer for game finish
-          } else if (data.state?.currentPlayer !== undefined &&
-                    currentPlayerIndex !== -1 &&
-                    data.state.currentPlayer !== currentPlayerIndex) {
-            // Player turn changed - check if it's a complete turn change (not just a move)
-            const turnCompleted = !data.state.dice ||
-                                data.state.dice.length === 0 ||
-                                data.state.dice.every((d: number) => d === 0);
-
-            if (turnCompleted) {
-              console.log('🔄 Complete turn finished (non-optimistic), checking for next game in 1.5s...', {
-                currentPlayer: data.state.currentPlayer,
-                myIndex: currentPlayerIndex,
-                dice: data.state.dice,
-                reason: 'Turn completed'
-              });
-              setTimeout(() => {
-                checkForNextGameOrDashboard();
-              }, 1500);
-            } else {
-              console.log('🎲 Player changed but dice still available (non-optimistic), continuing...', {
-                currentPlayer: data.state.currentPlayer,
-                myIndex: currentPlayerIndex,
-                dice: data.state.dice
-              });
-            }
           }
+          // Note: Removed currentPlayer check here as it was causing premature navigation
         }
       };
 
@@ -272,13 +220,8 @@ const Game: React.FC = () => {
               gameState: data.state?.gameState || prevGame.gameState,
               currentPlayer: data.state?.currentPlayer !== undefined ? data.state.currentPlayer : prevGame.currentPlayer,
               board: data.state?.board || prevGame.board,
-              dice: data.state?.dice || null, // Reset dice when player joins
             };
           });
-
-          // Reset dice-related state when player joins (fresh game start)
-          setHasRolledThisTurn(false);
-          setUsedDice([]);
         }
       };
 
@@ -307,22 +250,7 @@ const Game: React.FC = () => {
       const response = await gamesAPI.getGame(gameId)
 
       if (response.success && response.data) {
-        console.log('🎮 Loaded game from API:', response.data)
         setGame(response.data)
-
-        // Initialize dice state based on loaded game
-        if (response.data.dice && response.data.dice.length === 2) {
-          setHasRolledThisTurn(true)
-          // Initialize dice usage tracking
-          if (response.data.dice[0] === response.data.dice[1]) {
-            setUsedDice([false, false, false, false]); // Doubles
-          } else {
-            setUsedDice([false, false]); // Regular
-          }
-        } else {
-          setHasRolledThisTurn(false)
-          setUsedDice([])
-        }
       } else {
         setError(response.error || 'Failed to load game')
       }
@@ -760,7 +688,7 @@ const Game: React.FC = () => {
 
     // Check if this point has checkers that can be moved by current player
     const currentPlayerIndex = game?.players.findIndex(p => p.userId === user?.id) ?? -1
-    const isCurrentPlayer = game?.currentPlayer !== undefined && game?.players[game?.currentPlayer]?.userId === user?.id
+    const isCurrentPlayer = game?.players[game?.currentPlayer || 0]?.userId === user?.id
     const hasCurrentPlayerCheckers = point && point[currentPlayerIndex] > 0
     const canMove = isCurrentPlayer && hasCurrentPlayerCheckers && availableDiceValues.length > 0
     
@@ -885,7 +813,7 @@ const Game: React.FC = () => {
   const renderBoard = () => {
     if (!game) return null
 
-    const isCurrentPlayer = game.currentPlayer !== undefined && game.players[game.currentPlayer]?.userId === user?.id
+    const isCurrentPlayer = game.players[game.currentPlayer]?.userId === user?.id
 
     return (
       <div className="bg-gradient-to-br from-amber-50 via-amber-100 to-amber-200 p-1 sm:p-4 lg:p-6 rounded-xl sm:rounded-2xl shadow-2xl w-full mx-auto max-w-full overflow-hidden">
@@ -1073,7 +1001,7 @@ const Game: React.FC = () => {
     )
   }
 
-  const currentPlayer = game.currentPlayer !== undefined ? game.players[game.currentPlayer] : null
+  const currentPlayer = game.players[game.currentPlayer]
   const isCurrentPlayer = currentPlayer?.userId === user?.id
 
 
