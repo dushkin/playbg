@@ -19,6 +19,7 @@ const Game: React.FC = () => {
   const [usedDice, setUsedDice] = useState<boolean[]>([])
   const [optimisticMoveId, setOptimisticMoveId] = useState<string | null>(null)
   const optimisticMoveRef = useRef<string | null>(null)
+  const pendingOptimisticMoves = useRef<Set<string>>(new Set())
   const [hasRolledThisTurn, setHasRolledThisTurn] = useState<boolean>(false)
 
   useEffect(() => {
@@ -73,19 +74,25 @@ const Game: React.FC = () => {
       const handleGameMove = (data: any) => {
         console.log('📨 Server move response:', data)
         console.log('🔄 Current optimistic move ID:', optimisticMoveId)
+        console.log('🔄 Pending optimistic moves:', Array.from(pendingOptimisticMoves.current))
         console.log('🔄 Server move data:', data.move)
         if (data.gameId === gameId) {
-          // If this is confirming our optimistic move, clear the optimistic flag
-          // but don't override the UI state
-          const currentOptimisticId = optimisticMoveRef.current || optimisticMoveId
-          if (currentOptimisticId && data.move) {
-            const [expectedFrom, expectedTo] = currentOptimisticId.split('-').map(x => parseInt(x))
-            const moveMatches = data.move.from === expectedFrom && data.move.to === expectedTo
-            console.log('🔄 Checking optimistic move match:', `Expected: ${expectedFrom}-${expectedTo}`, 'vs', `Actual: ${data.move.from}-${data.move.to}`, '=', moveMatches)
-            if (moveMatches) {
-              console.log('✅ Confirmed optimistic move, skipping server update')
-              setOptimisticMoveId(null)
-              optimisticMoveRef.current = null
+          // Check if this server move matches any of our pending optimistic moves
+          if (data.move) {
+            const serverMoveId = `${data.move.from}-${data.move.to}`
+            const isOptimisticMove = pendingOptimisticMoves.current.has(serverMoveId)
+
+            console.log('🔄 Checking optimistic move match:', `Server: ${serverMoveId}`, 'in pending:', isOptimisticMove)
+
+            if (isOptimisticMove) {
+              console.log('✅ Confirmed optimistic move, removing from pending')
+              pendingOptimisticMoves.current.delete(serverMoveId)
+
+              // Clear the single optimistic ID references if they match
+              if (optimisticMoveRef.current === serverMoveId) {
+                setOptimisticMoveId(null)
+                optimisticMoveRef.current = null
+              }
               // Only update currentPlayer and dice from server, keep our board state
               setGame(prevGame => {
                 if (!prevGame) return null;
@@ -120,15 +127,10 @@ const Game: React.FC = () => {
 
               return; // Don't process further for our optimistic moves
             } else {
-              console.log('❌ Move does not match optimistic move')
+              console.log('❌ Server move not in pending optimistic moves')
             }
           } else {
-            if (!currentOptimisticId) {
-              console.log('ℹ️ No optimistic move ID to match (state:', optimisticMoveId, 'ref:', optimisticMoveRef.current, ')')
-            }
-            if (!data.move) {
-              console.log('ℹ️ No move data in server response')
-            }
+            console.log('ℹ️ No move data in server response')
           }
 
           console.log('🔄 Processing non-optimistic server move')
@@ -137,9 +139,9 @@ const Game: React.FC = () => {
           setGame(prevGame => {
             if (!prevGame) return null;
 
-            // If we have a pending optimistic move, don't overwrite the board state
-            const currentOptimisticId = optimisticMoveRef.current || optimisticMoveId
-            const shouldPreserveBoardState = currentOptimisticId !== null
+            // If we have any pending optimistic moves, don't overwrite the board state
+            const hasPendingOptimisticMoves = pendingOptimisticMoves.current.size > 0
+            const shouldPreserveBoardState = hasPendingOptimisticMoves
 
             if (shouldPreserveBoardState) {
               console.log('🔒 Preserving optimistic board state, only updating player/dice')
@@ -347,9 +349,10 @@ const Game: React.FC = () => {
     if (bestMove && gameId) {
       console.log('🚀 Executing move:', bestMove)
 
-      // Set optimistic move ID to prevent server override
+      // Add to pending optimistic moves and set current optimistic move ID
       const moveId = `${bestMove.from}-${bestMove.to}`
-      console.log('🔄 Setting optimistic move ID:', moveId)
+      console.log('🔄 Adding optimistic move to pending:', moveId)
+      pendingOptimisticMoves.current.add(moveId)
       setOptimisticMoveId(moveId)
       optimisticMoveRef.current = moveId
 
