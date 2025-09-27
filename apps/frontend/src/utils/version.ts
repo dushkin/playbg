@@ -1,6 +1,6 @@
 export const getAppVersion = (): string => {
   // Get version from environment variables injected by Vite from root package.json
-  return import.meta.env.VITE_APP_VERSION || '1.0.148'
+  return import.meta.env.VITE_APP_VERSION || '1.0.149'
 }
 
 export const getBuildInfo = () => {
