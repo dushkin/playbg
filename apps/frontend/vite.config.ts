@@ -10,9 +10,10 @@ const packageJson = require('../../package.json')
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react(), erudaPlugin()],
+  envPrefix: 'VITE_',
   define: {
-    'import.meta.env.VITE_APP_VERSION': JSON.stringify(packageJson.version),
-    'import.meta.env.VITE_BUILD_TIME': JSON.stringify(new Date().toISOString()),
+    __APP_VERSION__: JSON.stringify(packageJson.version),
+    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
   },
   resolve: {
     alias: {

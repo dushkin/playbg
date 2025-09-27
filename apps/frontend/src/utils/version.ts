@@ -1,9 +1,10 @@
 export const getAppVersion = (): string => {
-  // Get version from environment variables injected by Vite from root package.json
+  // Get version from Vite define constants or environment variables
+  const defineVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : undefined
   const envVersion = import.meta.env.VITE_APP_VERSION
-  const fallbackVersion = '1.0.152'
+  const fallbackVersion = '1.0.154'
 
-  return envVersion || fallbackVersion
+  return defineVersion || envVersion || fallbackVersion
 }
 
 export const getBuildInfo = () => {
