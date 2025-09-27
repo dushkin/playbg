@@ -11,12 +11,6 @@ const BetaBanner: React.FC<BetaBannerProps> = ({ version = getAppVersion() }) =>
   const [isVisible, setIsVisible] = useState(true)
   const mobile = isMobile()
 
-  // DEBUG LOGGING FOR BETA BANNER VERSION
-  console.log('🎌🎌🎌 BETA BANNER DEBUG START 🎌🎌🎌')
-  console.log('🏷️ Version prop passed to BetaBanner:', version)
-  console.log('🔄 getAppVersion() returns:', getAppVersion())
-  console.log('🎌🎌🎌 BETA BANNER DEBUG END 🎌🎌🎌')
-
   if (!isVisible) return null
 
   return (

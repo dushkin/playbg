@@ -38,6 +38,9 @@ echo "📦 Building frontend (development mode)"
 cd apps/frontend
 export VITE_API_URL=https://playbg-backend-dev.onrender.com/api
 export VITE_WS_URL=https://playbg-backend-dev.onrender.com
+export VITE_APP_VERSION=$NEW_VERSION
+export VITE_BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")
+echo "   Setting VITE_APP_VERSION=$NEW_VERSION"
 npm run build
 cd ../..
 
