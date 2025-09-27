@@ -21,6 +21,7 @@ const Game: React.FC = () => {
   const optimisticMoveRef = useRef<string | null>(null)
   const pendingOptimisticMoves = useRef<Set<string>>(new Set())
   const [hasRolledThisTurn, setHasRolledThisTurn] = useState<boolean>(false)
+  const hydratedFromSocket = useRef(false)
 
   useEffect(() => {
     if (gameId) {
@@ -36,6 +37,8 @@ const Game: React.FC = () => {
           if (joinedState) {
             setGame(joinedState);
             setError(null);
+            hydratedFromSocket.current = true;
+            setIsLoading(false);
           }
         }
       };
@@ -107,7 +110,7 @@ const Game: React.FC = () => {
               });
 
               // Check for turn changes
-              const currentPlayerIndex = game?.players.findIndex(p => p.userId === user?.id)
+              const currentPlayerIndex = (game?.players || []).findIndex(p => p.userId === user?.id)
               if (data.state?.currentPlayer !== undefined) {
                 if (currentPlayerIndex !== -1 && data.state.currentPlayer === currentPlayerIndex) {
                   // It's now our turn - reset roll status
@@ -197,7 +200,7 @@ const Game: React.FC = () => {
           }
 
           // Check for turn changes and game end (for non-optimistic moves)
-          const currentPlayerIndex = game?.players.findIndex(p => p.userId === user?.id)
+          const currentPlayerIndex = (game?.players || []).findIndex(p => p.userId === user?.id)
           if (data.state?.currentPlayer !== undefined) {
             if (currentPlayerIndex !== -1 && data.state.currentPlayer === currentPlayerIndex) {
               // It's now our turn - reset roll status
@@ -250,6 +253,11 @@ const Game: React.FC = () => {
   const loadGame = async (retryCount = 0) => {
     if (!gameId) return
 
+    if (hydratedFromSocket.current) {
+      setIsLoading(false)
+      return
+    }
+
     try {
       setIsLoading(true)
       console.log(`🎮 Loading game ${gameId} (attempt ${retryCount + 1})`)
@@ -282,7 +290,7 @@ const Game: React.FC = () => {
       const isNetworkError = err?.code === 'ERR_NETWORK' || err?.message === 'Network Error'
       const maxRetries = 3
 
-      if (isNetworkError && retryCount < maxRetries) {
+      if (isNetworkError && retryCount < maxRetries && !hydratedFromSocket.current) {
         console.log(`🔄 Network error, retrying in ${(retryCount + 1) * 2}s... (${retryCount + 1}/${maxRetries})`)
         setTimeout(() => {
           loadGame(retryCount + 1)
@@ -291,7 +299,7 @@ const Game: React.FC = () => {
         const errorMsg = isNetworkError
           ? 'Connection lost. Please check your internet connection and try again.'
           : 'Failed to load game data. Please try refreshing the page.'
-        setError(errorMsg)
+        if (!hydratedFromSocket.current) setError(errorMsg)
       }
     } finally {
       if (retryCount === 0) { // Only set loading to false on the initial attempt
@@ -308,7 +316,7 @@ const Game: React.FC = () => {
     }
 
     // Check if it's the current player's turn
-    const currentPlayerIndex = game.players.findIndex(p => p.userId === user?.id)
+    const currentPlayerIndex = (game.players || []).findIndex(p => p.userId === user?.id)
     console.log('👤 Current player index:', currentPlayerIndex, 'Game current player:', game.currentPlayer)
     if (currentPlayerIndex !== game.currentPlayer) {
       console.log('❌ Not current player turn')
@@ -726,8 +734,8 @@ const Game: React.FC = () => {
     const point = game?.board.points[pointIndex]
 
     // Check if this point has checkers that can be moved by current player
-    const currentPlayerIndex = game?.players.findIndex(p => p.userId === user?.id) ?? -1
-    const isCurrentPlayer = game?.players[game?.currentPlayer || 0]?.userId === user?.id
+    const currentPlayerIndex = (game?.players || []).findIndex(p => p.userId === user?.id)
+    const isCurrentPlayer = Array.isArray(game?.players) && typeof game?.currentPlayer === 'number' && (game!.players as any[])[game!.currentPlayer]?.userId === user?.id
     const hasCurrentPlayerCheckers = point && point[currentPlayerIndex] > 0
     const canMove = isCurrentPlayer && hasCurrentPlayerCheckers && availableDiceValues.length > 0
     
@@ -857,7 +865,7 @@ const Game: React.FC = () => {
   const renderBoard = () => {
     if (!game) return null
 
-    const isCurrentPlayer = game.players[game.currentPlayer]?.userId === user?.id
+    const isCurrentPlayer = Array.isArray(game.players) && typeof game.currentPlayer === 'number' && game.players[game.currentPlayer]?.userId === user?.id
 
     return (
       <div className="bg-gradient-to-br from-amber-50 via-amber-100 to-amber-200 p-0.5 sm:p-4 lg:p-6 rounded-lg sm:rounded-2xl shadow-2xl w-full mx-auto max-w-full overflow-hidden">
@@ -1077,8 +1085,8 @@ const Game: React.FC = () => {
     )
   }
 
-  const currentPlayer = game.players[game.currentPlayer]
-  const isCurrentPlayer = currentPlayer?.userId === user?.id
+  const currentPlayer = Array.isArray(game.players) && typeof game.currentPlayer === 'number' ? game.players[game.currentPlayer] : undefined
+  const isCurrentPlayer = !!(currentPlayer && currentPlayer.userId === user?.id)
 
 
 
@@ -1102,16 +1110,16 @@ const Game: React.FC = () => {
             <div className={`p-2 sm:p-3 lg:p-4 rounded-lg ${game.currentPlayer === 0 ? 'bg-blue-100 border-2 border-blue-500' : 'bg-gray-100'} flex items-center gap-2 sm:gap-3`}>
               <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-white via-gray-100 to-gray-200 border border-gray-300 shadow-md flex-shrink-0"></div>
               <div className="min-w-0">
-                <h3 className="font-bold text-sm sm:text-base lg:text-lg truncate">{game.players[0]?.username || 'Player 1'}</h3>
-                <p className="text-xs sm:text-sm text-gray-600">{game.players[0]?.rating || 'N/A'}</p>
+                <h3 className="font-bold text-sm sm:text-base lg:text-lg truncate">{(game.players || [])[0]?.username || 'Player 1'}</h3>
+                <p className="text-xs sm:text-sm text-gray-600">{(game.players || [])[0]?.rating || 'N/A'}</p>
                 <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">White Checkers</p>
               </div>
             </div>
             <div className={`p-2 sm:p-3 lg:p-4 rounded-lg ${game.currentPlayer === 1 ? 'bg-blue-100 border-2 border-blue-500' : 'bg-gray-100'} flex items-center gap-2 sm:gap-3`}>
               <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-gray-800 via-gray-600 to-gray-700 border border-gray-800 shadow-md flex-shrink-0"></div>
               <div className="min-w-0">
-                <h3 className="font-bold text-sm sm:text-base lg:text-lg truncate">{game.players[1]?.username || 'Player 2'}</h3>
-                <p className="text-xs sm:text-sm text-gray-600">{game.players[1]?.rating || 'N/A'}</p>
+                <h3 className="font-bold text-sm sm:text-base lg:text-lg truncate">{(game.players || [])[1]?.username || 'Player 2'}</h3>
+                <p className="text-xs sm:text-sm text-gray-600">{(game.players || [])[1]?.rating || 'N/A'}</p>
                 <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">Black Checkers</p>
               </div>
             </div>
