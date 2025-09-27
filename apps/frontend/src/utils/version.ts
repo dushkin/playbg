@@ -1,6 +1,18 @@
 export const getAppVersion = (): string => {
   // Get version from environment variables injected by Vite from root package.json
-  return import.meta.env.VITE_APP_VERSION || '1.0.149'
+  const envVersion = import.meta.env.VITE_APP_VERSION
+  const fallbackVersion = '1.0.150'
+
+  // Debug logging to help identify version source
+  if (import.meta.env.DEV) {
+    console.log('🔍 Version debug:', {
+      envVersion,
+      fallbackVersion,
+      usingFallback: !envVersion
+    })
+  }
+
+  return envVersion || fallbackVersion
 }
 
 export const getBuildInfo = () => {
