@@ -242,22 +242,56 @@ const Game: React.FC = () => {
     }
   }, [gameId]);
 
-  const loadGame = async () => {
+  const loadGame = async (retryCount = 0) => {
     if (!gameId) return
 
     try {
       setIsLoading(true)
+      console.log(`🎮 Loading game ${gameId} (attempt ${retryCount + 1})`)
       const response = await gamesAPI.getGame(gameId)
 
       if (response.success && response.data) {
+        console.log('🎮 Loaded game from API:', response.data)
         setGame(response.data)
+        setError(null) // Clear any previous errors
+
+        // Initialize dice state based on loaded game
+        if (response.data.dice && response.data.dice.length === 2) {
+          setHasRolledThisTurn(true)
+          // Initialize dice usage tracking
+          if (response.data.dice[0] === response.data.dice[1]) {
+            setUsedDice([false, false, false, false]); // Doubles
+          } else {
+            setUsedDice([false, false]); // Regular
+          }
+        } else {
+          setHasRolledThisTurn(false)
+          setUsedDice([])
+        }
       } else {
         setError(response.error || 'Failed to load game')
       }
-    } catch (err) {
-      setError('Failed to load game')
+    } catch (err: any) {
+      console.error('Error loading game data:', err)
+
+      const isNetworkError = err?.code === 'ERR_NETWORK' || err?.message === 'Network Error'
+      const maxRetries = 3
+
+      if (isNetworkError && retryCount < maxRetries) {
+        console.log(`🔄 Network error, retrying in ${(retryCount + 1) * 2}s... (${retryCount + 1}/${maxRetries})`)
+        setTimeout(() => {
+          loadGame(retryCount + 1)
+        }, (retryCount + 1) * 2000) // Progressive delay: 2s, 4s, 6s
+      } else {
+        const errorMsg = isNetworkError
+          ? 'Connection lost. Please check your internet connection and try again.'
+          : 'Failed to load game data. Please try refreshing the page.'
+        setError(errorMsg)
+      }
     } finally {
-      setIsLoading(false)
+      if (retryCount === 0) { // Only set loading to false on the initial attempt
+        setIsLoading(false)
+      }
     }
   }
 
@@ -727,22 +761,26 @@ const Game: React.FC = () => {
         {/* Point triangle */}
         <div
           className={`
-            absolute inset-0 transition-all duration-200
-            ${canMove ? 'ring-4 ring-blue-400 ring-opacity-75' : ''}
+            absolute inset-x-0.5 sm:inset-x-1 transition-all duration-200
+            ${canMove ? 'ring-2 ring-blue-400 ring-opacity-75' : ''}
           `}
           style={{
             background: `linear-gradient(to bottom, ${pointColorClass.includes('amber-100') ? '#fef3c7, #fde68a' : '#92400e, #78350f'})`,
-            clipPath: isTopHalf 
-              ? 'polygon(50% 100%, 0% 0%, 100% 0%)'
-              : 'polygon(0% 100%, 100% 100%, 50% 0%)',
-            boxShadow: canMove ? 'inset 0 0 20px rgba(59, 130, 246, 0.3)' : 'inset 0 2px 4px rgba(0,0,0,0.1)'
+            clipPath: isTopHalf
+              ? 'polygon(50% 85%, 5% 0%, 95% 0%)'
+              : 'polygon(5% 100%, 95% 100%, 50% 15%)',
+            boxShadow: canMove ? 'inset 0 0 10px rgba(59, 130, 246, 0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+            top: isTopHalf ? '0' : 'auto',
+            bottom: isTopHalf ? 'auto' : '0',
+            height: '80%'
           }}
         />
         
-        {/* Checkers */}        <div className={`
+        {/* Checkers */}
+        <div className={`
           relative z-20 flex ${isTopHalf ? 'flex-col' : 'flex-col-reverse'} items-center
-          ${isTopHalf ? 'justify-start pt-1' : 'justify-start pt-1'}
-          h-full px-2
+          ${isTopHalf ? 'justify-start pt-0.5 sm:pt-1' : 'justify-start pt-0.5 sm:pt-1'}
+          h-full px-1 sm:px-2
         `}>
           {point && point.map((playerCheckers, playerIndex) => {
             if (playerCheckers === 0) return null
@@ -845,28 +883,28 @@ const Game: React.FC = () => {
               </div>
               
               {/* Center bar with dice */}
-              <div className="w-6 sm:w-10 lg:w-12 xl:w-14 flex flex-col items-center justify-center px-0.5 sm:px-1">
+              <div className="w-5 sm:w-10 lg:w-12 xl:w-14 flex flex-col items-center justify-center px-0.5 sm:px-1">
                 <div className="
                   bg-gradient-to-b from-amber-800 to-amber-900 w-full h-20 sm:h-44 lg:h-56 xl:h-64 rounded-sm sm:rounded-lg shadow-inner
                   border border-amber-700 sm:border-2 flex flex-col items-center justify-center
                   relative overflow-hidden
                 ">
-                  <div className="text-amber-200 text-xs font-bold mb-1 sm:mb-2 z-10">BAR</div>
+                  <div className="text-amber-200 text-xs font-bold mb-0.5 sm:mb-2 z-10 leading-none">BAR</div>
 
                   {/* Dice display */}
                   {game?.dice && game.dice.length === 2 && hasRolledThisTurn ? (
-                    <div className="flex flex-col gap-0.5 sm:gap-1 z-20">
-                      <div>
+                    <div className="flex flex-col gap-0 sm:gap-1 z-20 items-center">
+                      <div className="scale-75 sm:scale-100">
                         <Dice3D value={game.dice[0]} size="xs" isRolling={isRollingDice} color={game.currentPlayer === 0 ? 'white' : 'black'} />
                       </div>
-                      <div>
+                      <div className="scale-75 sm:scale-100">
                         <Dice3D value={game.dice[1]} size="xs" isRolling={isRollingDice} color={game.currentPlayer === 0 ? 'white' : 'black'} />
                       </div>
                     </div>
                   ) : (
-                    <div className="flex flex-col gap-0.5 sm:gap-1 z-20">
+                    <div className="flex flex-col gap-0 sm:gap-1 z-20 items-center">
                       <div
-                        className={`${isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
+                        className={`scale-75 sm:scale-100 ${isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
                         onClick={() => {
                           if (isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS && !isRollingDice) {
                             handleRollDice();
@@ -882,7 +920,7 @@ const Game: React.FC = () => {
                         <Dice3D value={1} size="xs" isRolling={isRollingDice} color={game.currentPlayer === 0 ? 'white' : 'black'} showR={true} />
                       </div>
                       <div
-                        className={`${isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
+                        className={`scale-75 sm:scale-100 ${isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
                         onClick={() => {
                           if (isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS && !isRollingDice) {
                             handleRollDice();
@@ -935,13 +973,13 @@ const Game: React.FC = () => {
               </div>
               
               {/* Center bar */}
-              <div className="w-6 sm:w-10 lg:w-12 xl:w-14 flex flex-col items-center justify-center px-0.5 sm:px-1">
+              <div className="w-5 sm:w-10 lg:w-12 xl:w-14 flex flex-col items-center justify-center px-0.5 sm:px-1">
                 <div className="
                   bg-gradient-to-b from-amber-800 to-amber-900 w-full h-20 sm:h-44 lg:h-56 xl:h-64 rounded-sm sm:rounded-lg shadow-inner
                   border border-amber-700 sm:border-2 flex flex-col items-center justify-center
                   relative overflow-hidden
                 ">
-                  <div className="text-amber-200 text-xs font-bold mt-1 sm:mt-2 z-10">BAR</div>
+                  <div className="text-amber-200 text-xs font-bold mt-0.5 sm:mt-2 z-10 leading-none">BAR</div>
                   {/* Wood grain effect */}
                   <div className="absolute inset-0 opacity-20">
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-600 to-transparent transform -skew-y-12" />
@@ -986,17 +1024,49 @@ const Game: React.FC = () => {
   }
 
   if (error || !game) {
+    const isNetworkError = error?.includes('Connection lost') || error?.includes('Network Error')
+
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Error Loading Game</h2>
-          <p className="text-gray-600 mb-4">{error || 'Game not found'}</p>
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-          >
-            Back to Dashboard
-          </button>
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+        <div className="text-center max-w-md w-full bg-white rounded-lg shadow-lg p-6">
+          <div className="mb-4">
+            {isNetworkError ? (
+              <div className="w-16 h-16 mx-auto mb-4 text-orange-500">
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+            ) : (
+              <div className="w-16 h-16 mx-auto mb-4 text-red-500">
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+            )}
+          </div>
+
+          <h2 className="text-xl font-bold text-gray-900 mb-2">
+            {isNetworkError ? 'Connection Issues' : 'Error Loading Game'}
+          </h2>
+          <p className="text-gray-600 mb-6 text-sm">{error || 'Game not found'}</p>
+
+          <div className="space-y-3">
+            {isNetworkError && (
+              <button
+                onClick={() => loadGame(0)}
+                disabled={isLoading}
+                className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-bold py-2 px-4 rounded transition-colors"
+              >
+                {isLoading ? 'Retrying...' : 'Retry Connection'}
+              </button>
+            )}
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded transition-colors"
+            >
+              Back to Dashboard
+            </button>
+          </div>
         </div>
       </div>
     )

@@ -7,8 +7,8 @@ android {
         applicationId "com.playbg.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 100135
-        versionName "1.0.135"
+        versionCode 100136
+        versionName "1.0.136"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
