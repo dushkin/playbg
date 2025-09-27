@@ -445,7 +445,7 @@ export class GameStateManager {
       // Clear from Redis
       await getRedisService().deleteGameSession(gameId);
       await getRedisService().invalidateGameStateCache(gameId);
-      await getRedisService().unsubscribeFromGameEvents(gameId);
+      await getRedisService().unsubscribeFromGameEvents();
 
       logger.info(`Cleaned up game resources for: ${gameId}`);
     } catch (error) {

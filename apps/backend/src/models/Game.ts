@@ -313,7 +313,7 @@ gameSchema.post('save', async function(this: IGameDocument) {
   // Only trigger cache invalidation when game finishes
   if (this.gameState === GameState.FINISHED && this.winner) {
     try {
-      const { cacheInvalidationService } = await import('../services/cacheInvalidationService');
+      const { cacheInvalidationService } = await import('../services/cacheInvalidationService.js');
       
       const affectedUsers = this.players.map((player: Player) => player.userId);
       
@@ -338,7 +338,7 @@ gameSchema.post('save', async function(this: IGameDocument) {
 gameSchema.post('findOneAndUpdate', async function(doc: IGameDocument | null) {
   if (doc && doc.gameState === GameState.FINISHED && doc.winner) {
     try {
-      const { cacheInvalidationService } = await import('../services/cacheInvalidationService');
+      const { cacheInvalidationService } = await import('../services/cacheInvalidationService.js');
       
       const affectedUsers = doc.players.map((player: Player) => player.userId);
       

@@ -1,4 +1,5 @@
 import Redis from 'ioredis';
+import { EventEmitter } from 'events';
 import { GamePeriod } from '@playbg/shared';
 import { logger } from '../utils/logger';
 
@@ -30,9 +31,12 @@ export class RedisService {
   private redis: Redis;
   private subscriber: Redis;
   private publisher: Redis;
+  private eventEmitter: EventEmitter;
 
   private constructor() {
     const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+    
+    this.eventEmitter = new EventEmitter();
     
     this.redis = new Redis(redisUrl, {
       maxRetriesPerRequest: 30,
@@ -50,6 +54,7 @@ export class RedisService {
     });
 
     this.setupEventHandlers();
+    this.setupPubSub();
   }
 
   public static getInstance(): RedisService {
@@ -57,6 +62,10 @@ export class RedisService {
       RedisService.instance = new RedisService();
     }
     return RedisService.instance;
+  }
+
+  public getEventEmitter(): EventEmitter {
+    return this.eventEmitter;
   }
 
   private setupEventHandlers(): void {
@@ -70,6 +79,17 @@ export class RedisService {
 
     this.redis.on('ready', () => {
       logger.info('Redis ready for operations');
+    });
+  }
+
+  private setupPubSub(): void {
+    this.subscriber.on('message', (channel, message) => {
+      try {
+        const { event, data } = JSON.parse(message);
+        this.eventEmitter.emit('game-event', { channel, event, data });
+      } catch (error) {
+        logger.error('Error parsing game event message:', error);
+      }
     });
   }
 
@@ -239,32 +259,21 @@ export class RedisService {
     await this.publisher.publish(channel, payload);
   }
 
-  public async subscribeToGameEvents(gameId: string, callback: (event: string, data: any) => void): Promise<void> {
-    const channel = `game:events:${gameId}`;
+  public async subscribeToGameEvents(): Promise<void> {
+    const channel = `game:events:*`;
     
-    this.subscriber.subscribe(channel, (err, count) => {
+    this.subscriber.psubscribe(channel, (err, count) => {
       if (err) {
         logger.error(`Failed to subscribe to ${channel}:`, err);
         return;
       }
       logger.info(`Subscribed to ${channel}, total subscriptions: ${count}`);
     });
-
-    this.subscriber.on('message', (receivedChannel, message) => {
-      if (receivedChannel === channel) {
-        try {
-          const { event, data } = JSON.parse(message);
-          callback(event, data);
-        } catch (error) {
-          logger.error('Error parsing game event message:', error);
-        }
-      }
-    });
   }
 
-  public async unsubscribeFromGameEvents(gameId: string): Promise<void> {
-    const channel = `game:events:${gameId}`;
-    await this.subscriber.unsubscribe(channel);
+  public async unsubscribeFromGameEvents(): Promise<void> {
+    const channel = `game:events:*`;
+    await this.subscriber.punsubscribe(channel);
   }
 
   // Leaderboard Management

@@ -156,7 +156,7 @@ export class CacheInvalidationService {
   private async updateRedisLeaderboard(userIds: string[]): Promise<void> {
     try {
       // Import User model dynamically to avoid circular dependency
-      const { User } = await import('../models/User');
+      const { User } = await import('../models/User.js');
       
       for (const userId of userIds) {
         const user = await User.findById(userId).select('rating');

@@ -302,11 +302,34 @@ const connectRedis = async () => {
 
     await getRedisService().connect();
     logger.info('Redis connected successfully');
+
+    // Setup Redis Pub/Sub to broadcast events across instances
+    setupRedisPubSub(io);
+
   } catch (error) {
     logger.error('Redis connection error:', error);
     logger.warn('Continuing without Redis - some features may be limited');
     // Don't exit on Redis failure - app can work without it but with limited functionality
   }
+};
+
+// Setup Redis Pub/Sub listener
+const setupRedisPubSub = (io: SocketIOServer) => {
+  const redisService = getRedisService();
+  const eventEmitter = redisService.getEventEmitter();
+
+  eventEmitter.on('game-event', ({ channel, event, data }) => {
+    const gameId = channel.split(':')[2];
+    if (gameId) {
+      const room = `game:${gameId}`;
+      io.to(room).emit(`game:${event}`, data);
+      logger.info(`Broadcasted Redis event '${event}' to room '${room}'`);
+    }
+  });
+
+  redisService.subscribeToGameEvents().catch(err => {
+    logger.error('Failed to subscribe to Redis game events:', err);
+  });
 };
 
 // Cleanup task for inactive games and rate limits (runs every 30 minutes)
