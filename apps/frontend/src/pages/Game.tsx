@@ -144,19 +144,20 @@ const Game: React.FC = () => {
           setGame(prevGame => {
             if (!prevGame) return null;
 
-            // If we have any pending optimistic moves, don't overwrite the board state
+            // Only preserve board state if we have pending optimistic moves AND this move is from us
             const hasPendingOptimisticMoves = pendingOptimisticMoves.current.size > 0
-            const shouldPreserveBoardState = hasPendingOptimisticMoves
+            const isOurMove = data.playerId === user?.id
+            const shouldPreserveBoardState = hasPendingOptimisticMoves && isOurMove
 
             if (shouldPreserveBoardState) {
-              console.log('🔒 Preserving optimistic board state, only updating player/dice')
+              console.log('🔒 Preserving optimistic board state for our own move, only updating player/dice')
               return {
                 ...prevGame,
                 currentPlayer: data.state?.currentPlayer !== undefined ? data.state.currentPlayer : prevGame.currentPlayer,
                 dice: data.state?.dice || prevGame.dice,
               };
             } else {
-              console.log('📋 Full server update (no pending optimistic moves)')
+              console.log('📋 Full server update (opponent move or no pending optimistic moves)')
               return {
                 ...prevGame,
                 board: data.state?.board || prevGame.board,
@@ -167,8 +168,9 @@ const Game: React.FC = () => {
           });
 
           // Update dice usage when move is made (only for non-optimistic moves)
-          // Skip dice updates if we have pending optimistic moves since they already updated dice state
-          if (data.move && game?.dice && pendingOptimisticMoves.current.size === 0) {
+          // Skip dice updates if we have pending optimistic moves AND this is our move
+          const skipDiceUpdate = pendingOptimisticMoves.current.size > 0 && data.playerId === user?.id
+          if (data.move && game?.dice && !skipDiceUpdate) {
             const distance = Math.abs(data.move.to - data.move.from);
             const isDoubles = game.dice[0] === game.dice[1];
 
