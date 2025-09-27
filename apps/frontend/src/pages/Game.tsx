@@ -32,7 +32,7 @@ const Game: React.FC = () => {
     if (socket) {
       const handleGameJoined = (data: any) => {
         if (data.gameId === gameId) {
-          setGame(data.gameData);
+          setGame(data.state);
         }
       };
 
@@ -762,18 +762,18 @@ const Game: React.FC = () => {
         {/* Point triangle */}
         <div
           className={`
-            absolute inset-x-0.5 sm:inset-x-1 transition-all duration-200
+            absolute inset-x-0 transition-all duration-200
             ${canMove ? 'ring-2 ring-blue-400 ring-opacity-75' : ''}
           `}
           style={{
             background: `linear-gradient(to bottom, ${pointColorClass.includes('amber-100') ? '#fef3c7, #fde68a' : '#92400e, #78350f'})`,
             clipPath: isTopHalf
-              ? 'polygon(50% 85%, 5% 0%, 95% 0%)'
-              : 'polygon(5% 100%, 95% 100%, 50% 15%)',
+              ? 'polygon(50% 100%, 0% 0%, 100% 0%)'
+              : 'polygon(0% 100%, 100% 100%, 50% 0%)',
             boxShadow: canMove ? 'inset 0 0 10px rgba(59, 130, 246, 0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
             top: isTopHalf ? '0' : 'auto',
             bottom: isTopHalf ? 'auto' : '0',
-            height: '80%'
+            height: '100%'
           }}
         />
         
@@ -863,12 +863,12 @@ const Game: React.FC = () => {
             
             {/* Top numbers */}
             <div className="flex text-xs font-bold text-amber-900 opacity-50 mb-0.5 sm:mb-1">
-              <div className="flex-1 flex justify-around">
-                {Array.from({ length: 6 }, (_, i) => 13 + i).map(num => <div key={num} className="flex-1 text-center text-xs sm:text-sm overflow-hidden">{num}</div>)}
+              <div className="flex-1 grid grid-cols-6 gap-0.5 sm:gap-1">
+                {Array.from({ length: 6 }, (_, i) => 13 + i).map(num => <div key={num} className="text-center text-xs sm:text-sm">{num}</div>)}
               </div>
-              <div className="w-6 sm:w-8 lg:w-10 xl:w-12" />
-              <div className="flex-1 flex justify-around">
-                {Array.from({ length: 6 }, (_, i) => 19 + i).map(num => <div key={num} className="flex-1 text-center text-xs sm:text-sm overflow-hidden">{num}</div>)}
+              <div className="w-5 sm:w-10 lg:w-12 xl:w-14" />
+              <div className="flex-1 grid grid-cols-6 gap-0.5 sm:gap-1">
+                {Array.from({ length: 6 }, (_, i) => 19 + i).map(num => <div key={num} className="text-center text-xs sm:text-sm">{num}</div>)}
               </div>
             </div>
 
@@ -886,7 +886,7 @@ const Game: React.FC = () => {
               {/* Center bar with dice */}
               <div className="w-5 sm:w-10 lg:w-12 xl:w-14 flex flex-col items-center justify-center px-0.5 sm:px-1">
                 <div className="
-                  bg-gradient-to-b from-amber-800 to-amber-900 w-full h-20 sm:h-44 lg:h-56 xl:h-64 rounded-sm sm:rounded-lg shadow-inner
+                  bg-gradient-to-b from-amber-800 to-amber-900 w-full h-full rounded-sm sm:rounded-lg shadow-inner
                   border border-amber-700 sm:border-2 flex flex-col items-center justify-center
                   relative overflow-hidden
                 ">
@@ -976,7 +976,7 @@ const Game: React.FC = () => {
               {/* Center bar */}
               <div className="w-5 sm:w-10 lg:w-12 xl:w-14 flex flex-col items-center justify-center px-0.5 sm:px-1">
                 <div className="
-                  bg-gradient-to-b from-amber-800 to-amber-900 w-full h-20 sm:h-44 lg:h-56 xl:h-64 rounded-sm sm:rounded-lg shadow-inner
+                  bg-gradient-to-b from-amber-800 to-amber-900 w-full h-full rounded-sm sm:rounded-lg shadow-inner
                   border border-amber-700 sm:border-2 flex flex-col items-center justify-center
                   relative overflow-hidden
                 ">
@@ -1001,12 +1001,12 @@ const Game: React.FC = () => {
 
             {/* Bottom numbers */}
             <div className="flex text-xs font-bold text-amber-900 opacity-50 mt-0.5 sm:mt-1">
-              <div className="flex-1 flex justify-around">
-                {Array.from({ length: 6 }, (_, i) => 12 - i).map(num => <div key={num} className="flex-1 text-center text-xs sm:text-sm overflow-hidden">{num}</div>)}
+              <div className="flex-1 grid grid-cols-6 gap-0.5 sm:gap-1">
+                {Array.from({ length: 6 }, (_, i) => 12 - i).map(num => <div key={num} className="text-center text-xs sm:text-sm">{num}</div>)}
               </div>
-              <div className="w-6 sm:w-8 lg:w-10 xl:w-12" />
-              <div className="flex-1 flex justify-around">
-                {Array.from({ length: 6 }, (_, i) => 6 - i).map(num => <div key={num} className="flex-1 text-center text-xs sm:text-sm overflow-hidden">{num}</div>)}
+              <div className="w-5 sm:w-10 lg:w-12 xl:w-14" />
+              <div className="flex-1 grid grid-cols-6 gap-0.5 sm:gap-1">
+                {Array.from({ length: 6 }, (_, i) => 6 - i).map(num => <div key={num} className="text-center text-xs sm:text-sm">{num}</div>)}
               </div>
             </div>
 
