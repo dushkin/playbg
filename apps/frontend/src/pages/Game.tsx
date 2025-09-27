@@ -160,7 +160,8 @@ const Game: React.FC = () => {
           });
 
           // Update dice usage when move is made (only for non-optimistic moves)
-          if (data.move && game?.dice) {
+          // Skip dice updates if we have pending optimistic moves since they already updated dice state
+          if (data.move && game?.dice && pendingOptimisticMoves.current.size === 0) {
             const distance = Math.abs(data.move.to - data.move.from);
             const isDoubles = game.dice[0] === game.dice[1];
 
