@@ -10,10 +10,9 @@ const packageJson = require('../../package.json')
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react(), erudaPlugin()],
-  envPrefix: 'VITE_',
   define: {
-    __APP_VERSION__: JSON.stringify(packageJson.version),
-    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(packageJson.version),
+    'import.meta.env.VITE_BUILD_TIME': JSON.stringify(new Date().toISOString()),
   },
   resolve: {
     alias: {
@@ -41,9 +40,17 @@ export default defineConfig({
       },
     },
   },
+  // Ensure linked CommonJS workspaces are pre-bundled and transformed
+  optimizeDeps: {
+    include: ['@playbg/shared']
+  },
   build: {
     outDir: 'dist',
     sourcemap: true,
+    commonjsOptions: {
+      // Also transform CJS in our workspace packages (not only node_modules)
+      include: [/node_modules/, /packages\/shared\/dist/]
+    }
   },
   test: {
     globals: true,

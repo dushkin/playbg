@@ -1,9 +1,6 @@
 import { CapacitorGlobal } from '@capacitor/core'
 
 declare global {
-  const __APP_VERSION__: string
-  const __BUILD_TIME__: string
-
   interface Window {
     Capacitor: CapacitorGlobal
     eruda: any
