@@ -32,7 +32,11 @@ const Game: React.FC = () => {
     if (socket) {
       const handleGameJoined = (data: any) => {
         if (data.gameId === gameId) {
-          setGame(data.state);
+          const joinedState = data.state || data.gameData;
+          if (joinedState) {
+            setGame(joinedState);
+            setError(null);
+          }
         }
       };
 
