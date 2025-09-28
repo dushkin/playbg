@@ -822,8 +822,12 @@ const Game: React.FC = () => {
     if (!game) return null
 
     const isCurrentPlayer = Array.isArray(game.players) && typeof game.currentPlayer === 'number' && game.players[game.currentPlayer]?.userId === user?.id
-    const bothPlayersPresent = Array.isArray(game.players) && game.players.filter(p => p && p.userId).length === 2
-    const canRollDice = isCurrentPlayer && !isRollingDice && bothPlayersPresent && game.gameState !== GameStateEnum.FINISHED
+    const opponentJoined = Array.isArray(game.players) 
+      && game.players.length >= 2 
+      && typeof (game.players[0]?.userId) === 'string' && game.players[0]!.userId!.length > 0
+      && typeof (game.players[1]?.userId) === 'string' && game.players[1]!.userId!.length > 0
+      && game.players[0]!.userId !== game.players[1]!.userId
+    const canRollDice = isCurrentPlayer && !isRollingDice && opponentJoined && game.gameState !== GameStateEnum.FINISHED
 
     return (
       <div className="bg-gradient-to-br from-amber-50 via-amber-100 to-amber-200 p-0.5 sm:p-4 lg:p-6 rounded-lg sm:rounded-2xl shadow-2xl w-full mx-auto max-w-full overflow-hidden">
