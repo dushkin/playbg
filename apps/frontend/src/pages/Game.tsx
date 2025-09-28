@@ -739,8 +739,8 @@ const Game: React.FC = () => {
           style={{
             background: `linear-gradient(to bottom, ${pointColorClass.includes('amber-100') ? '#fef3c7, #fde68a' : '#92400e, #78350f'})`,
             clipPath: isTopHalf
-              ? 'polygon(50% 100%, 0% 0%, 100% 0%)'
-              : 'polygon(0% 100%, 100% 100%, 50% 0%)',
+              ? 'polygon(50% 100%, 12% 0%, 88% 0%)'
+              : 'polygon(12% 100%, 88% 100%, 50% 0%)',
             boxShadow: canMove ? 'inset 0 0 10px rgba(59, 130, 246, 0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'
           }}
         />
@@ -827,7 +827,7 @@ const Game: React.FC = () => {
       && typeof (game.players[0]?.userId) === 'string' && game.players[0]!.userId!.length > 0
       && typeof (game.players[1]?.userId) === 'string' && game.players[1]!.userId!.length > 0
       && game.players[0]!.userId !== game.players[1]!.userId
-    const canRollDice = isCurrentPlayer && !isRollingDice && opponentJoined && game.gameState !== GameStateEnum.FINISHED
+    const canRollDice = isCurrentPlayer && !isRollingDice && opponentJoined && game.gameState === GameStateEnum.IN_PROGRESS
 
     return (
       <div className="bg-gradient-to-br from-amber-50 via-amber-100 to-amber-200 p-0.5 sm:p-4 lg:p-6 rounded-lg sm:rounded-2xl shadow-2xl w-full mx-auto max-w-full overflow-hidden">
