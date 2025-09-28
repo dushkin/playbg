@@ -17,7 +17,7 @@ const Game: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [isRollingDice, setIsRollingDice] = useState(false)
   const [usedDice, setUsedDice] = useState<boolean[]>([])
-  const [optimisticMoveId, setOptimisticMoveId] = useState<string | null>(null)
+  const [, setOptimisticMoveId] = useState<string | null>(null)
   const optimisticMoveRef = useRef<string | null>(null)
   const pendingOptimisticMoves = useRef<Set<string>>(new Set())
   const [hasRolledThisTurn, setHasRolledThisTurn] = useState<boolean>(false)
@@ -25,8 +25,9 @@ const Game: React.FC = () => {
 
   useEffect(() => {
     if (gameId) {
-      loadGame();
+      // Join socket first so we can hydrate with live state before API
       socketService.joinGame(gameId);
+      loadGame();
     }
 
     const socket = socketService.getSocket();
@@ -79,27 +80,24 @@ const Game: React.FC = () => {
 
       const handleGameMove = (data: any) => {
         console.log('📨 Server move response:', data)
-        console.log('🔄 Current optimistic move ID:', optimisticMoveId)
-        console.log('🔄 Pending optimistic moves:', Array.from(pendingOptimisticMoves.current))
-        console.log('🔄 Server move data:', data.move)
         if (data.gameId === gameId) {
-          // Check if this server move matches any of our pending optimistic moves
-          if (data.move) {
+          const isOurMove = data.playerId === user?.id
+
+          // Check if this is our optimistic move being confirmed
+          if (data.move && isOurMove) {
             const serverMoveId = `${data.move.from}-${data.move.to}`
-            const isOptimisticMove = pendingOptimisticMoves.current.has(serverMoveId)
+            const isOptimisticConfirmation = pendingOptimisticMoves.current.has(serverMoveId)
 
-            console.log('🔄 Checking optimistic move match:', `Server: ${serverMoveId}`, 'in pending:', isOptimisticMove)
-
-            if (isOptimisticMove) {
-              console.log('✅ Confirmed optimistic move, removing from pending')
+            if (isOptimisticConfirmation) {
+              console.log('✅ Confirmed optimistic move, cleaning up')
               pendingOptimisticMoves.current.delete(serverMoveId)
 
-              // Clear the single optimistic ID references if they match
               if (optimisticMoveRef.current === serverMoveId) {
                 setOptimisticMoveId(null)
                 optimisticMoveRef.current = null
               }
-              // Only update currentPlayer and dice from server, keep our board state
+
+              // Just update turn state for our confirmed moves, keep board as-is
               setGame(prevGame => {
                 if (!prevGame) return null;
                 return {
@@ -109,81 +107,46 @@ const Game: React.FC = () => {
                 };
               });
 
-              // Check for turn changes
+              // Handle turn changes
               const currentPlayerIndex = (game?.players || []).findIndex(p => p.userId === user?.id)
-              if (data.state?.currentPlayer !== undefined) {
-                if (currentPlayerIndex !== -1 && data.state.currentPlayer === currentPlayerIndex) {
-                  // It's now our turn - reset roll status
-                  setHasRolledThisTurn(false)
-                } else if (currentPlayerIndex !== -1 && data.state.currentPlayer !== currentPlayerIndex) {
-                  // Turn changed to opponent - also reset
-                  setHasRolledThisTurn(false)
-                }
+              if (data.state?.currentPlayer !== undefined && currentPlayerIndex !== -1) {
+                setHasRolledThisTurn(data.state.currentPlayer === currentPlayerIndex ? false : false)
               }
 
               if (data.state?.gameState === 'finished') {
-                // Game finished, check for next game or go to dashboard
-                setTimeout(() => {
-                  checkForNextGameOrDashboard();
-                }, 3000); // Wait longer for game finish
+                setTimeout(() => checkForNextGameOrDashboard(), 3000);
               }
-              // Note: Removed currentPlayer check here as it was causing premature navigation
-              // Navigation should only happen when game actually ends, not on player turn changes
-
-              return; // Don't process further for our optimistic moves
-            } else {
-              console.log('❌ Server move not in pending optimistic moves')
+              return;
             }
-          } else {
-            console.log('ℹ️ No move data in server response')
           }
 
-          console.log('🔄 Processing non-optimistic server move')
+          // For all other moves (opponent moves or non-optimistic updates), apply full server state
+          console.log('📋 Applying server update for', isOurMove ? 'our non-optimistic' : 'opponent', 'move')
 
-          // Normal server update (not our optimistic move)
           setGame(prevGame => {
             if (!prevGame) return null;
 
-            // Only preserve board state if we have pending optimistic moves AND this move is from us
-            const hasPendingOptimisticMoves = pendingOptimisticMoves.current.size > 0
-            const isOurMove = data.playerId === user?.id
-            const shouldPreserveBoardState = hasPendingOptimisticMoves && isOurMove
-
-            if (shouldPreserveBoardState) {
-              console.log('🔒 Preserving optimistic board state for our own move, only updating player/dice')
-              return {
-                ...prevGame,
-                currentPlayer: data.state?.currentPlayer !== undefined ? data.state.currentPlayer : prevGame.currentPlayer,
-                dice: data.state?.dice || prevGame.dice,
-              };
-            } else {
-              console.log('📋 Full server update (opponent move or no pending optimistic moves)')
-              return {
-                ...prevGame,
-                board: data.state?.board || prevGame.board,
-                currentPlayer: data.state?.currentPlayer !== undefined ? data.state.currentPlayer : prevGame.currentPlayer,
-                dice: data.state?.dice || prevGame.dice,
-              };
-            }
+            return {
+              ...prevGame,
+              board: data.state?.board || prevGame.board,
+              currentPlayer: data.state?.currentPlayer !== undefined ? data.state.currentPlayer : prevGame.currentPlayer,
+              dice: data.state?.dice || prevGame.dice,
+            };
           });
 
-          // Update dice usage when move is made (only for non-optimistic moves)
-          // Skip dice updates if we have pending optimistic moves AND this is our move
-          const skipDiceUpdate = pendingOptimisticMoves.current.size > 0 && data.playerId === user?.id
-          if (data.move && game?.dice && !skipDiceUpdate) {
+          // Update dice usage for moves
+          if (data.move && game?.dice) {
             const distance = Math.abs(data.move.to - data.move.from);
             const isDoubles = game.dice[0] === game.dice[1];
 
             setUsedDice(prev => {
               const newUsed = [...prev];
               if (isDoubles) {
-                // For doubles, mark first available die as used
                 const firstAvailable = newUsed.findIndex(used => !used);
                 if (firstAvailable !== -1) {
                   newUsed[firstAvailable] = true;
                 }
               } else {
-                // For regular dice, mark the appropriate die as used
                 if (distance === game.dice![0] && !newUsed[0]) {
                   newUsed[0] = true;
                 } else if (distance === game.dice![1] && !newUsed[1]) {
@@ -194,29 +157,15 @@ const Game: React.FC = () => {
             });
           }
 
-
-          // Check if all dice are used and end turn automatically
-          if (usedDice.every(used => used)) {
-            // All dice used, turn should end
-            setUsedDice([]);
-          }
-
-          // Check for turn changes and game end (for non-optimistic moves)
+          // Handle turn changes
           const currentPlayerIndex = (game?.players || []).findIndex(p => p.userId === user?.id)
-          if (data.state?.currentPlayer !== undefined) {
-            if (currentPlayerIndex !== -1 && data.state.currentPlayer === currentPlayerIndex) {
-              // It's now our turn - reset roll status
-              setHasRolledThisTurn(false)
-            }
+          if (data.state?.currentPlayer !== undefined && currentPlayerIndex !== -1) {
+            setHasRolledThisTurn(false)
           }
 
           if (data.state?.gameState === 'finished') {
-            // Game finished, check for next game or go to dashboard
-            setTimeout(() => {
-              checkForNextGameOrDashboard();
-            }, 3000); // Wait longer for game finish
+            setTimeout(() => checkForNextGameOrDashboard(), 3000);
           }
-          // Note: Removed currentPlayer check here as it was causing premature navigation
         }
       };
 
@@ -266,18 +215,26 @@ const Game: React.FC = () => {
       const response = await gamesAPI.getGame(gameId)
 
       if (response.success && response.data) {
-        console.log('🎮 Loaded game from API:', response.data)
-        setGame(response.data)
+        const apiData = response.data
+        // API returns game doc plus a nested state with live board/currentPlayer/dice
+        const mergedApi = (apiData as any).state ? { ...apiData, ...(apiData as any).state } : apiData
+        console.log('🎮 Loaded game from API:', apiData)
+
+        // If socket already hydrated, preserve live board/currentPlayer/dice from current state
+        const targetGame = hydratedFromSocket.current && game
+          ? { ...mergedApi, board: game.board ?? mergedApi.board, currentPlayer: (game as any).currentPlayer ?? mergedApi.currentPlayer, dice: game.dice ?? mergedApi.dice }
+          : mergedApi
+
+        setGame(targetGame)
         setError(null) // Clear any previous errors
 
-        // Initialize dice state based on loaded game
-        if (response.data.dice && response.data.dice.length === 2) {
+        // Initialize dice state based on the final target game data
+        if (targetGame.dice && targetGame.dice.length === 2) {
           setHasRolledThisTurn(true)
-          // Initialize dice usage tracking
-          if (response.data.dice[0] === response.data.dice[1]) {
-            setUsedDice([false, false, false, false]); // Doubles
+          if (targetGame.dice[0] === targetGame.dice[1]) {
+            setUsedDice([false, false, false, false]) // Doubles
           } else {
-            setUsedDice([false, false]); // Regular
+            setUsedDice([false, false]) // Regular
           }
         } else {
           setHasRolledThisTurn(false)
@@ -776,7 +733,7 @@ const Game: React.FC = () => {
         {/* Point triangle */}
         <div
           className={`
-            absolute inset-x-0 transition-all duration-200
+            absolute inset-0 transition-all duration-200 overflow-hidden
             ${canMove ? 'ring-2 ring-blue-400 ring-opacity-75' : ''}
           `}
           style={{
@@ -784,10 +741,7 @@ const Game: React.FC = () => {
             clipPath: isTopHalf
               ? 'polygon(50% 100%, 0% 0%, 100% 0%)'
               : 'polygon(0% 100%, 100% 100%, 50% 0%)',
-            boxShadow: canMove ? 'inset 0 0 10px rgba(59, 130, 246, 0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
-            top: isTopHalf ? '0' : 'auto',
-            bottom: isTopHalf ? 'auto' : '0',
-            height: '100%'
+            boxShadow: canMove ? 'inset 0 0 10px rgba(59, 130, 246, 0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'
           }}
         />
         
