@@ -1,6 +1,6 @@
 {
   "name": "playbg-platform",
-  "version": "1.0.160",
+  "version": "1.0.161",
   "description": "Online Backgammon Platform - Full-stack application with real-time gameplay",
   "private": true,
   "workspaces": [

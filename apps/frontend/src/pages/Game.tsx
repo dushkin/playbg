@@ -822,6 +822,8 @@ const Game: React.FC = () => {
     if (!game) return null
 
     const isCurrentPlayer = Array.isArray(game.players) && typeof game.currentPlayer === 'number' && game.players[game.currentPlayer]?.userId === user?.id
+    const bothPlayersPresent = Array.isArray(game.players) && game.players.filter(p => p && p.userId).length === 2
+    const canRollDice = isCurrentPlayer && !isRollingDice && bothPlayersPresent && game.gameState !== GameStateEnum.FINISHED
 
     return (
       <div className="bg-gradient-to-br from-amber-50 via-amber-100 to-amber-200 p-0.5 sm:p-4 lg:p-6 rounded-lg sm:rounded-2xl shadow-2xl w-full mx-auto max-w-full overflow-hidden">
@@ -873,15 +875,15 @@ const Game: React.FC = () => {
                   ) : (
                     <div className="flex flex-col gap-0 sm:gap-1 z-20 items-center">
                       <div
-                        className={`scale-75 sm:scale-100 ${isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
+                        className={`scale-75 sm:scale-100 ${canRollDice ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
                         onClick={() => {
-                          if (isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS && !isRollingDice) {
+                          if (canRollDice) {
                             handleRollDice();
                           }
                         }}
                         onTouchEnd={(e) => {
                           e.preventDefault()
-                          if (isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS && !isRollingDice) {
+                          if (canRollDice) {
                             handleRollDice();
                           }
                         }}
@@ -889,15 +891,15 @@ const Game: React.FC = () => {
                         <Dice3D value={1} size="xs" isRolling={isRollingDice} color={game.currentPlayer === 0 ? 'white' : 'black'} showR={true} />
                       </div>
                       <div
-                        className={`scale-75 sm:scale-100 ${isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
+                        className={`scale-75 sm:scale-100 ${canRollDice ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
                         onClick={() => {
-                          if (isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS && !isRollingDice) {
+                          if (canRollDice) {
                             handleRollDice();
                           }
                         }}
                         onTouchEnd={(e) => {
                           e.preventDefault()
-                          if (isCurrentPlayer && game.gameState === GameStateEnum.IN_PROGRESS && !isRollingDice) {
+                          if (canRollDice) {
                             handleRollDice();
                           }
                         }}
