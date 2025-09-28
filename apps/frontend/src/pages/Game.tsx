@@ -126,11 +126,19 @@ const Game: React.FC = () => {
           setGame(prevGame => {
             if (!prevGame) return null;
 
+            const ourIndex = (prevGame.players || []).findIndex(p => p.userId === user?.id);
+            let nextDice = data.state?.dice || prevGame.dice;
+
+            // If opponent just moved and it's now our turn, force dice to null until we roll
+            if (!isOurMove && data.state?.currentPlayer === ourIndex) {
+              nextDice = null as any;
+            }
+
             return {
               ...prevGame,
               board: data.state?.board || prevGame.board,
               currentPlayer: data.state?.currentPlayer !== undefined ? data.state.currentPlayer : prevGame.currentPlayer,
-              dice: data.state?.dice || prevGame.dice,
+              dice: nextDice as any,
             };
           });
 
@@ -827,7 +835,7 @@ const Game: React.FC = () => {
       && typeof (game.players[0]?.userId) === 'string' && game.players[0]!.userId!.length > 0
       && typeof (game.players[1]?.userId) === 'string' && game.players[1]!.userId!.length > 0
       && game.players[0]!.userId !== game.players[1]!.userId
-    const canRollDice = isCurrentPlayer && !isRollingDice && opponentJoined && game.gameState === GameStateEnum.IN_PROGRESS
+    const canRollDice = isCurrentPlayer && !isRollingDice && opponentJoined
 
     return (
       <div className="bg-gradient-to-br from-amber-50 via-amber-100 to-amber-200 p-0.5 sm:p-4 lg:p-6 rounded-lg sm:rounded-2xl shadow-2xl w-full mx-auto max-w-full overflow-hidden">
