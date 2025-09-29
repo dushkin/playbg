@@ -51,7 +51,7 @@ const Dice3D: React.FC<Dice3DProps> = ({ value, size = 'md', isRolling = false, 
 
   const getDotClassName = (position: string): string => {
     const dotColorClass = color === 'white' ? 'bg-gray-800' : 'bg-white'
-    const baseClasses = `absolute ${dotSize} ${dotColorClass} rounded-full shadow-sm`
+    const baseClasses = `absolute ${dotSize} ${dotColorClass} rounded-full ${color === 'black' ? 'shadow-lg' : 'shadow-sm'}`
 
     switch (position) {
       case 'top-left':
@@ -114,7 +114,10 @@ const Dice3D: React.FC<Dice3DProps> = ({ value, size = 'md', isRolling = false, 
           key={`${position}-${index}`}
           className={getDotClassName(position)}
           style={{
-            boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.3), 0 1px 1px rgba(255,255,255,0.3)'
+            boxShadow: color === 'black'
+              ? 'inset 0 1px 2px rgba(0,0,0,0.2), 0 2px 4px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.1)'
+              : 'inset 0 1px 2px rgba(0,0,0,0.3), 0 1px 1px rgba(255,255,255,0.3)',
+            background: color === 'black' ? '#ffffff' : undefined
           }}
         />
       ))}

@@ -853,7 +853,7 @@ const Game: React.FC = () => {
               <div className="flex-1 grid grid-cols-6 gap-0.5 sm:gap-1">
                 {Array.from({ length: 6 }, (_, i) => 13 + i).map(num => <div key={num} className="text-center text-xs sm:text-sm">{num}</div>)}
               </div>
-              <div className="w-4 sm:w-8 lg:w-10 xl:w-12" />
+              <div className="w-6 sm:w-10 lg:w-12 xl:w-14" />
               <div className="flex-1 grid grid-cols-6 gap-0.5 sm:gap-1">
                 {Array.from({ length: 6 }, (_, i) => 19 + i).map(num => <div key={num} className="text-center text-xs sm:text-sm">{num}</div>)}
               </div>
@@ -871,7 +871,7 @@ const Game: React.FC = () => {
               </div>
               
               {/* Center bar with dice */}
-              <div className="w-4 sm:w-8 lg:w-10 xl:w-12 flex flex-col items-center justify-center px-0.5 sm:px-1 flex-shrink-0">
+              <div className="w-6 sm:w-10 lg:w-12 xl:w-14 flex flex-col items-center justify-center px-0.5 sm:px-1 flex-shrink-0">
                 <div className="
                   bg-gradient-to-b from-amber-800 to-amber-900 w-full h-full rounded-sm sm:rounded-lg shadow-inner
                   border border-amber-700 sm:border-2 flex flex-col items-center justify-center
@@ -961,7 +961,7 @@ const Game: React.FC = () => {
               </div>
               
               {/* Center bar */}
-              <div className="w-4 sm:w-8 lg:w-10 xl:w-12 flex flex-col items-center justify-center px-0.5 sm:px-1 flex-shrink-0">
+              <div className="w-6 sm:w-10 lg:w-12 xl:w-14 flex flex-col items-center justify-center px-0.5 sm:px-1 flex-shrink-0">
                 <div className="
                   bg-gradient-to-b from-amber-800 to-amber-900 w-full h-full rounded-sm sm:rounded-lg shadow-inner
                   border border-amber-700 sm:border-2 flex flex-col items-center justify-center
@@ -991,7 +991,7 @@ const Game: React.FC = () => {
               <div className="flex-1 grid grid-cols-6 gap-0.5 sm:gap-1">
                 {Array.from({ length: 6 }, (_, i) => 12 - i).map(num => <div key={num} className="text-center text-xs sm:text-sm">{num}</div>)}
               </div>
-              <div className="w-4 sm:w-8 lg:w-10 xl:w-12" />
+              <div className="w-6 sm:w-10 lg:w-12 xl:w-14" />
               <div className="flex-1 grid grid-cols-6 gap-0.5 sm:gap-1">
                 {Array.from({ length: 6 }, (_, i) => 6 - i).map(num => <div key={num} className="text-center text-xs sm:text-sm">{num}</div>)}
               </div>
