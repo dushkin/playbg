@@ -320,6 +320,9 @@ else
   echo "⬆️  Pushing to origin $CURRENT_BRANCH"
   git push origin "$CURRENT_BRANCH"
 
+  # Capture the commit hash that was just pushed (for deployment tracking)
+  PUSHED_COMMIT_HASH=$(git rev-parse HEAD)
+
   # Create and push the tag for development builds
   echo "🏷️  Creating and pushing development tag v$NEW_VERSION-dev"
   git tag -a "v$NEW_VERSION-dev" -m "Development build v$NEW_VERSION" || echo "⚠️  Tag might already exist"
@@ -334,25 +337,32 @@ if [ -n "${RENDER_API_KEY:-}" ]; then
   # Backend service ID (replace with your actual service ID)
   BACKEND_SERVICE_ID="${RENDER_BACKEND_SERVICE_ID:-}"
 
+  # Get the current commit hash for deployment tracking (in case it wasn't set during commit)
+  if [ -z "${PUSHED_COMMIT_HASH:-}" ]; then
+    PUSHED_COMMIT_HASH=$(git rev-parse HEAD)
+  fi
+
   if [ -z "$BACKEND_SERVICE_ID" ]; then
     echo "⚠️  RENDER_BACKEND_SERVICE_ID not set, skipping deployment wait"
   else
     wait_for_render_deployment() {
       local service_id=$1
+      local target_commit_hash=$2
       local max_wait_time=600  # 10 minutes max wait
       local check_interval=15  # Check every 15 seconds
       local elapsed_time=0
 
       echo "   Service ID: $service_id"
+      echo "   Target commit: ${target_commit_hash:0:8}"
       echo "   Checking deployment status every ${check_interval}s (max ${max_wait_time}s)..."
 
       while [ $elapsed_time -lt $max_wait_time ]; do
         # Get latest deployment status (try multiple API patterns)
         DEPLOY_RESPONSE=""
 
-        # Try the main endpoint first
+        # Try the main endpoint first - get more deploys to find the right commit
         DEPLOY_RESPONSE=$(curl -s -w "%{http_code}" -H "Authorization: Bearer $RENDER_API_KEY" \
-          "https://api.render.com/v1/services/$service_id/deploys?limit=1" 2>/dev/null)
+          "https://api.render.com/v1/services/$service_id/deploys?limit=5" 2>/dev/null)
 
         # Extract HTTP status code (last 3 characters)
         HTTP_STATUS="${DEPLOY_RESPONSE: -3}"
@@ -366,7 +376,7 @@ if [ -n "${RENDER_API_KEY:-}" ]; then
 
           # Try without v1 prefix
           DEPLOY_RESPONSE=$(curl -s -w "%{http_code}" -H "Authorization: Bearer $RENDER_API_KEY" \
-            "https://api.render.com/services/$service_id/deploys?limit=1" 2>/dev/null)
+            "https://api.render.com/services/$service_id/deploys?limit=5" 2>/dev/null)
           HTTP_STATUS="${DEPLOY_RESPONSE: -3}"
           DEPLOY_RESPONSE="${DEPLOY_RESPONSE%???}"
 
@@ -433,31 +443,38 @@ if [ -n "${RENDER_API_KEY:-}" ]; then
           break
         fi
 
-        # Extract status from the latest deployment
-        # The Render API returns: [{"deploy":{"id":"...", "status":"...", ...}}]
-        if command -v jq >/dev/null 2>&1; then
-          # Try the correct nested structure first
-          DEPLOY_STATUS=$(echo "$DEPLOY_RESPONSE" | jq -r '.[0].deploy.status // .[0].status // .status // empty' 2>/dev/null)
-          DEPLOY_ID=$(echo "$DEPLOY_RESPONSE" | jq -r '.[0].deploy.id // .[0].id // .id // empty' 2>/dev/null)
+        # Find deployment matching our target commit hash
+        # The Render API returns: [{"deploy":{"id":"...", "status":"...", "commit":{"id":"..."}, ...}}]
+        DEPLOY_STATUS=""
+        DEPLOY_ID=""
+        TARGET_COMMIT_SHORT="${target_commit_hash:0:7}"  # First 7 chars for comparison
 
-          # Debug: Show what paths we're trying
+        if command -v jq >/dev/null 2>&1; then
+          # Search through deployments for one matching our commit
+          MATCHING_DEPLOY=$(echo "$DEPLOY_RESPONSE" | jq -r --arg commit "$target_commit_hash" \
+            '.[] | select(.deploy.commit.id? and (.deploy.commit.id | startswith($commit))) |
+             {status: .deploy.status, id: .deploy.id, commit: .deploy.commit.id}' 2>/dev/null | head -1)
+
+          if [ -n "$MATCHING_DEPLOY" ] && [ "$MATCHING_DEPLOY" != "null" ]; then
+            DEPLOY_STATUS=$(echo "$MATCHING_DEPLOY" | jq -r '.status // empty' 2>/dev/null)
+            DEPLOY_ID=$(echo "$MATCHING_DEPLOY" | jq -r '.id // empty' 2>/dev/null)
+            MATCHED_COMMIT=$(echo "$MATCHING_DEPLOY" | jq -r '.commit // empty' 2>/dev/null)
+          fi
+
+          # Debug: Show what we found
           if [ "${DEBUG_RENDER:-}" = "1" ]; then
-            echo "   🐛 Trying jq paths:"
-            echo "     .[0].deploy.status = $(echo "$DEPLOY_RESPONSE" | jq -r '.[0].deploy.status // "null"' 2>/dev/null)"
-            echo "     .[0].status = $(echo "$DEPLOY_RESPONSE" | jq -r '.[0].status // "null"' 2>/dev/null)"
+            echo "   🐛 Looking for commit starting with: $target_commit_hash"
+            echo "   🐛 Found matching deploy: $MATCHING_DEPLOY"
+            ALL_COMMITS=$(echo "$DEPLOY_RESPONSE" | jq -r '.[] | .deploy.commit.id // "no-commit"' 2>/dev/null)
+            echo "   🐛 All deployment commits:"
+            echo "$ALL_COMMITS" | sed 's/^/     /'
           fi
         else
-          # Fallback JSON parsing without jq - target specific deploy fields
-          # Look for "deploy":{"id":"..." pattern first (after deploy opening brace, before any nested objects)
-          DEPLOY_ID=$(echo "$DEPLOY_RESPONSE" | sed -n 's/.*"deploy"[[:space:]]*:[[:space:]]*{[^{}]*"id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
-
-          # Look for status within the deploy object (same pattern - before any nested objects)
-          DEPLOY_STATUS=$(echo "$DEPLOY_RESPONSE" | sed -n 's/.*"deploy"[[:space:]]*:[[:space:]]*{[^{}]*"status"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
-
-          # If nested parsing failed, try flat structure
-          if [ -z "$DEPLOY_STATUS" ]; then
-            DEPLOY_STATUS=$(echo "$DEPLOY_RESPONSE" | sed -n 's/.*"status"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
-            DEPLOY_ID=$(echo "$DEPLOY_RESPONSE" | sed -n 's/.*"id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
+          # Fallback: look for commit hash in the response (simplified)
+          if echo "$DEPLOY_RESPONSE" | grep -q "$TARGET_COMMIT_SHORT"; then
+            # Extract the deployment containing our commit (very basic parsing)
+            DEPLOY_STATUS=$(echo "$DEPLOY_RESPONSE" | sed -n "/$TARGET_COMMIT_SHORT/,/}/{s/.*\"status\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p}" | head -1)
+            DEPLOY_ID=$(echo "$DEPLOY_RESPONSE" | sed -n "/$TARGET_COMMIT_SHORT/,/}/{s/.*\"id\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p}" | head -1)
           fi
         fi
 
@@ -467,28 +484,40 @@ if [ -n "${RENDER_API_KEY:-}" ]; then
         fi
 
         if [ "$DEPLOY_STATUS" = "null" ] || [ -z "$DEPLOY_STATUS" ]; then
-          echo "   ⚠️  Could not parse deployment status from response"
-          echo "   💡 Try setting DEBUG_RENDER=1 to see raw API response"
-          echo "   💡 Response preview: $(echo "$DEPLOY_RESPONSE" | head -c 100)..."
-          break
+          if [ $elapsed_time -lt 60 ]; then
+            # For the first minute, it's normal that the deployment hasn't been created yet
+            printf "   ⏳ Waiting for deployment to be created for commit ${TARGET_COMMIT_SHORT}... [%ds elapsed]\r" "$elapsed_time"
+          else
+            echo "   ⚠️  Could not find deployment for commit ${target_commit_hash:0:8} after ${elapsed_time}s"
+            if [ "${DEBUG_RENDER:-}" = "1" ]; then
+              echo "   💡 Raw API response: $(echo "$DEPLOY_RESPONSE" | head -c 200)..."
+            else
+              echo "   💡 Try setting DEBUG_RENDER=1 to see raw API response and commit details"
+            fi
+            if [ $elapsed_time -gt 300 ]; then  # After 5 minutes, give up
+              echo "   ❌ Deployment was not created within 5 minutes, giving up"
+              break
+            fi
+          fi
+        else
+          # We found our deployment, check its status
+          case "$DEPLOY_STATUS" in
+            "live")
+              echo "   ✅ Deployment completed successfully! (ID: $DEPLOY_ID) commit: ${target_commit_hash:0:8}"
+              return 0
+              ;;
+            "build_failed"|"update_failed"|"canceled")
+              echo "   ❌ Deployment failed with status: $DEPLOY_STATUS (ID: $DEPLOY_ID) commit: ${target_commit_hash:0:8}"
+              return 1
+              ;;
+            "created"|"build_in_progress"|"update_in_progress")
+              printf "   ⏳ Deployment in progress... (%s) [%ds elapsed] commit: %s\r" "$DEPLOY_STATUS" "$elapsed_time" "${target_commit_hash:0:8}"
+              ;;
+            *)
+              echo "   ❓ Unknown deployment status: $DEPLOY_STATUS (ID: $DEPLOY_ID) commit: ${target_commit_hash:0:8}"
+              ;;
+          esac
         fi
-
-        case "$DEPLOY_STATUS" in
-          "live")
-            echo "   ✅ Deployment completed successfully! (ID: $DEPLOY_ID)"
-            return 0
-            ;;
-          "build_failed"|"update_failed"|"canceled")
-            echo "   ❌ Deployment failed with status: $DEPLOY_STATUS (ID: $DEPLOY_ID)"
-            return 1
-            ;;
-          "created"|"build_in_progress"|"update_in_progress")
-            printf "   ⏳ Deployment in progress... (%s) [%ds elapsed]\r" "$DEPLOY_STATUS" "$elapsed_time"
-            ;;
-          *)
-            echo "   ❓ Unknown deployment status: $DEPLOY_STATUS (ID: $DEPLOY_ID)"
-            ;;
-        esac
 
         sleep $check_interval
         elapsed_time=$((elapsed_time + check_interval))
@@ -503,7 +532,7 @@ if [ -n "${RENDER_API_KEY:-}" ]; then
     }
 
     # Wait for backend deployment
-    if wait_for_render_deployment "$BACKEND_SERVICE_ID"; then
+    if wait_for_render_deployment "$BACKEND_SERVICE_ID" "$PUSHED_COMMIT_HASH"; then
       echo "   🎯 Backend deployment completed successfully"
     else
       echo "   ⚠️  Backend deployment monitoring completed with issues"

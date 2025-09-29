@@ -152,8 +152,8 @@ const Game: React.FC = () => {
             };
           });
 
-          // Update dice usage for moves
-          if (data.move && game?.dice) {
+          // Update dice usage for opponent moves only (we handle our own moves optimistically)
+          if (data.move && game?.dice && !isOurMove) {
             const distance = Math.abs(data.move.to - data.move.from);
             const isDoubles = game.dice[0] === game.dice[1];
 
