@@ -25,12 +25,14 @@ class SocketService {
       auth: { token },
       autoConnect: true,
       reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 2000,
-      reconnectionDelayMax: 15000,
-      timeout: 15000,
+      reconnectionAttempts: 10, // Increased for mobile networks
+      reconnectionDelay: 1000,  // Start faster
+      reconnectionDelayMax: 10000, // Max 10s between attempts
+      timeout: 20000, // Increased for slower connections
       forceNew: false,
-      transports: ['websocket', 'polling'] // Ensure both transports are available
+      transports: ['websocket', 'polling'], // Ensure both transports are available
+      upgrade: true, // Allow transport upgrades
+      rememberUpgrade: true // Remember successful upgrades
     })
 
     this.setupEventListeners()
@@ -54,16 +56,43 @@ class SocketService {
 
     this.socket.on('disconnect', (reason) => {
       console.log('Disconnected from server:', reason)
+
+      if (reason === 'io server disconnect') {
+        // Server-initiated disconnect, don't auto-reconnect
+        toast.error('Disconnected by server')
+      } else if (reason === 'transport close' || reason === 'transport error') {
+        // Network issues, will auto-reconnect
+        console.log('Network disconnection, auto-reconnecting...')
+        toast('Connection lost, reconnecting...', { duration: 3000, icon: 'ℹ️' })
+      }
+    })
+
+    this.socket.on('reconnect', (attemptNumber) => {
+      console.log(`Reconnected after ${attemptNumber} attempts`)
+      toast.success('Connection restored!', { duration: 2000 })
+    })
+
+    this.socket.on('reconnect_attempt', (attemptNumber) => {
+      console.log(`Reconnection attempt ${attemptNumber}`)
+      if (attemptNumber <= 3) {
+        toast(`Reconnecting... (attempt ${attemptNumber})`, { duration: 2000, icon: '🔄' })
+      }
+    })
+
+    this.socket.on('reconnect_failed', () => {
+      console.error('Failed to reconnect after all attempts')
+      toast.error('Unable to reconnect. Please refresh the page.', { duration: 0 })
     })
 
     this.socket.on('connect_error', (error) => {
       console.error('Socket connection error:', error)
       if (error.message.includes('502') || error.message.includes('Bad Gateway')) {
-        toast.error('Server is temporarily unavailable. Retrying...')
+        // Don't show repeated messages for server wake-up
+        console.log('Server starting up, connection will retry automatically')
       } else if (error.message.includes('CORS')) {
         toast.error('Connection blocked by CORS policy. Please contact support.')
       } else {
-        toast.error('Connection error. Please refresh the page.')
+        toast.error('Connection error. Please check your internet connection.')
       }
     })
 

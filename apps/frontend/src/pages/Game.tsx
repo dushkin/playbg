@@ -117,10 +117,14 @@ const Game: React.FC = () => {
               // Handle turn changes
               const currentPlayerIndex = (game?.players || []).findIndex(p => p.userId === user?.id)
               if (data.state?.currentPlayer !== undefined && currentPlayerIndex !== -1) {
-                setHasRolledThisTurn(data.state.currentPlayer === currentPlayerIndex ? false : false)
-                setTurnSubmitted(false)
-                setMovesMadeThisTurn([])
-                setOriginalBoardState(null)
+                const isNowMyTurn = data.state.currentPlayer === currentPlayerIndex
+                // Only reset dice roll state when it becomes our turn
+                if (isNowMyTurn) {
+                  setHasRolledThisTurn(false)
+                  setTurnSubmitted(false)
+                  setMovesMadeThisTurn([])
+                  setOriginalBoardState(null)
+                }
               }
 
               if (data.state?.gameState === 'finished') {
@@ -178,10 +182,14 @@ const Game: React.FC = () => {
           // Handle turn changes
           const currentPlayerIndex = (game?.players || []).findIndex(p => p.userId === user?.id)
           if (data.state?.currentPlayer !== undefined && currentPlayerIndex !== -1) {
-            setHasRolledThisTurn(false)
-            setTurnSubmitted(false)
-            setMovesMadeThisTurn([])
-            setOriginalBoardState(null)
+            const isNowMyTurn = data.state.currentPlayer === currentPlayerIndex
+            // Only reset dice roll state when it becomes our turn
+            if (isNowMyTurn) {
+              setHasRolledThisTurn(false)
+              setTurnSubmitted(false)
+              setMovesMadeThisTurn([])
+              setOriginalBoardState(null)
+            }
           }
 
           if (data.state?.gameState === 'finished') {
@@ -936,7 +944,7 @@ const Game: React.FC = () => {
             </div>
 
             {/* Top half of board */}
-            <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-24 sm:h-48 lg:h-64 xl:h-72 overflow-hidden">
+            <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-20 sm:h-32 lg:h-40 xl:h-48 overflow-hidden">
               {/* Points 12-17 */}
               <div className="flex gap-0.5 sm:gap-1 flex-1 min-w-0 overflow-hidden">
                 {Array.from({ length: 6 }, (_, i) => (
@@ -1037,7 +1045,7 @@ const Game: React.FC = () => {
             </div>
             
             {/* Bottom half of board */}
-            <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-24 sm:h-48 lg:h-64 xl:h-72 overflow-hidden">
+            <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-20 sm:h-32 lg:h-40 xl:h-48 overflow-hidden">
               {/* Points 11-6 */}
               <div className="flex gap-0.5 sm:gap-1 flex-1 min-w-0 overflow-hidden">
                 {Array.from({ length: 6 }, (_, i) => (
@@ -1153,10 +1161,10 @@ const Game: React.FC = () => {
 
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="max-w-7xl mx-auto py-1 sm:py-4 lg:py-6 px-1 sm:px-4">
+    <div className="h-screen bg-gray-100 overflow-hidden">
+      <div className="max-w-7xl mx-auto h-full flex flex-col py-1 sm:py-2 lg:py-3 px-1 sm:px-4">
         {/* Game Header */}
-        <div className="bg-white shadow rounded-lg p-3 sm:p-4 lg:p-6 mb-3 sm:mb-4 lg:mb-6">
+        <div className="bg-white shadow rounded-lg p-2 sm:p-3 lg:p-4 mb-2 sm:mb-3 lg:mb-4 flex-shrink-0">
           <div className="flex justify-between items-center mb-3 sm:mb-4">
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Your turn</h1>
             <button
@@ -1200,14 +1208,16 @@ const Game: React.FC = () => {
         </div>
 
         {/* Game Board */}
-        <div className="bg-white shadow rounded-lg p-1 sm:p-4 lg:p-6">
-          <h2 className="text-base sm:text-xl font-bold text-gray-900 mb-1 sm:mb-4 text-center">Game Board</h2>
-          {renderBoard()}
+        <div className="bg-white shadow rounded-lg p-1 sm:p-2 lg:p-4 flex-1 flex flex-col overflow-hidden">
+          <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-1 sm:mb-2 text-center flex-shrink-0">Game Board</h2>
+          <div className="flex-1 flex items-center justify-center overflow-hidden">
+            {renderBoard()}
+          </div>
         </div>
 
         {/* Game Actions */}
-        <div className="bg-white shadow rounded-lg p-3 sm:p-4 lg:p-6 mt-3 sm:mt-4 lg:mt-6">
-          <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4">Actions</h3>
+        <div className="bg-white shadow rounded-lg p-2 sm:p-3 lg:p-4 mt-2 sm:mt-3 lg:mt-4 flex-shrink-0">
+          <h3 className="text-sm sm:text-base font-bold text-gray-900 mb-2 sm:mb-3">Actions</h3>
           <div className="flex flex-col sm:flex-row gap-2 sm:space-x-4 sm:gap-0">
             {/* Submit Moves Button */}
             <button
