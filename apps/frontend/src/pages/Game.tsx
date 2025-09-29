@@ -119,10 +119,25 @@ const Game: React.FC = () => {
               const currentPlayerIndex = (game?.players || []).findIndex(p => p.userId === user?.id)
               if (data.state?.currentPlayer !== undefined && currentPlayerIndex !== -1) {
                 const isNowMyTurn = data.state.currentPlayer === currentPlayerIndex
+                console.log('🔄 Turn change detected:', {
+                  currentPlayerIndex,
+                  gameCurrentPlayer: data.state.currentPlayer,
+                  isNowMyTurn,
+                  dice: data.state.dice,
+                  prevHasRolledThisTurn: hasRolledThisTurn,
+                  prevTurnSubmitted: turnSubmitted
+                })
+
                 // Only reset dice roll state when it becomes our turn
                 if (isNowMyTurn) {
                   // Check if dice were already rolled for this turn
                   const diceAlreadyRolled = data.state.dice && data.state.dice.length === 2
+                  console.log('🎲 Setting turn state for new turn:', {
+                    diceAlreadyRolled,
+                    diceValues: data.state.dice,
+                    willSetHasRolledThisTurn: diceAlreadyRolled || false
+                  })
+
                   setHasRolledThisTurn(diceAlreadyRolled || false)
                   setTurnSubmitted(false)
                   setMovesMadeThisTurn([])
@@ -133,11 +148,14 @@ const Game: React.FC = () => {
                   if (diceAlreadyRolled) {
                     if (data.state.dice[0] === data.state.dice[1]) {
                       setUsedDice([false, false, false, false]) // Doubles
+                      console.log('🎲 Initialized doubles dice usage state')
                     } else {
                       setUsedDice([false, false]) // Regular
+                      console.log('🎲 Initialized regular dice usage state')
                     }
                   } else {
                     setUsedDice([])
+                    console.log('🎲 Cleared dice usage state (no dice rolled yet)')
                   }
                 }
               }
@@ -198,10 +216,25 @@ const Game: React.FC = () => {
           const currentPlayerIndex = (game?.players || []).findIndex(p => p.userId === user?.id)
           if (data.state?.currentPlayer !== undefined && currentPlayerIndex !== -1) {
             const isNowMyTurn = data.state.currentPlayer === currentPlayerIndex
+            console.log('🔄 [Socket] Turn change detected:', {
+              currentPlayerIndex,
+              gameCurrentPlayer: data.state.currentPlayer,
+              isNowMyTurn,
+              dice: data.state.dice,
+              prevHasRolledThisTurn: hasRolledThisTurn,
+              prevTurnSubmitted: turnSubmitted
+            })
+
             // Only reset dice roll state when it becomes our turn
             if (isNowMyTurn) {
               // Check if dice were already rolled for this turn
               const diceAlreadyRolled = data.state.dice && data.state.dice.length === 2
+              console.log('🎲 [Socket] Setting turn state for new turn:', {
+                diceAlreadyRolled,
+                diceValues: data.state.dice,
+                willSetHasRolledThisTurn: diceAlreadyRolled || false
+              })
+
               setHasRolledThisTurn(diceAlreadyRolled || false)
               setTurnSubmitted(false)
               setMovesMadeThisTurn([])
@@ -212,11 +245,14 @@ const Game: React.FC = () => {
               if (diceAlreadyRolled) {
                 if (data.state.dice[0] === data.state.dice[1]) {
                   setUsedDice([false, false, false, false]) // Doubles
+                  console.log('🎲 [Socket] Initialized doubles dice usage state')
                 } else {
                   setUsedDice([false, false]) // Regular
+                  console.log('🎲 [Socket] Initialized regular dice usage state')
                 }
               } else {
                 setUsedDice([])
+                console.log('🎲 [Socket] Cleared dice usage state (no dice rolled yet)')
               }
             }
           }
@@ -543,6 +579,18 @@ const Game: React.FC = () => {
   }
 
   const handleDiceClick = () => {
+    console.log('🎲 Dice click attempt:', {
+      gameId: !!gameId,
+      isCurrentPlayer,
+      hasRolledThisTurn,
+      turnSubmitted,
+      isRollingDice,
+      movesMadeThisTurnLength: movesMadeThisTurn.length,
+      gameState: game?.gameState,
+      gameDice: game?.dice,
+      usedDice
+    })
+
     if (gameId && isCurrentPlayer) {
       // If we have moves made this turn, reset them
       if (movesMadeThisTurn.length > 0 && !turnSubmitted) {
@@ -553,9 +601,20 @@ const Game: React.FC = () => {
 
       // Only roll dice if no moves made, turn not submitted, and not currently rolling
       if (!isRollingDice && !turnSubmitted) {
+        console.log('🎲 ✅ Rolling dice!')
         setIsRollingDice(true);
         socketService.rollDice(gameId);
+      } else {
+        console.log('🎲 ❌ Cannot roll dice:', {
+          isRollingDice,
+          turnSubmitted
+        })
       }
+    } else {
+      console.log('🎲 ❌ Cannot click dice:', {
+        hasGameId: !!gameId,
+        isCurrentPlayer
+      })
     }
   };
 
