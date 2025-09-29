@@ -5,7 +5,16 @@
 # - Auto-increments version in package.json
 # - Uses development environment variables
 # - Commits changes to dev branch
+# - Waits for Render deployment to complete (optional)
 # - For testing and development deployment
+#
+# Optional Render deployment monitoring:
+# Set these environment variables to enable deployment wait:
+#   export RENDER_API_KEY="your_render_api_key"
+#   export RENDER_BACKEND_SERVICE_ID="srv-xxxxxxxxxxxxxxxxxxxxx"
+#
+# Get your API key from: https://dashboard.render.com/u/settings/api-keys
+# Get service ID from service URL: https://dashboard.render.com/web/srv-xxxxx...
 #
 set -euo pipefail
 
@@ -314,10 +323,105 @@ else
   git push origin "v$NEW_VERSION-dev" || echo "⚠️  Failed to push tag"
 fi
 
+# 10) Wait for Render deployment to complete (if RENDER_API_KEY is set)
+if [ -n "${RENDER_API_KEY:-}" ]; then
+  echo
+  echo "🚀 Waiting for Render deployment to complete..."
+
+  # Backend service ID (replace with your actual service ID)
+  BACKEND_SERVICE_ID="${RENDER_BACKEND_SERVICE_ID:-}"
+
+  if [ -z "$BACKEND_SERVICE_ID" ]; then
+    echo "⚠️  RENDER_BACKEND_SERVICE_ID not set, skipping deployment wait"
+  else
+    wait_for_render_deployment() {
+      local service_id=$1
+      local max_wait_time=600  # 10 minutes max wait
+      local check_interval=15  # Check every 15 seconds
+      local elapsed_time=0
+
+      echo "   Service ID: $service_id"
+      echo "   Checking deployment status every ${check_interval}s (max ${max_wait_time}s)..."
+
+      while [ $elapsed_time -lt $max_wait_time ]; do
+        # Get latest deployment status
+        DEPLOY_RESPONSE=$(curl -s -H "Authorization: Bearer $RENDER_API_KEY" \
+          "https://api.render.com/v1/services/$service_id/deploys?limit=1" 2>/dev/null)
+
+        if [ $? -ne 0 ]; then
+          echo "   ❌ Failed to check deployment status (network error)"
+          break
+        fi
+
+        # Extract status from the latest deployment
+        if command -v jq >/dev/null 2>&1; then
+          DEPLOY_STATUS=$(echo "$DEPLOY_RESPONSE" | jq -r '.[0].status' 2>/dev/null)
+          DEPLOY_ID=$(echo "$DEPLOY_RESPONSE" | jq -r '.[0].id' 2>/dev/null)
+        else
+          # Fallback JSON parsing without jq (basic regex)
+          DEPLOY_STATUS=$(echo "$DEPLOY_RESPONSE" | sed -n 's/.*"status"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
+          DEPLOY_ID=$(echo "$DEPLOY_RESPONSE" | sed -n 's/.*"id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
+        fi
+
+        if [ "$DEPLOY_STATUS" = "null" ] || [ -z "$DEPLOY_STATUS" ]; then
+          echo "   ⚠️  Could not parse deployment status"
+          break
+        fi
+
+        case "$DEPLOY_STATUS" in
+          "live")
+            echo "   ✅ Deployment completed successfully! (ID: $DEPLOY_ID)"
+            return 0
+            ;;
+          "build_failed"|"update_failed"|"canceled")
+            echo "   ❌ Deployment failed with status: $DEPLOY_STATUS (ID: $DEPLOY_ID)"
+            return 1
+            ;;
+          "created"|"build_in_progress"|"update_in_progress")
+            printf "   ⏳ Deployment in progress... (%s) [%ds elapsed]\r" "$DEPLOY_STATUS" "$elapsed_time"
+            ;;
+          *)
+            echo "   ❓ Unknown deployment status: $DEPLOY_STATUS (ID: $DEPLOY_ID)"
+            ;;
+        esac
+
+        sleep $check_interval
+        elapsed_time=$((elapsed_time + check_interval))
+      done
+
+      if [ $elapsed_time -ge $max_wait_time ]; then
+        echo "   ⏰ Deployment wait timeout after ${max_wait_time}s"
+        return 2
+      fi
+
+      return 1
+    }
+
+    # Wait for backend deployment
+    if wait_for_render_deployment "$BACKEND_SERVICE_ID"; then
+      echo "   🎯 Backend deployment completed successfully"
+    else
+      echo "   ⚠️  Backend deployment monitoring completed with issues"
+      echo "   💡 Check https://dashboard.render.com for deployment details"
+    fi
+  fi
+else
+  echo
+  echo "ℹ️  Skipping Render deployment wait (RENDER_API_KEY not set)"
+  echo "   💡 To enable deployment monitoring:"
+  echo "      export RENDER_API_KEY=\"your_render_api_key\""
+  echo "      export RENDER_BACKEND_SERVICE_ID=\"your_service_id\""
+fi
+
 echo
 echo "🎉 Done! Development build complete."
 echo "   Version: $NEW_VERSION"
 echo "   Frontend: Built successfully"
 echo "   Backend: Built successfully"
 echo "   Mobile: Debug APK generated"
+if [ -n "${RENDER_API_KEY:-}" ] && [ -n "${RENDER_BACKEND_SERVICE_ID:-}" ]; then
+  echo "   Deployment: Monitored via Render API"
+else
+  echo "   Deployment: Check manually at https://dashboard.render.com"
+fi
 echo "   Completed at: $(date)"
