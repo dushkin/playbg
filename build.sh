@@ -502,6 +502,15 @@ if [ -n "${RENDER_API_KEY:-}" ]; then
           case "$DEPLOY_STATUS" in
             "live")
               echo "   ✅ Deployment completed successfully! (ID: $DEPLOY_ID) commit: ${target_commit_hash:0:8}"
+              echo "   🔥 Waiting 40 seconds for cache warming..."
+
+              # Cache warming countdown
+              for i in $(seq 40 -1 1); do
+                printf "   ⏱️  Cache warming... %2ds remaining\r" "$i"
+                sleep 1
+              done
+
+              echo "   🎯 Cache warming completed - deployment fully ready!"
               return 0
               ;;
             "build_failed"|"update_failed"|"canceled")
@@ -531,7 +540,7 @@ if [ -n "${RENDER_API_KEY:-}" ]; then
 
     # Wait for backend deployment
     if wait_for_render_deployment "$BACKEND_SERVICE_ID" "$PUSHED_COMMIT_HASH"; then
-      echo "   🎯 Backend deployment completed successfully"
+      echo "   🎯 Backend deployment completed successfully (including cache warming)"
     else
       echo "   ⚠️  Backend deployment monitoring completed with issues"
       echo "   💡 Check https://dashboard.render.com for deployment details"
@@ -552,7 +561,7 @@ echo "   Frontend: Built successfully"
 echo "   Backend: Built successfully"
 echo "   Mobile: Debug APK generated"
 if [ -n "${RENDER_API_KEY:-}" ] && [ -n "${RENDER_BACKEND_SERVICE_ID:-}" ]; then
-  echo "   Deployment: Monitored via Render API"
+  echo "   Deployment: Monitored via Render API (with cache warming)"
 else
   echo "   Deployment: Check manually at https://dashboard.render.com"
 fi

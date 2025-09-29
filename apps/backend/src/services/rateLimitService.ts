@@ -31,10 +31,10 @@ export class RateLimitService {
   }
 
   private setupDefaultConfigs(): void {
-    // API Rate Limits
+    // API Rate Limits - More lenient for mobile networks
     this.configs.set('api:auth', {
       windowMs: 15 * 60 * 1000, // 15 minutes
-      maxRequests: 5 // 5 login attempts per 15 minutes
+      maxRequests: 10 // Increased from 5 to 10 login attempts per 15 minutes for mobile network instability
     });
 
     this.configs.set('api:general', {

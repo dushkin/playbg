@@ -4,10 +4,10 @@ import { ApiResponse, AuthResponse, LoginRequest, RegisterRequest, User } from '
 const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'https://playbg-backend-dev.onrender.com/api'
 
 
-// Create axios instance
+// Create axios instance with mobile-friendly timeout
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 30000, // Increased from 10s to 30s for mobile networks
   headers: {
     'Content-Type': 'application/json',
   },
@@ -27,11 +27,23 @@ api.interceptors.request.use(
   }
 )
 
-// Response interceptor to handle errors
+// Response interceptor to handle errors with mobile retry logic
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config
+
+    // Mobile-specific retry for network timeouts
+    if ((error.code === 'ECONNABORTED' || error.code === 'ERR_NETWORK') &&
+        !originalRequest._mobileRetry &&
+        navigator.userAgent.includes('Mobile')) {
+      originalRequest._mobileRetry = true
+      console.log('[API] Retrying request on mobile due to network issue')
+
+      // Add small delay for mobile network recovery
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      return api(originalRequest)
+    }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true
@@ -68,13 +80,40 @@ export const authAPI = {
     // Add verbose logging to assist with debugging login failures on mobile devices.
     // Note: avoid logging sensitive information like passwords. Only log the email.
     try {
-      console.debug('[authAPI.login] initiating login', { email: credentials.email })
+      console.debug('[authAPI.login] initiating login', {
+        email: credentials.email,
+        baseURL: API_BASE_URL,
+        userAgent: navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop'
+      })
+
       const response: AxiosResponse<ApiResponse<AuthResponse>> = await api.post('/auth/login', credentials)
       console.debug('[authAPI.login] login successful', response.data)
       return response.data
     } catch (error: any) {
-      // Log the error details to understand why the request failed (e.g., network issues, CORS)
-      console.error('[authAPI.login] login failed', error, error?.response)
+      // Enhanced error logging for mobile debugging
+      console.error('[authAPI.login] login failed', {
+        error: error.message,
+        code: error.code,
+        status: error?.response?.status,
+        statusText: error?.response?.statusText,
+        responseData: error?.response?.data,
+        timeout: error.code === 'ECONNABORTED',
+        network: error.code === 'ERR_NETWORK',
+        isMobile: navigator.userAgent.includes('Mobile'),
+        connection: (navigator as any).connection?.effectiveType || 'unknown'
+      })
+
+      // Provide more helpful error messages for mobile users
+      if (error.code === 'ECONNABORTED') {
+        const enhancedError = new Error('Request timed out - please check your internet connection and try again')
+        enhancedError.name = 'TimeoutError'
+        throw enhancedError
+      } else if (error.code === 'ERR_NETWORK') {
+        const enhancedError = new Error('Network error - please check your internet connection')
+        enhancedError.name = 'NetworkError'
+        throw enhancedError
+      }
+
       throw error
     }
   },

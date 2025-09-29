@@ -54,8 +54,12 @@ const allowedOriginsDev: string[] = [
   'https://playbg-backend-dev.onrender.com',
   // Allow internal mobile origins for Capacitor/Android dev builds
   'capacitor://localhost',
+  'capacitor://localhost:3000', // Additional Capacitor origin
   'http://localhost',
   'https://localhost',
+  // Android WebView origins
+  'file://', // For local file access in Android WebView
+  'http://10.0.2.2:3000', // Android emulator localhost
   process.env.FRONTEND_URL || 'http://localhost:3000'
 ];
 
@@ -66,8 +70,12 @@ const allowedOriginsProd: string[] = [
   'https://playbg-backend-dev.onrender.com',
   'https://playbg-backend-prod.onrender.com',
   'capacitor://localhost',
+  'capacitor://localhost:3000',
   'http://localhost',
-  'https://localhost'
+  'https://localhost',
+  // Production mobile origins
+  'file://',
+  'http://10.0.2.2:3000'
 ];
 
 // Setup Socket.IO
