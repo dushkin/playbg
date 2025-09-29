@@ -6,6 +6,7 @@ import { Game as GameType, GameState as GameStateEnum } from '@playbg/shared'
 import LoadingSpinner from '../components/UI/LoadingSpinner'
 import socketService from '../services/socketService'
 import Dice3D from '../components/Game/Dice3D'
+import toast from 'react-hot-toast'
 
 const Game: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>()
@@ -1160,9 +1161,10 @@ const Game: React.FC = () => {
 
   return (
     <div className="h-screen bg-gray-100 overflow-hidden">
-      <div className="max-w-7xl mx-auto h-full flex flex-col py-1 sm:py-2 lg:py-3 px-1 sm:px-4">
+      {/* Mobile Layout (Stack Vertically) */}
+      <div className="lg:hidden max-w-7xl mx-auto h-full flex flex-col py-1 sm:py-2 px-1 sm:px-4">
         {/* Game Header */}
-        <div className="bg-white shadow rounded-lg p-2 sm:p-3 lg:p-4 mb-2 sm:mb-3 lg:mb-4 flex-shrink-0">
+        <div className="bg-white shadow rounded-lg p-2 sm:p-3 mb-2 sm:mb-3 flex-shrink-0">
           <div className="flex justify-between items-center mb-3 sm:mb-4">
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Your turn</h1>
             <button
@@ -1269,6 +1271,130 @@ const Game: React.FC = () => {
                      'No moves available. Click "Submit Moves" to complete turn.' :
              "Waiting for opponent's move..."}
           </p>
+        </div>
+      </div>
+
+      {/* Desktop Layout (Three Columns) */}
+      <div className="hidden lg:flex h-full">
+        {/* Left Sidebar - Game Info */}
+        <div className="w-80 bg-white shadow-lg p-4 overflow-y-auto flex-shrink-0">
+          {/* Back Button */}
+          <div className="mb-4">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded w-full"
+            >
+              ← Back to Dashboard
+            </button>
+          </div>
+
+          {/* Game Status */}
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              {game.gameState === GameStateEnum.WAITING && 'Waiting for opponent...'}
+              {game.gameState === GameStateEnum.IN_PROGRESS && (
+                isCurrentPlayer ? 'Your turn' : `${currentPlayer?.username}'s turn`
+              )}
+              {game.gameState === GameStateEnum.FINISHED && 'Game finished'}
+            </h1>
+          </div>
+
+          {/* Players Info */}
+          <div className="space-y-4 mb-6">
+            <div className={`p-4 rounded-lg ${game.currentPlayer === 0 ? 'bg-blue-100 border-2 border-blue-500' : 'bg-gray-100'}`}>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-white via-gray-100 to-gray-200 border border-gray-300 shadow-md flex-shrink-0"></div>
+                <div>
+                  <h3 className="font-bold text-lg">{(game.players || [])[0]?.username || 'Player 1'}</h3>
+                  <p className="text-sm text-gray-600">Rating: {(game.players || [])[0]?.rating || 'N/A'}</p>
+                  <p className="text-sm text-gray-600">White Checkers</p>
+                </div>
+              </div>
+            </div>
+            <div className={`p-4 rounded-lg ${game.currentPlayer === 1 ? 'bg-blue-100 border-2 border-blue-500' : 'bg-gray-100'}`}>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-800 via-gray-600 to-gray-700 border border-gray-800 shadow-md flex-shrink-0"></div>
+                <div>
+                  <h3 className="font-bold text-lg">{(game.players || [])[1]?.username || 'Player 2'}</h3>
+                  <p className="text-sm text-gray-600">Rating: {(game.players || [])[1]?.rating || 'N/A'}</p>
+                  <p className="text-sm text-gray-600">Black Checkers</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Center - Game Board */}
+        <div className="flex-1 flex flex-col items-center justify-center p-4 overflow-auto">
+          <div className="w-full max-w-6xl">
+            {renderBoard()}
+          </div>
+        </div>
+
+        {/* Right Sidebar - Actions */}
+        <div className="w-80 bg-white shadow-lg p-4 overflow-y-auto flex-shrink-0">
+          <h3 className="text-xl font-bold text-gray-900 mb-4">Game Actions</h3>
+
+          <div className="space-y-3">
+            {/* Submit Moves Button */}
+            <button
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded disabled:opacity-50 w-full"
+              disabled={movesMadeThisTurn.length === 0 || turnSubmitted || !isCurrentPlayer}
+              onClick={handleSubmitMoves}
+            >
+              Submit Moves ({movesMadeThisTurn.length})
+            </button>
+
+            {/* Reset Moves Button */}
+            <button
+              className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded disabled:opacity-50 w-full"
+              disabled={movesMadeThisTurn.length === 0 || turnSubmitted}
+              onClick={() => {
+                resetMovesThisTurn()
+                toast.success('Moves reset!')
+              }}
+            >
+              Reset Moves
+            </button>
+
+            {/* End Turn Button */}
+            <button
+              className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50 w-full"
+              disabled={!hasRolledThisTurn || turnSubmitted || !isCurrentPlayer}
+              onClick={handleSubmitMoves}
+            >
+              End Turn
+            </button>
+
+            {/* Resign Button */}
+            <button
+              className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded w-full"
+              onClick={() => {
+                if (confirm('Are you sure you want to resign?')) {
+                  toast.error('Game resigned')
+                  navigate('/dashboard')
+                }
+              }}
+            >
+              Resign
+            </button>
+          </div>
+
+          {/* Game Instructions */}
+          <div className="mt-6 p-3 bg-blue-50 rounded-lg">
+            <h4 className="font-semibold text-blue-900 mb-2">Instructions</h4>
+            <p className="text-sm text-blue-800">
+              {!hasRolledThisTurn && isCurrentPlayer ?
+                'Click the dice on the board to roll them!' :
+                hasRolledThisTurn && movesMadeThisTurn.length === 0 && isCurrentPlayer ?
+                  'Click on your checkers to move them.' :
+                  movesMadeThisTurn.length > 0 && !turnSubmitted && isCurrentPlayer ?
+                    'Click "Submit Moves" when ready to complete your turn.' :
+                    turnSubmitted && isCurrentPlayer ?
+                      'No moves available. Click "Submit Moves" to complete turn.' :
+                "Waiting for opponent's move..."}
+            </p>
+          </div>
         </div>
       </div>
     </div>
