@@ -21,6 +21,9 @@ const Game: React.FC = () => {
   const optimisticMoveRef = useRef<string | null>(null)
   const pendingOptimisticMoves = useRef<Set<string>>(new Set())
   const [hasRolledThisTurn, setHasRolledThisTurn] = useState<boolean>(false)
+  const [movesMadeThisTurn, setMovesMadeThisTurn] = useState<Array<{from: number, to: number, diceValue: number}>>([])
+  const [originalBoardState, setOriginalBoardState] = useState<any>(null)
+  const [turnSubmitted, setTurnSubmitted] = useState<boolean>(false)
   const hydratedFromSocket = useRef(false)
 
   useEffect(() => {
@@ -70,6 +73,10 @@ const Game: React.FC = () => {
             // Mark that current player has rolled this turn
             if (data.playerId === user?.id) {
               setHasRolledThisTurn(true)
+              setTurnSubmitted(false)
+              setMovesMadeThisTurn([])
+              // Save original board state for potential reset
+              setOriginalBoardState(prevGame ? JSON.parse(JSON.stringify(prevGame.board)) : null)
             }
 
 
@@ -111,6 +118,9 @@ const Game: React.FC = () => {
               const currentPlayerIndex = (game?.players || []).findIndex(p => p.userId === user?.id)
               if (data.state?.currentPlayer !== undefined && currentPlayerIndex !== -1) {
                 setHasRolledThisTurn(data.state.currentPlayer === currentPlayerIndex ? false : false)
+                setTurnSubmitted(false)
+                setMovesMadeThisTurn([])
+                setOriginalBoardState(null)
               }
 
               if (data.state?.gameState === 'finished') {
@@ -169,6 +179,9 @@ const Game: React.FC = () => {
           const currentPlayerIndex = (game?.players || []).findIndex(p => p.userId === user?.id)
           if (data.state?.currentPlayer !== undefined && currentPlayerIndex !== -1) {
             setHasRolledThisTurn(false)
+            setTurnSubmitted(false)
+            setMovesMadeThisTurn([])
+            setOriginalBoardState(null)
           }
 
           if (data.state?.gameState === 'finished') {
@@ -275,6 +288,21 @@ const Game: React.FC = () => {
     }
   }
 
+  const resetMovesThisTurn = () => {
+    if (originalBoardState && game) {
+      console.log('🔄 Resetting moves this turn')
+      setGame(prevGame => {
+        if (!prevGame) return null
+        return {
+          ...prevGame,
+          board: JSON.parse(JSON.stringify(originalBoardState))
+        }
+      })
+      setMovesMadeThisTurn([])
+      setUsedDice(usedDice.map(() => false)) // Reset all dice to unused
+    }
+  }
+
   const handlePointClick = (pointIndex: number) => {
     console.log('🎯 Point clicked:', pointIndex)
     if (!game || game.gameState !== GameStateEnum.IN_PROGRESS) {
@@ -282,11 +310,18 @@ const Game: React.FC = () => {
       return
     }
 
+    // Check if turn was already submitted
+    if (turnSubmitted) {
+      console.log('❌ Turn already submitted')
+      return
+    }
+
     // Check if it's the current player's turn
     const currentPlayerIndex = (game.players || []).findIndex(p => p.userId === user?.id)
     console.log('👤 Current player index:', currentPlayerIndex, 'Game current player:', game.currentPlayer)
     if (currentPlayerIndex !== game.currentPlayer) {
-      console.log('❌ Not current player turn')
+      console.log('❌ Not current player turn - resetting moves')
+      resetMovesThisTurn()
       return
     }
 
@@ -364,14 +399,10 @@ const Game: React.FC = () => {
     }
 
     if (bestMove && gameId) {
-      console.log('🚀 Executing move:', bestMove)
+      console.log('🚀 Making move locally:', bestMove)
 
-      // Add to pending optimistic moves and set current optimistic move ID
-      const moveId = `${bestMove.from}-${bestMove.to}`
-      console.log('🔄 Adding optimistic move to pending:', moveId)
-      pendingOptimisticMoves.current.add(moveId)
-      setOptimisticMoveId(moveId)
-      optimisticMoveRef.current = moveId
+      // Track this move for potential submission
+      setMovesMadeThisTurn(prev => [...prev, bestMove])
 
       // Optimistic update: immediately update the UI
       setGame(prevGame => {
@@ -445,15 +476,6 @@ const Game: React.FC = () => {
         console.log('🎲 After dice usage update:', newUsed)
         return newUsed
       })
-
-      // Send the move to the server (server will validate and correct if needed)
-      const move = {
-        from: bestMove.from,
-        to: bestMove.to
-      }
-
-      console.log('📡 Sending move to server:', move)
-      socketService.makeMove(gameId, move)
     } else if (!bestMove) {
       console.log('❌ No valid move found')
     } else if (!gameId) {
@@ -463,9 +485,40 @@ const Game: React.FC = () => {
 
   const handleRollDice = () => {
     if (gameId) {
-      setIsRollingDice(true);
-      socketService.rollDice(gameId);
+      // If we have moves made this turn, reset them first
+      if (movesMadeThisTurn.length > 0 && !turnSubmitted) {
+        console.log('🔄 Resetting moves before rolling dice')
+        resetMovesThisTurn()
+      }
+
+      // Only roll dice if turn not submitted
+      if (!turnSubmitted) {
+        setIsRollingDice(true);
+        socketService.rollDice(gameId);
+      }
     }
+  };
+
+  const handleSubmitMoves = () => {
+    if (!gameId || movesMadeThisTurn.length === 0 || turnSubmitted) return
+
+    console.log('📡 Submitting moves:', movesMadeThisTurn)
+    setTurnSubmitted(true)
+
+    // Send each move to server in sequence
+    movesMadeThisTurn.forEach((move, index) => {
+      const moveData = {
+        from: move.from,
+        to: move.to
+      }
+
+      // Add to pending optimistic moves tracking
+      const moveId = `${move.from}-${move.to}`
+      pendingOptimisticMoves.current.add(moveId)
+
+      console.log(`📡 Sending move ${index + 1}/${movesMadeThisTurn.length}:`, moveData)
+      socketService.makeMove(gameId, moveData)
+    })
   };
 
   // Comprehensive client-side move validation
@@ -840,7 +893,7 @@ const Game: React.FC = () => {
       && typeof (game.players[0]?.userId) === 'string' && game.players[0]!.userId!.length > 0
       && typeof (game.players[1]?.userId) === 'string' && game.players[1]!.userId!.length > 0
       && game.players[0]!.userId !== game.players[1]!.userId
-    const canRollDice = isCurrentPlayer && !isRollingDice && opponentJoined
+    const canRollDice = isCurrentPlayer && !isRollingDice && opponentJoined && !turnSubmitted
 
     return (
       <div className="bg-gradient-to-br from-amber-50 via-amber-100 to-amber-200 p-0.5 sm:p-4 lg:p-6 rounded-lg sm:rounded-2xl shadow-2xl w-full mx-auto max-w-full overflow-hidden">
@@ -880,13 +933,22 @@ const Game: React.FC = () => {
                   <div className="text-amber-200 text-xs font-bold mb-0.5 sm:mb-2 z-10 leading-none">BAR</div>
 
                   {/* Dice display */}
-                  {game?.dice && game.dice.length === 2 && hasRolledThisTurn ? (
+                  {game?.dice && game.dice.length === 2 && hasRolledThisTurn && !turnSubmitted ? (
                     <div className="flex flex-col gap-0 sm:gap-1 z-20 items-center">
                       <div className="scale-75 sm:scale-100">
                         <Dice3D value={game.dice[0]} size="xs" isRolling={isRollingDice} color={game.currentPlayer === 0 ? 'white' : 'black'} />
                       </div>
                       <div className="scale-75 sm:scale-100">
                         <Dice3D value={game.dice[1]} size="xs" isRolling={isRollingDice} color={game.currentPlayer === 0 ? 'white' : 'black'} />
+                      </div>
+                    </div>
+                  ) : turnSubmitted && hasRolledThisTurn ? (
+                    <div className="flex flex-col gap-0 sm:gap-1 z-20 items-center">
+                      <div className="scale-75 sm:scale-100">
+                        <Dice3D value={1} size="xs" isRolling={false} color={game.currentPlayer === 0 ? 'white' : 'black'} showR={true} />
+                      </div>
+                      <div className="scale-75 sm:scale-100">
+                        <Dice3D value={1} size="xs" isRolling={false} color={game.currentPlayer === 0 ? 'white' : 'black'} showR={true} />
                       </div>
                     </div>
                   ) : (
@@ -1122,19 +1184,42 @@ const Game: React.FC = () => {
         <div className="bg-white shadow rounded-lg p-3 sm:p-4 lg:p-6 mt-3 sm:mt-4 lg:mt-6">
           <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4">Actions</h3>
           <div className="flex flex-col sm:flex-row gap-2 sm:space-x-4 sm:gap-0">
+            {/* Submit Moves Button */}
+            <button
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50 text-sm sm:text-base"
+              disabled={!isCurrentPlayer || game.gameState !== GameStateEnum.IN_PROGRESS || movesMadeThisTurn.length === 0 || turnSubmitted}
+              onClick={handleSubmitMoves}
+            >
+              Submit Moves ({movesMadeThisTurn.length})
+            </button>
+
+            {/* Reset Moves Button */}
+            <button
+              className="bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50 text-sm sm:text-base"
+              disabled={!isCurrentPlayer || game.gameState !== GameStateEnum.IN_PROGRESS || movesMadeThisTurn.length === 0 || turnSubmitted}
+              onClick={resetMovesThisTurn}
+            >
+              Reset Moves
+            </button>
+
+            {/* End Turn Button */}
             <button
               className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50 text-sm sm:text-base"
-              disabled={!isCurrentPlayer || game.gameState !== GameStateEnum.IN_PROGRESS || availableDiceValues.length > 0}
+              disabled={!isCurrentPlayer || game.gameState !== GameStateEnum.IN_PROGRESS || !turnSubmitted}
               onClick={() => {
-                if (gameId && isCurrentPlayer && availableDiceValues.length === 0) {
+                if (gameId && isCurrentPlayer && turnSubmitted) {
                   // End turn - send socket event
                   socketService.getSocket()?.emit('game:end_turn', { gameId });
                   setUsedDice([]);
+                  setTurnSubmitted(false);
+                  setMovesMadeThisTurn([]);
+                  setHasRolledThisTurn(false);
                 }
               }}
             >
               End Turn
             </button>
+
             <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded text-sm sm:text-base">
               Resign
             </button>
@@ -1142,9 +1227,13 @@ const Game: React.FC = () => {
           <p className="text-sm text-gray-600 mt-2">
             {!game?.dice ? 'Click the dice on the board to roll them!' :
              isCurrentPlayer ?
-               availableDiceValues.length > 0 ?
-                 `Available moves: ${availableDiceValues.join(', ')}. Click a checker to move it.` :
-                 'All dice used. Click "End Turn" to pass turn to opponent.' :
+               turnSubmitted ?
+                 'Moves submitted. Click "End Turn" to pass turn to opponent.' :
+                 movesMadeThisTurn.length > 0 ?
+                   `Made ${movesMadeThisTurn.length} move${movesMadeThisTurn.length > 1 ? 's' : ''}. Click "Submit Moves" to confirm or make more moves.` :
+                   availableDiceValues.length > 0 ?
+                     `Available moves: ${availableDiceValues.join(', ')}. Click a checker to move it.` :
+                     'No moves available. Click "Submit Moves" to complete turn.' :
              "Waiting for opponent's move..."}
           </p>
         </div>
