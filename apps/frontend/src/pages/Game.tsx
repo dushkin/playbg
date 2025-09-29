@@ -725,31 +725,34 @@ const Game: React.FC = () => {
         key={`point-${pointIndex}`}
         className={`
           relative flex ${isTopHalf ? 'flex-col' : 'flex-col-reverse'} items-center h-full
-          transition-all duration-300 ease-out
+          transition-all duration-300 ease-out overflow-hidden
           ${canMove ? 'cursor-pointer hover:scale-105 hover:z-10' : 'cursor-default'}
           ${canMove ? 'ring-2 ring-blue-400 ring-opacity-50 bg-blue-50' : ''}
           ${canMove ? 'touch-manipulation' : ''}
-          min-h-0 min-w-0
+          min-h-0 min-w-0 max-w-full
         `}
         style={{
           WebkitTapHighlightColor: canMove ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
           minHeight: '48px',
-          minWidth: '24px'
+          minWidth: '20px',
+          maxWidth: '100%'
         }}
         {...pointHandlers}
       >
         {/* Point triangle */}
         <div
           className={`
-            absolute inset-0 transition-all duration-200 overflow-hidden
+            absolute inset-0 transition-all duration-200 overflow-hidden w-full h-full
             ${canMove ? 'ring-2 ring-blue-400 ring-opacity-75' : ''}
           `}
           style={{
             background: `linear-gradient(to bottom, ${pointColorClass.includes('amber-100') ? '#fef3c7, #fde68a' : '#92400e, #78350f'})`,
             clipPath: isTopHalf
-              ? 'polygon(50% 100%, 12% 0%, 88% 0%)'
-              : 'polygon(12% 100%, 88% 100%, 50% 0%)',
-            boxShadow: canMove ? 'inset 0 0 10px rgba(59, 130, 246, 0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'
+              ? 'polygon(50% 100%, 15% 0%, 85% 0%)'
+              : 'polygon(15% 100%, 85% 100%, 50% 0%)',
+            boxShadow: canMove ? 'inset 0 0 10px rgba(59, 130, 246, 0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+            maxWidth: '100%',
+            maxHeight: '100%'
           }}
         />
         
@@ -757,7 +760,7 @@ const Game: React.FC = () => {
         <div className={`
           relative z-20 flex ${isTopHalf ? 'flex-col' : 'flex-col-reverse'} items-center
           ${isTopHalf ? 'justify-start pt-0.5 sm:pt-1' : 'justify-start pt-0.5 sm:pt-1'}
-          h-full px-1 sm:px-2
+          h-full px-0.5 sm:px-1 max-w-full overflow-hidden
         `}>
           {point && point.map((playerCheckers, playerIndex) => {
             if (playerCheckers === 0) return null
@@ -771,11 +774,12 @@ const Game: React.FC = () => {
                 <div
                   key={checkerIndex}
                   className={`
-                    relative w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 xl:w-9 xl:h-9 rounded-full transition-all duration-300 ease-out
+                    relative w-4 h-4 sm:w-5 sm:h-5 lg:w-7 lg:h-7 xl:w-8 xl:h-8 rounded-full transition-all duration-300 ease-out
                     ${checkerIndex === 0 ? '' : '-mt-1 sm:-mt-1'}
                     ${canMoveThisChecker ? 'hover:scale-110 hover:z-30 cursor-pointer ring-2 ring-green-400 ring-opacity-60' : 'cursor-default'}
                     transform ${canMoveThisChecker ? 'hover:-translate-y-1' : ''}
                     ${canMoveThisChecker ? 'animate-pulse' : ''}
+                    max-w-full max-h-full
                   `}
                   style={{
                     background: playerIndex === 0
@@ -812,9 +816,10 @@ const Game: React.FC = () => {
                 {playerCheckers > 5 && (
                   <div className={`
                     absolute ${isTopHalf ? 'top-0' : 'bottom-0'} right-0 sm:${isTopHalf ? 'top-1' : 'bottom-1'} sm:right-1
-                    bg-blue-600 text-white text-xs font-bold rounded-full w-4 h-4 sm:w-4 sm:h-4 lg:w-5 lg:h-5
+                    bg-blue-600 text-white text-xs font-bold rounded-full w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5
                     flex items-center justify-center shadow-lg z-30
-                  `}>
+                  `}
+                  style={{ fontSize: '0.6rem' }}>
                     {playerCheckers}
                   </div>
                 )}
@@ -840,33 +845,33 @@ const Game: React.FC = () => {
     return (
       <div className="bg-gradient-to-br from-amber-50 via-amber-100 to-amber-200 p-0.5 sm:p-4 lg:p-6 rounded-lg sm:rounded-2xl shadow-2xl w-full mx-auto max-w-full overflow-hidden">
         {/* Board border with wood grain effect */}
-        <div className="bg-gradient-to-br from-amber-900 via-amber-800 to-amber-900 p-0.5 sm:p-3 lg:p-4 rounded-md sm:rounded-xl shadow-inner">
-          <div className="bg-gradient-to-br from-amber-100 to-amber-50 p-0.5 sm:p-4 lg:p-6 rounded-sm sm:rounded-lg">
+        <div className="bg-gradient-to-br from-amber-900 via-amber-800 to-amber-900 p-0.5 sm:p-3 lg:p-4 rounded-md sm:rounded-xl shadow-inner overflow-hidden">
+          <div className="bg-gradient-to-br from-amber-100 to-amber-50 p-0.5 sm:p-4 lg:p-6 rounded-sm sm:rounded-lg overflow-hidden">
             
             {/* Top numbers */}
             <div className="flex text-xs font-bold text-amber-900 opacity-50 mb-0.5 sm:mb-1">
               <div className="flex-1 grid grid-cols-6 gap-0.5 sm:gap-1">
                 {Array.from({ length: 6 }, (_, i) => 13 + i).map(num => <div key={num} className="text-center text-xs sm:text-sm">{num}</div>)}
               </div>
-              <div className="w-5 sm:w-10 lg:w-12 xl:w-14" />
+              <div className="w-4 sm:w-8 lg:w-10 xl:w-12" />
               <div className="flex-1 grid grid-cols-6 gap-0.5 sm:gap-1">
                 {Array.from({ length: 6 }, (_, i) => 19 + i).map(num => <div key={num} className="text-center text-xs sm:text-sm">{num}</div>)}
               </div>
             </div>
 
             {/* Top half of board */}
-            <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-24 sm:h-48 lg:h-64 xl:h-72">
+            <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-24 sm:h-48 lg:h-64 xl:h-72 overflow-hidden">
               {/* Points 12-17 */}
-              <div className="flex gap-0.5 sm:gap-1 flex-1">
+              <div className="flex gap-0.5 sm:gap-1 flex-1 min-w-0 overflow-hidden">
                 {Array.from({ length: 6 }, (_, i) => (
-                  <div key={`top-left-${i}`} className="flex-1 min-w-0">
+                  <div key={`top-left-${i}`} className="flex-1 min-w-0 max-w-full overflow-hidden">
                     {renderPoint(12 + i, true)}
                   </div>
                 ))}
               </div>
               
               {/* Center bar with dice */}
-              <div className="w-5 sm:w-10 lg:w-12 xl:w-14 flex flex-col items-center justify-center px-0.5 sm:px-1">
+              <div className="w-4 sm:w-8 lg:w-10 xl:w-12 flex flex-col items-center justify-center px-0.5 sm:px-1 flex-shrink-0">
                 <div className="
                   bg-gradient-to-b from-amber-800 to-amber-900 w-full h-full rounded-sm sm:rounded-lg shadow-inner
                   border border-amber-700 sm:border-2 flex flex-col items-center justify-center
@@ -930,9 +935,9 @@ const Game: React.FC = () => {
               </div>
               
               {/* Points 18-23 */}
-              <div className="flex gap-0.5 sm:gap-1 flex-1">
+              <div className="flex gap-0.5 sm:gap-1 flex-1 min-w-0 overflow-hidden">
                 {Array.from({ length: 6 }, (_, i) => (
-                  <div key={`top-right-${i}`} className="flex-1 min-w-0">
+                  <div key={`top-right-${i}`} className="flex-1 min-w-0 max-w-full overflow-hidden">
                     {renderPoint(18 + i, true)}
                   </div>
                 ))}
@@ -945,18 +950,18 @@ const Game: React.FC = () => {
             </div>
             
             {/* Bottom half of board */}
-            <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-24 sm:h-48 lg:h-64 xl:h-72">
+            <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-24 sm:h-48 lg:h-64 xl:h-72 overflow-hidden">
               {/* Points 11-6 */}
-              <div className="flex gap-0.5 sm:gap-1 flex-1">
+              <div className="flex gap-0.5 sm:gap-1 flex-1 min-w-0 overflow-hidden">
                 {Array.from({ length: 6 }, (_, i) => (
-                  <div key={`bottom-left-${i}`} className="flex-1 min-w-0">
+                  <div key={`bottom-left-${i}`} className="flex-1 min-w-0 max-w-full overflow-hidden">
                     {renderPoint(11 - i, false)}
                   </div>
                 ))}
               </div>
               
               {/* Center bar */}
-              <div className="w-5 sm:w-10 lg:w-12 xl:w-14 flex flex-col items-center justify-center px-0.5 sm:px-1">
+              <div className="w-4 sm:w-8 lg:w-10 xl:w-12 flex flex-col items-center justify-center px-0.5 sm:px-1 flex-shrink-0">
                 <div className="
                   bg-gradient-to-b from-amber-800 to-amber-900 w-full h-full rounded-sm sm:rounded-lg shadow-inner
                   border border-amber-700 sm:border-2 flex flex-col items-center justify-center
@@ -972,9 +977,9 @@ const Game: React.FC = () => {
               </div>
               
               {/* Points 5-0 */}
-              <div className="flex gap-0.5 sm:gap-1 flex-1">
+              <div className="flex gap-0.5 sm:gap-1 flex-1 min-w-0 overflow-hidden">
                 {Array.from({ length: 6 }, (_, i) => (
-                  <div key={`bottom-right-${i}`} className="flex-1 min-w-0">
+                  <div key={`bottom-right-${i}`} className="flex-1 min-w-0 max-w-full overflow-hidden">
                     {renderPoint(5 - i, false)}
                   </div>
                 ))}
@@ -986,7 +991,7 @@ const Game: React.FC = () => {
               <div className="flex-1 grid grid-cols-6 gap-0.5 sm:gap-1">
                 {Array.from({ length: 6 }, (_, i) => 12 - i).map(num => <div key={num} className="text-center text-xs sm:text-sm">{num}</div>)}
               </div>
-              <div className="w-5 sm:w-10 lg:w-12 xl:w-14" />
+              <div className="w-4 sm:w-8 lg:w-10 xl:w-12" />
               <div className="flex-1 grid grid-cols-6 gap-0.5 sm:gap-1">
                 {Array.from({ length: 6 }, (_, i) => 6 - i).map(num => <div key={num} className="text-center text-xs sm:text-sm">{num}</div>)}
               </div>
