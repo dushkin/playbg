@@ -927,10 +927,10 @@ const Game: React.FC = () => {
     const isCurrentPlayer = Array.isArray(game.players) && typeof game.currentPlayer === 'number' && game.players[game.currentPlayer]?.userId === user?.id
 
     return (
-      <div className="bg-gradient-to-br from-amber-50 via-amber-100 to-amber-200 p-0.5 sm:p-4 lg:p-6 rounded-lg sm:rounded-2xl shadow-2xl w-full mx-auto max-w-full overflow-hidden">
+      <div className="bg-gradient-to-br from-amber-50 via-amber-100 to-amber-200 p-0.5 sm:p-2 lg:p-3 rounded-lg sm:rounded-2xl shadow-2xl w-full mx-auto max-w-5xl overflow-hidden">
         {/* Board border with wood grain effect */}
-        <div className="bg-gradient-to-br from-amber-900 via-amber-800 to-amber-900 p-0.5 sm:p-3 lg:p-4 rounded-md sm:rounded-xl shadow-inner overflow-hidden">
-          <div className="bg-gradient-to-br from-amber-100 to-amber-50 p-0.5 sm:p-4 lg:p-6 rounded-sm sm:rounded-lg overflow-hidden">
+        <div className="bg-gradient-to-br from-amber-900 via-amber-800 to-amber-900 p-1 sm:p-2 lg:p-3 rounded-md sm:rounded-xl shadow-inner overflow-hidden">
+          <div className="bg-gradient-to-br from-amber-100 to-amber-50 p-1 sm:p-2 lg:p-3 rounded-sm sm:rounded-lg overflow-hidden">
             
             {/* Top numbers */}
             <div className="flex text-xs font-bold text-amber-900 opacity-50 mb-0.5 sm:mb-1">
@@ -944,7 +944,7 @@ const Game: React.FC = () => {
             </div>
 
             {/* Top half of board */}
-            <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-20 sm:h-32 lg:h-40 xl:h-48 overflow-hidden">
+            <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-28 sm:h-40 lg:h-52 xl:h-64 overflow-hidden">
               {/* Points 12-17 */}
               <div className="flex gap-0.5 sm:gap-1 flex-1 min-w-0 overflow-hidden">
                 {Array.from({ length: 6 }, (_, i) => (
@@ -961,7 +961,6 @@ const Game: React.FC = () => {
                   border border-amber-700 sm:border-2 flex flex-col items-center justify-center
                   relative overflow-hidden
                 ">
-                  <div className="text-amber-200 text-xs font-bold mb-0.5 sm:mb-2 z-10 leading-none">BAR</div>
 
                   {/* Dice display */}
                   {game?.dice && game.dice.length === 2 && hasRolledThisTurn && !turnSubmitted ? (
@@ -1040,12 +1039,12 @@ const Game: React.FC = () => {
             </div>
             
             {/* Center divider */}
-            <div className="h-1 sm:h-3 lg:h-4 bg-gradient-to-r from-amber-800 via-amber-700 to-amber-800 my-0.5 sm:my-2 rounded shadow-inner relative overflow-hidden">
+            <div className="h-2 sm:h-4 lg:h-6 bg-gradient-to-r from-amber-800 via-amber-700 to-amber-800 my-1 sm:my-2 rounded shadow-inner relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-600 to-transparent opacity-30" />
             </div>
             
             {/* Bottom half of board */}
-            <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-20 sm:h-32 lg:h-40 xl:h-48 overflow-hidden">
+            <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-28 sm:h-40 lg:h-52 xl:h-64 overflow-hidden">
               {/* Points 11-6 */}
               <div className="flex gap-0.5 sm:gap-1 flex-1 min-w-0 overflow-hidden">
                 {Array.from({ length: 6 }, (_, i) => (
@@ -1062,7 +1061,6 @@ const Game: React.FC = () => {
                   border border-amber-700 sm:border-2 flex flex-col items-center justify-center
                   relative overflow-hidden
                 ">
-                  <div className="text-amber-200 text-xs font-bold mt-0.5 sm:mt-2 z-10 leading-none">BAR</div>
                   {/* Wood grain effect */}
                   <div className="absolute inset-0 opacity-20">
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-600 to-transparent transform -skew-y-12" />
