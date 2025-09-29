@@ -455,17 +455,10 @@ if [ -n "${RENDER_API_KEY:-}" ]; then
           DEPLOY_ID=$(echo "$DEPLOY_RESPONSE" | jq -r --arg commit "$target_commit_hash" '.[] | select(.deploy.commit.id? and (.deploy.commit.id | startswith($commit))) | .deploy.id // empty' 2>/dev/null | head -1)
           MATCHED_COMMIT=$(echo "$DEPLOY_RESPONSE" | jq -r --arg commit "$target_commit_hash" '.[] | select(.deploy.commit.id? and (.deploy.commit.id | startswith($commit))) | .deploy.commit.id // empty' 2>/dev/null | head -1)
 
-          # Debug: Show what we found
+          # Debug: Show what we found (concise)
           if [ "${DEBUG_RENDER:-}" = "1" ]; then
-            echo "   🐛 Looking for commit starting with: $target_commit_hash"
-            echo "   🐛 Found status: '$DEPLOY_STATUS', ID: '$DEPLOY_ID', matched commit: '$MATCHED_COMMIT'"
-            ALL_COMMITS=$(echo "$DEPLOY_RESPONSE" | jq -r '.[] | .deploy.commit.id // "no-commit"' 2>/dev/null)
-            echo "   🐛 All deployment commits:"
-            echo "$ALL_COMMITS" | sed 's/^/     /'
-
-            # Show all deployment statuses for debugging
-            echo "   🐛 All deployment statuses:"
-            echo "$DEPLOY_RESPONSE" | jq -r '.[] | "     \(.deploy.id // "no-id"): \(.deploy.status // "no-status") (\(.deploy.commit.id // "no-commit"))"' 2>/dev/null
+            echo "   🐛 Target commit: ${target_commit_hash:0:8}"
+            echo "   🐛 Found status: '$DEPLOY_STATUS', ID: '$DEPLOY_ID'"
           fi
         else
           # Fallback: look for commit hash in the response (simplified)
