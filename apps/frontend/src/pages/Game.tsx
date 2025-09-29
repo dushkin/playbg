@@ -121,12 +121,24 @@ const Game: React.FC = () => {
                 const isNowMyTurn = data.state.currentPlayer === currentPlayerIndex
                 // Only reset dice roll state when it becomes our turn
                 if (isNowMyTurn) {
-                  setHasRolledThisTurn(false)
+                  // Check if dice were already rolled for this turn
+                  const diceAlreadyRolled = data.state.dice && data.state.dice.length === 2
+                  setHasRolledThisTurn(diceAlreadyRolled || false)
                   setTurnSubmitted(false)
                   setMovesMadeThisTurn([])
                   setOriginalBoardState(null)
                   setIsRollingDice(false)
-                  setUsedDice([])
+
+                  // Initialize dice usage state if dice are already rolled
+                  if (diceAlreadyRolled) {
+                    if (data.state.dice[0] === data.state.dice[1]) {
+                      setUsedDice([false, false, false, false]) // Doubles
+                    } else {
+                      setUsedDice([false, false]) // Regular
+                    }
+                  } else {
+                    setUsedDice([])
+                  }
                 }
               }
 
@@ -188,12 +200,24 @@ const Game: React.FC = () => {
             const isNowMyTurn = data.state.currentPlayer === currentPlayerIndex
             // Only reset dice roll state when it becomes our turn
             if (isNowMyTurn) {
-              setHasRolledThisTurn(false)
+              // Check if dice were already rolled for this turn
+              const diceAlreadyRolled = data.state.dice && data.state.dice.length === 2
+              setHasRolledThisTurn(diceAlreadyRolled || false)
               setTurnSubmitted(false)
               setMovesMadeThisTurn([])
               setOriginalBoardState(null)
               setIsRollingDice(false)
-              setUsedDice([])
+
+              // Initialize dice usage state if dice are already rolled
+              if (diceAlreadyRolled) {
+                if (data.state.dice[0] === data.state.dice[1]) {
+                  setUsedDice([false, false, false, false]) // Doubles
+                } else {
+                  setUsedDice([false, false]) // Regular
+                }
+              } else {
+                setUsedDice([])
+              }
             }
           }
 
