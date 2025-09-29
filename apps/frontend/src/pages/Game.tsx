@@ -823,7 +823,7 @@ const Game: React.FC = () => {
         `}
         style={{
           WebkitTapHighlightColor: canMove ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
-          minHeight: '48px',
+          minHeight: '80px',
           minWidth: '20px',
           maxWidth: '100%'
         }}
@@ -944,7 +944,7 @@ const Game: React.FC = () => {
             </div>
 
             {/* Top half of board */}
-            <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-28 sm:h-40 lg:h-52 xl:h-64 overflow-hidden">
+            <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-32 sm:h-48 lg:h-60 xl:h-72 overflow-visible">
               {/* Points 12-17 */}
               <div className="flex gap-0.5 sm:gap-1 flex-1 min-w-0 overflow-hidden">
                 {Array.from({ length: 6 }, (_, i) => (
@@ -1044,7 +1044,7 @@ const Game: React.FC = () => {
             </div>
             
             {/* Bottom half of board */}
-            <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-28 sm:h-40 lg:h-52 xl:h-64 overflow-hidden">
+            <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-32 sm:h-48 lg:h-60 xl:h-72 overflow-visible">
               {/* Points 11-6 */}
               <div className="flex gap-0.5 sm:gap-1 flex-1 min-w-0 overflow-hidden">
                 {Array.from({ length: 6 }, (_, i) => (
@@ -1208,13 +1208,13 @@ const Game: React.FC = () => {
         {/* Game Board */}
         <div className="bg-white shadow rounded-lg p-1 sm:p-2 lg:p-4 flex-1 flex flex-col overflow-hidden">
           <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-1 sm:mb-2 text-center flex-shrink-0">Game Board</h2>
-          <div className="flex-1 flex items-center justify-center overflow-hidden">
+          <div className="flex-1 flex items-start justify-center overflow-auto">
             {renderBoard()}
           </div>
         </div>
 
         {/* Game Actions */}
-        <div className="bg-white shadow rounded-lg p-2 sm:p-3 lg:p-4 mt-2 sm:mt-3 lg:mt-4 flex-shrink-0">
+        <div className="bg-white shadow rounded-lg p-1 sm:p-2 lg:p-3 mt-1 sm:mt-2 lg:mt-3 flex-shrink-0">
           <h3 className="text-sm sm:text-base font-bold text-gray-900 mb-2 sm:mb-3">Actions</h3>
           <div className="flex flex-col sm:flex-row gap-2 sm:space-x-4 sm:gap-0">
             {/* Submit Moves Button */}
