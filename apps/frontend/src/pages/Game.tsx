@@ -125,6 +125,8 @@ const Game: React.FC = () => {
                   setTurnSubmitted(false)
                   setMovesMadeThisTurn([])
                   setOriginalBoardState(null)
+                  setIsRollingDice(false)
+                  setUsedDice([])
                 }
               }
 
@@ -190,6 +192,8 @@ const Game: React.FC = () => {
               setTurnSubmitted(false)
               setMovesMadeThisTurn([])
               setOriginalBoardState(null)
+              setIsRollingDice(false)
+              setUsedDice([])
             }
           }
 
@@ -519,8 +523,8 @@ const Game: React.FC = () => {
       // If we have moves made this turn, reset them
       if (movesMadeThisTurn.length > 0 && !turnSubmitted) {
         console.log('🔄 Resetting moves due to dice click')
+        // Reset stale local moves from previous turn but continue to roll in this click
         resetMovesThisTurn()
-        return
       }
 
       // Only roll dice if no moves made, turn not submitted, and not currently rolling
