@@ -116,7 +116,14 @@ class SocketService {
 
     this.socket.on('game:error', (data) => {
       console.error('Game error:', data)
-      toast.error(data.message || 'Game error occurred')
+
+      // Handle specific error types
+      if (data.message?.includes('No matching document found')) {
+        // This is usually a temporary concurrency issue, don't show scary error
+        console.warn('Document version conflict detected - this is usually resolved automatically')
+      } else {
+        toast.error(data.message || 'Game error occurred')
+      }
     })
 
     // Game list update events

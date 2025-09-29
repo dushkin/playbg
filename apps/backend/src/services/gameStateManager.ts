@@ -36,6 +36,7 @@ export interface GameCreationOptions {
 export class GameStateManager {
   private static instance: GameStateManager;
   private engines: Map<string, BackgammonEngine> = new Map();
+  private moveQueues: Map<string, Promise<any>> = new Map();
 
   private constructor() {}
 
@@ -164,9 +165,33 @@ export class GameStateManager {
   }
 
   /**
-   * Process a game move
+   * Process a game move - queued to prevent concurrent document updates
    */
   public async processMove(gameId: string, playerId: string, move: GameMove): Promise<GameStateUpdate> {
+    // Queue moves per game to prevent document version conflicts
+    const currentQueue = this.moveQueues.get(gameId) || Promise.resolve();
+
+    const movePromise = currentQueue
+      .catch(() => {}) // Ignore previous errors to avoid queue blocking
+      .then(() => this.processMoveInternal(gameId, playerId, move));
+
+    this.moveQueues.set(gameId, movePromise);
+
+    // Clean up completed queue after processing
+    movePromise.finally(() => {
+      // Only clean up if this is still the current queue
+      if (this.moveQueues.get(gameId) === movePromise) {
+        this.moveQueues.delete(gameId);
+      }
+    });
+
+    return movePromise;
+  }
+
+  /**
+   * Internal move processing - handles the actual move logic
+   */
+  private async processMoveInternal(gameId: string, playerId: string, move: GameMove): Promise<GameStateUpdate> {
     try {
       const gameDoc = await this.loadGame(gameId);
       if (!gameDoc) {
@@ -201,7 +226,9 @@ export class GameStateManager {
       // Update game document with new current player and dice state
       gameDoc.currentPlayer = currentPlayer;
       gameDoc.dice = currentDice;
-      await gameDoc.save();
+
+      // Save with retry logic for version conflicts
+      await this.saveGameWithRetry(gameDoc);
 
       // Update cache
       const newState = {
@@ -235,6 +262,37 @@ export class GameStateManager {
     } catch (error) {
       logger.error(`Error processing move for game ${gameId}:`, error);
       throw error;
+    }
+  }
+
+  /**
+   * Save game document with retry logic for version conflicts
+   */
+  private async saveGameWithRetry(gameDoc: IGameDocument, maxRetries = 3): Promise<void> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        await gameDoc.save();
+        return; // Success
+      } catch (error: any) {
+        if (error.message?.includes('No matching document found') && attempt < maxRetries) {
+          logger.warn(`Version conflict on attempt ${attempt}/${maxRetries}, retrying...`);
+          // Re-fetch the document to get the latest version
+          const freshDoc = await GameModel.findById(gameDoc._id);
+          if (freshDoc) {
+            // Copy updated values to the fresh document
+            freshDoc.currentPlayer = gameDoc.currentPlayer;
+            freshDoc.dice = gameDoc.dice;
+            freshDoc.moves = gameDoc.moves;
+            // Replace the gameDoc reference
+            Object.assign(gameDoc, freshDoc);
+          }
+          // Wait a bit before retrying
+          await new Promise(resolve => setTimeout(resolve, 50 * attempt));
+        } else {
+          logger.error(`Failed to save game after ${attempt} attempts:`, error);
+          throw error;
+        }
+      }
     }
   }
 

@@ -543,9 +543,9 @@ const Game: React.FC = () => {
       console.log(`📡 Sending move ${i + 1}/${movesMadeThisTurn.length}:`, moveData)
       socketService.makeMove(gameId, moveData)
 
-      // Add small delay between moves to prevent race conditions
+      // Add delay between moves to allow backend processing
       if (i < movesMadeThisTurn.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 100))
+        await new Promise(resolve => setTimeout(resolve, 200)) // Increased from 100ms to 200ms
       }
     }
   };

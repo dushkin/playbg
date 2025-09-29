@@ -33,6 +33,16 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config
 
+    // Retry for backend service wake-up (502 Bad Gateway)
+    if (error.response?.status === 502 && !originalRequest._serviceRetry) {
+      originalRequest._serviceRetry = true
+      console.log('[API] Backend service waking up, retrying request...')
+
+      // Wait for service to fully start
+      await new Promise(resolve => setTimeout(resolve, 5000))
+      return api(originalRequest)
+    }
+
     // Mobile-specific retry for network timeouts
     if ((error.code === 'ECONNABORTED' || error.code === 'ERR_NETWORK') &&
         !originalRequest._mobileRetry &&

@@ -104,9 +104,25 @@ const Dashboard: React.FC = () => {
       if (isRefresh) {
         toast.success('Games refreshed successfully!')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading game data:', error)
-      toast.error('Failed to load game data')
+
+      // Enhanced error handling for backend service issues
+      if (error?.code === 'ERR_NETWORK' || error?.message?.includes('Network Error')) {
+        if (error?.response?.status === 502) {
+          toast.error('Backend service is starting up, please wait a moment and try again')
+        } else {
+          toast.error('Connection issue - please check your internet connection')
+        }
+      } else if (error?.message?.includes('CORS')) {
+        toast.error('Service temporarily unavailable - refreshing in a moment...')
+        // Auto-retry after a short delay for CORS issues
+        setTimeout(() => {
+          loadGameData(false)
+        }, 3000)
+      } else {
+        toast.error('Failed to load game data')
+      }
     } finally {
       setLoading(false)
       if (isRefresh) {

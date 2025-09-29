@@ -170,7 +170,7 @@ app.use(helmet({
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
 }));
 
-// CORS configuration - Fixed for proper cross-origin handling
+// CORS configuration - Enhanced for cold start reliability
 app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (mobile apps, Postman, etc.)
@@ -180,15 +180,25 @@ app.use(cors({
     // This fixes issues where NODE_ENV might not be set correctly on Render
     const allowedOrigins = [...new Set([...allowedOriginsDev, ...allowedOriginsProd])];
 
-    logger.info(`CORS check for origin: ${origin}, environment: ${process.env.NODE_ENV}`);
+    // Don't log during health checks to reduce noise
+    if (!origin?.includes('health')) {
+      logger.info(`CORS check for origin: ${origin}, environment: ${process.env.NODE_ENV}`);
+    }
 
     if (allowedOrigins.includes(origin)) {
-      logger.info(`CORS allowing origin: ${origin}`);
+      if (!origin?.includes('health')) {
+        logger.info(`CORS allowing origin: ${origin}`);
+      }
       callback(null, true);
     } else {
       logger.warn(`CORS blocked origin: ${origin}`);
-      // Don't throw error, just return false to prevent CORS issues
-      callback(null, false);
+      // Allow during cold start to prevent service disruption
+      if (process.uptime() < 30) {
+        logger.warn(`Allowing origin during cold start: ${origin}`);
+        callback(null, true);
+      } else {
+        callback(null, false);
+      }
     }
   },
   credentials: true,
@@ -200,12 +210,32 @@ app.use(cors({
     'Accept',
     'Authorization',
     'Cache-Control',
-    'X-HTTP-Method-Override'
+    'X-HTTP-Method-Override',
+    'X-Forwarded-For',
+    'X-Real-IP'
   ],
   exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar'],
   optionsSuccessStatus: 200,
-  preflightContinue: false
+  preflightContinue: false,
+  maxAge: 86400 // Cache preflight for 24 hours
 }));
+
+// Explicit OPTIONS handler for preflight requests during cold starts
+app.options('*', (req, res) => {
+  const origin = req.get('Origin');
+  const allowedOrigins = [...new Set([...allowedOriginsDev, ...allowedOriginsProd])];
+
+  // Set CORS headers explicitly
+  if (!origin || allowedOrigins.includes(origin) || process.uptime() < 30) {
+    res.header('Access-Control-Allow-Origin', origin || '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, X-HTTP-Method-Override, X-Forwarded-For, X-Real-IP');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Max-Age', '86400');
+  }
+
+  res.status(204).send();
+});
 
 
 
