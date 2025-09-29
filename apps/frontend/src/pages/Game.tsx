@@ -1360,8 +1360,17 @@ const Game: React.FC = () => {
             {/* End Turn Button */}
             <button
               className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50 w-full"
-              disabled={!hasRolledThisTurn || turnSubmitted || !isCurrentPlayer}
-              onClick={handleSubmitMoves}
+              disabled={!isCurrentPlayer || game.gameState !== GameStateEnum.IN_PROGRESS || !turnSubmitted}
+              onClick={() => {
+                if (gameId && isCurrentPlayer && turnSubmitted) {
+                  // End turn - send socket event (server may auto-end turn when moves exhausted, but keep client state consistent)
+                  socketService.getSocket()?.emit('game:end_turn', { gameId });
+                  setUsedDice([]);
+                  setTurnSubmitted(false);
+                  setMovesMadeThisTurn([]);
+                  setHasRolledThisTurn(false);
+                }
+              }}
             >
               End Turn
             </button>
