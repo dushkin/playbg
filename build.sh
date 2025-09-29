@@ -450,24 +450,22 @@ if [ -n "${RENDER_API_KEY:-}" ]; then
         TARGET_COMMIT_SHORT="${target_commit_hash:0:7}"  # First 7 chars for comparison
 
         if command -v jq >/dev/null 2>&1; then
-          # Search through deployments for one matching our commit
-          MATCHING_DEPLOY=$(echo "$DEPLOY_RESPONSE" | jq -r --arg commit "$target_commit_hash" \
-            '.[] | select(.deploy.commit.id? and (.deploy.commit.id | startswith($commit))) |
-             {status: .deploy.status, id: .deploy.id, commit: .deploy.commit.id}' 2>/dev/null | head -1)
-
-          if [ -n "$MATCHING_DEPLOY" ] && [ "$MATCHING_DEPLOY" != "null" ]; then
-            DEPLOY_STATUS=$(echo "$MATCHING_DEPLOY" | jq -r '.status // empty' 2>/dev/null)
-            DEPLOY_ID=$(echo "$MATCHING_DEPLOY" | jq -r '.id // empty' 2>/dev/null)
-            MATCHED_COMMIT=$(echo "$MATCHING_DEPLOY" | jq -r '.commit // empty' 2>/dev/null)
-          fi
+          # Search through deployments for one matching our commit - extract status and ID directly
+          DEPLOY_STATUS=$(echo "$DEPLOY_RESPONSE" | jq -r --arg commit "$target_commit_hash" '.[] | select(.deploy.commit.id? and (.deploy.commit.id | startswith($commit))) | .deploy.status // empty' 2>/dev/null | head -1)
+          DEPLOY_ID=$(echo "$DEPLOY_RESPONSE" | jq -r --arg commit "$target_commit_hash" '.[] | select(.deploy.commit.id? and (.deploy.commit.id | startswith($commit))) | .deploy.id // empty' 2>/dev/null | head -1)
+          MATCHED_COMMIT=$(echo "$DEPLOY_RESPONSE" | jq -r --arg commit "$target_commit_hash" '.[] | select(.deploy.commit.id? and (.deploy.commit.id | startswith($commit))) | .deploy.commit.id // empty' 2>/dev/null | head -1)
 
           # Debug: Show what we found
           if [ "${DEBUG_RENDER:-}" = "1" ]; then
             echo "   🐛 Looking for commit starting with: $target_commit_hash"
-            echo "   🐛 Found matching deploy: $MATCHING_DEPLOY"
+            echo "   🐛 Found status: '$DEPLOY_STATUS', ID: '$DEPLOY_ID', matched commit: '$MATCHED_COMMIT'"
             ALL_COMMITS=$(echo "$DEPLOY_RESPONSE" | jq -r '.[] | .deploy.commit.id // "no-commit"' 2>/dev/null)
             echo "   🐛 All deployment commits:"
             echo "$ALL_COMMITS" | sed 's/^/     /'
+
+            # Show all deployment statuses for debugging
+            echo "   🐛 All deployment statuses:"
+            echo "$DEPLOY_RESPONSE" | jq -r '.[] | "     \(.deploy.id // "no-id"): \(.deploy.status // "no-status") (\(.deploy.commit.id // "no-commit"))"' 2>/dev/null
           fi
         else
           # Fallback: look for commit hash in the response (simplified)
