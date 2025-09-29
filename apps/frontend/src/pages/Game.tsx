@@ -299,7 +299,18 @@ const Game: React.FC = () => {
         }
       })
       setMovesMadeThisTurn([])
-      setUsedDice(usedDice.map(() => false)) // Reset all dice to unused
+
+      // Reset dice usage properly based on dice type
+      if (game.dice && game.dice.length === 2) {
+        const isDoubles = game.dice[0] === game.dice[1]
+        if (isDoubles) {
+          setUsedDice([false, false, false, false]) // Reset doubles
+        } else {
+          setUsedDice([false, false]) // Reset regular dice
+        }
+      } else {
+        setUsedDice([])
+      }
     }
   }
 
@@ -329,6 +340,11 @@ const Game: React.FC = () => {
     console.log('🎲 Available dice values:', availableDiceValues)
     if (availableDiceValues.length === 0) {
       console.log('❌ No available dice values')
+      // If we have moves made this turn, clicking when no dice available should reset
+      if (movesMadeThisTurn.length > 0) {
+        console.log('🔄 Resetting moves - clicked with no available dice')
+        resetMovesThisTurn()
+      }
       return
     }
 
@@ -344,6 +360,12 @@ const Game: React.FC = () => {
     if (!point || point[currentPlayerIndex] === 0) {
       console.log('❌ No checkers for current player at this point')
       console.log('💡 Try clicking on points:', pointsWithMyCheckers.map(p => p.index).join(', '))
+
+      // If we have moves made this turn, clicking on opponent/empty point should reset
+      if (movesMadeThisTurn.length > 0) {
+        console.log('🔄 Resetting moves - clicked on opponent/empty point')
+        resetMovesThisTurn()
+      }
       return
     }
 
@@ -483,30 +505,32 @@ const Game: React.FC = () => {
     }
   }
 
-  const handleRollDice = () => {
-    if (gameId) {
-      // If we have moves made this turn, reset them first
+  const handleDiceClick = () => {
+    if (gameId && isCurrentPlayer) {
+      // If we have moves made this turn, reset them
       if (movesMadeThisTurn.length > 0 && !turnSubmitted) {
-        console.log('🔄 Resetting moves before rolling dice')
+        console.log('🔄 Resetting moves due to dice click')
         resetMovesThisTurn()
+        return
       }
 
-      // Only roll dice if turn not submitted
-      if (!turnSubmitted) {
+      // Only roll dice if no moves made, turn not submitted, and not currently rolling
+      if (!isRollingDice && !turnSubmitted) {
         setIsRollingDice(true);
         socketService.rollDice(gameId);
       }
     }
   };
 
-  const handleSubmitMoves = () => {
+  const handleSubmitMoves = async () => {
     if (!gameId || movesMadeThisTurn.length === 0 || turnSubmitted) return
 
     console.log('📡 Submitting moves:', movesMadeThisTurn)
     setTurnSubmitted(true)
 
-    // Send each move to server in sequence
-    movesMadeThisTurn.forEach((move, index) => {
+    // Send moves one at a time with delay to prevent race conditions
+    for (let i = 0; i < movesMadeThisTurn.length; i++) {
+      const move = movesMadeThisTurn[i]
       const moveData = {
         from: move.from,
         to: move.to
@@ -516,9 +540,14 @@ const Game: React.FC = () => {
       const moveId = `${move.from}-${move.to}`
       pendingOptimisticMoves.current.add(moveId)
 
-      console.log(`📡 Sending move ${index + 1}/${movesMadeThisTurn.length}:`, moveData)
+      console.log(`📡 Sending move ${i + 1}/${movesMadeThisTurn.length}:`, moveData)
       socketService.makeMove(gameId, moveData)
-    })
+
+      // Add small delay between moves to prevent race conditions
+      if (i < movesMadeThisTurn.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+    }
   };
 
   // Comprehensive client-side move validation
@@ -888,12 +917,6 @@ const Game: React.FC = () => {
     if (!game) return null
 
     const isCurrentPlayer = Array.isArray(game.players) && typeof game.currentPlayer === 'number' && game.players[game.currentPlayer]?.userId === user?.id
-    const opponentJoined = Array.isArray(game.players) 
-      && game.players.length >= 2 
-      && typeof (game.players[0]?.userId) === 'string' && game.players[0]!.userId!.length > 0
-      && typeof (game.players[1]?.userId) === 'string' && game.players[1]!.userId!.length > 0
-      && game.players[0]!.userId !== game.players[1]!.userId
-    const canRollDice = isCurrentPlayer && !isRollingDice && opponentJoined && !turnSubmitted
 
     return (
       <div className="bg-gradient-to-br from-amber-50 via-amber-100 to-amber-200 p-0.5 sm:p-4 lg:p-6 rounded-lg sm:rounded-2xl shadow-2xl w-full mx-auto max-w-full overflow-hidden">
@@ -935,10 +958,24 @@ const Game: React.FC = () => {
                   {/* Dice display */}
                   {game?.dice && game.dice.length === 2 && hasRolledThisTurn && !turnSubmitted ? (
                     <div className="flex flex-col gap-0 sm:gap-1 z-20 items-center">
-                      <div className="scale-75 sm:scale-100">
+                      <div
+                        className="scale-75 sm:scale-100 cursor-pointer"
+                        onClick={handleDiceClick}
+                        onTouchEnd={(e) => {
+                          e.preventDefault()
+                          handleDiceClick()
+                        }}
+                      >
                         <Dice3D value={game.dice[0]} size="xs" isRolling={isRollingDice} color={game.currentPlayer === 0 ? 'white' : 'black'} />
                       </div>
-                      <div className="scale-75 sm:scale-100">
+                      <div
+                        className="scale-75 sm:scale-100 cursor-pointer"
+                        onClick={handleDiceClick}
+                        onTouchEnd={(e) => {
+                          e.preventDefault()
+                          handleDiceClick()
+                        }}
+                      >
                         <Dice3D value={game.dice[1]} size="xs" isRolling={isRollingDice} color={game.currentPlayer === 0 ? 'white' : 'black'} />
                       </div>
                     </div>
@@ -954,33 +991,21 @@ const Game: React.FC = () => {
                   ) : (
                     <div className="flex flex-col gap-0 sm:gap-1 z-20 items-center">
                       <div
-                        className={`scale-75 sm:scale-100 ${canRollDice ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
-                        onClick={() => {
-                          if (canRollDice) {
-                            handleRollDice();
-                          }
-                        }}
+                        className={`scale-75 sm:scale-100 ${isCurrentPlayer ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
+                        onClick={handleDiceClick}
                         onTouchEnd={(e) => {
                           e.preventDefault()
-                          if (canRollDice) {
-                            handleRollDice();
-                          }
+                          handleDiceClick()
                         }}
                       >
                         <Dice3D value={1} size="xs" isRolling={isRollingDice} color={game.currentPlayer === 0 ? 'white' : 'black'} showR={true} />
                       </div>
                       <div
-                        className={`scale-75 sm:scale-100 ${canRollDice ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
-                        onClick={() => {
-                          if (canRollDice) {
-                            handleRollDice();
-                          }
-                        }}
+                        className={`scale-75 sm:scale-100 ${isCurrentPlayer ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
+                        onClick={handleDiceClick}
                         onTouchEnd={(e) => {
                           e.preventDefault()
-                          if (canRollDice) {
-                            handleRollDice();
-                          }
+                          handleDiceClick()
                         }}
                       >
                         <Dice3D value={1} size="xs" isRolling={isRollingDice} color={game.currentPlayer === 0 ? 'white' : 'black'} showR={true} />

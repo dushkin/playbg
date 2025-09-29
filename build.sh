@@ -434,21 +434,31 @@ if [ -n "${RENDER_API_KEY:-}" ]; then
         fi
 
         # Extract status from the latest deployment
-        # The Render API returns an array, but sometimes the structure varies
+        # The Render API returns: [{"deploy":{"id":"...", "status":"...", ...}}]
         if command -v jq >/dev/null 2>&1; then
-          # Try different JSON paths for status
-          DEPLOY_STATUS=$(echo "$DEPLOY_RESPONSE" | jq -r '.[0].status // .status // empty' 2>/dev/null)
-          DEPLOY_ID=$(echo "$DEPLOY_RESPONSE" | jq -r '.[0].id // .id // empty' 2>/dev/null)
+          # Try the correct nested structure first
+          DEPLOY_STATUS=$(echo "$DEPLOY_RESPONSE" | jq -r '.[0].deploy.status // .[0].status // .status // empty' 2>/dev/null)
+          DEPLOY_ID=$(echo "$DEPLOY_RESPONSE" | jq -r '.[0].deploy.id // .[0].id // .id // empty' 2>/dev/null)
 
-          # If still empty, try accessing the data differently
-          if [ -z "$DEPLOY_STATUS" ] || [ "$DEPLOY_STATUS" = "null" ]; then
-            DEPLOY_STATUS=$(echo "$DEPLOY_RESPONSE" | jq -r 'if type == "array" then .[0].status else .status end' 2>/dev/null)
-            DEPLOY_ID=$(echo "$DEPLOY_RESPONSE" | jq -r 'if type == "array" then .[0].id else .id end' 2>/dev/null)
+          # Debug: Show what paths we're trying
+          if [ "${DEBUG_RENDER:-}" = "1" ]; then
+            echo "   🐛 Trying jq paths:"
+            echo "     .[0].deploy.status = $(echo "$DEPLOY_RESPONSE" | jq -r '.[0].deploy.status // "null"' 2>/dev/null)"
+            echo "     .[0].status = $(echo "$DEPLOY_RESPONSE" | jq -r '.[0].status // "null"' 2>/dev/null)"
           fi
         else
-          # Fallback JSON parsing without jq (improved regex)
-          DEPLOY_STATUS=$(echo "$DEPLOY_RESPONSE" | sed -n 's/.*"status"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
-          DEPLOY_ID=$(echo "$DEPLOY_RESPONSE" | sed -n 's/.*"id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
+          # Fallback JSON parsing without jq - target specific deploy fields
+          # Look for "deploy":{"id":"..." pattern first (after deploy opening brace, before any nested objects)
+          DEPLOY_ID=$(echo "$DEPLOY_RESPONSE" | sed -n 's/.*"deploy"[[:space:]]*:[[:space:]]*{[^{}]*"id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
+
+          # Look for status within the deploy object (same pattern - before any nested objects)
+          DEPLOY_STATUS=$(echo "$DEPLOY_RESPONSE" | sed -n 's/.*"deploy"[[:space:]]*:[[:space:]]*{[^{}]*"status"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
+
+          # If nested parsing failed, try flat structure
+          if [ -z "$DEPLOY_STATUS" ]; then
+            DEPLOY_STATUS=$(echo "$DEPLOY_RESPONSE" | sed -n 's/.*"status"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
+            DEPLOY_ID=$(echo "$DEPLOY_RESPONSE" | sed -n 's/.*"id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
+          fi
         fi
 
         # Debug: Show parsed values
