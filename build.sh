@@ -13,6 +13,9 @@
 #   export RENDER_API_KEY="your_render_api_key"
 #   export RENDER_BACKEND_SERVICE_ID="srv-xxxxxxxxxxxxxxxxxxxxx"
 #
+# Optional debugging (shows raw API responses):
+#   export DEBUG_RENDER=1
+#
 # Get your API key from: https://dashboard.render.com/u/settings/api-keys
 # Get service ID from service URL: https://dashboard.render.com/web/srv-xxxxx...
 #
@@ -344,27 +347,119 @@ if [ -n "${RENDER_API_KEY:-}" ]; then
       echo "   Checking deployment status every ${check_interval}s (max ${max_wait_time}s)..."
 
       while [ $elapsed_time -lt $max_wait_time ]; do
-        # Get latest deployment status
-        DEPLOY_RESPONSE=$(curl -s -H "Authorization: Bearer $RENDER_API_KEY" \
+        # Get latest deployment status (try multiple API patterns)
+        DEPLOY_RESPONSE=""
+
+        # Try the main endpoint first
+        DEPLOY_RESPONSE=$(curl -s -w "%{http_code}" -H "Authorization: Bearer $RENDER_API_KEY" \
           "https://api.render.com/v1/services/$service_id/deploys?limit=1" 2>/dev/null)
+
+        # Extract HTTP status code (last 3 characters)
+        HTTP_STATUS="${DEPLOY_RESPONSE: -3}"
+        DEPLOY_RESPONSE="${DEPLOY_RESPONSE%???}"  # Remove status code from response
+
+        # If first endpoint failed, try alternative patterns
+        if [ "$HTTP_STATUS" != "200" ]; then
+          if [ "${DEBUG_RENDER:-}" = "1" ]; then
+            echo "   🐛 First endpoint returned HTTP $HTTP_STATUS, trying alternatives..."
+          fi
+
+          # Try without v1 prefix
+          DEPLOY_RESPONSE=$(curl -s -w "%{http_code}" -H "Authorization: Bearer $RENDER_API_KEY" \
+            "https://api.render.com/services/$service_id/deploys?limit=1" 2>/dev/null)
+          HTTP_STATUS="${DEPLOY_RESPONSE: -3}"
+          DEPLOY_RESPONSE="${DEPLOY_RESPONSE%???}"
+
+          # If still failing, try the service endpoint to check connectivity
+          if [ "$HTTP_STATUS" != "200" ]; then
+            if [ "${DEBUG_RENDER:-}" = "1" ]; then
+              echo "   🐛 Second endpoint returned HTTP $HTTP_STATUS, testing service connectivity..."
+            fi
+            SERVICE_RESPONSE=$(curl -s -w "%{http_code}" -H "Authorization: Bearer $RENDER_API_KEY" \
+              "https://api.render.com/v1/services/$service_id" 2>/dev/null)
+            SERVICE_HTTP_STATUS="${SERVICE_RESPONSE: -3}"
+
+            if [ "$SERVICE_HTTP_STATUS" != "200" ]; then
+              echo "   ❌ Cannot access service (HTTP $SERVICE_HTTP_STATUS). Check service ID and API key."
+              break
+            fi
+          fi
+        fi
 
         if [ $? -ne 0 ]; then
           echo "   ❌ Failed to check deployment status (network error)"
           break
         fi
 
+        # Check HTTP status code
+        if [ "$HTTP_STATUS" != "200" ]; then
+          case "$HTTP_STATUS" in
+            "401")
+              echo "   ❌ Authentication failed (HTTP 401). Check your RENDER_API_KEY."
+              break
+              ;;
+            "403")
+              echo "   ❌ Access forbidden (HTTP 403). Check API key permissions."
+              break
+              ;;
+            "404")
+              echo "   ❌ Service not found (HTTP 404). Check your RENDER_BACKEND_SERVICE_ID."
+              break
+              ;;
+            *)
+              echo "   ❌ API request failed (HTTP $HTTP_STATUS)"
+              if [ "${DEBUG_RENDER:-}" = "1" ]; then
+                echo "   🐛 Error response: $(echo "$DEPLOY_RESPONSE" | head -c 200)..."
+              fi
+              break
+              ;;
+          esac
+        fi
+
+        # Debug: Show raw response (first 200 chars)
+        if [ "${DEBUG_RENDER:-}" = "1" ]; then
+          echo "   🐛 Raw API response (HTTP $HTTP_STATUS): $(echo "$DEPLOY_RESPONSE" | head -c 200)..."
+        fi
+
+        # Check if response is empty or error
+        if [ -z "$DEPLOY_RESPONSE" ]; then
+          echo "   ⚠️  Empty response from Render API"
+          break
+        fi
+
+        # Check for API error in response
+        if echo "$DEPLOY_RESPONSE" | grep -q '"error"'; then
+          echo "   ❌ API Error: $(echo "$DEPLOY_RESPONSE" | head -c 200)"
+          break
+        fi
+
         # Extract status from the latest deployment
+        # The Render API returns an array, but sometimes the structure varies
         if command -v jq >/dev/null 2>&1; then
-          DEPLOY_STATUS=$(echo "$DEPLOY_RESPONSE" | jq -r '.[0].status' 2>/dev/null)
-          DEPLOY_ID=$(echo "$DEPLOY_RESPONSE" | jq -r '.[0].id' 2>/dev/null)
+          # Try different JSON paths for status
+          DEPLOY_STATUS=$(echo "$DEPLOY_RESPONSE" | jq -r '.[0].status // .status // empty' 2>/dev/null)
+          DEPLOY_ID=$(echo "$DEPLOY_RESPONSE" | jq -r '.[0].id // .id // empty' 2>/dev/null)
+
+          # If still empty, try accessing the data differently
+          if [ -z "$DEPLOY_STATUS" ] || [ "$DEPLOY_STATUS" = "null" ]; then
+            DEPLOY_STATUS=$(echo "$DEPLOY_RESPONSE" | jq -r 'if type == "array" then .[0].status else .status end' 2>/dev/null)
+            DEPLOY_ID=$(echo "$DEPLOY_RESPONSE" | jq -r 'if type == "array" then .[0].id else .id end' 2>/dev/null)
+          fi
         else
-          # Fallback JSON parsing without jq (basic regex)
+          # Fallback JSON parsing without jq (improved regex)
           DEPLOY_STATUS=$(echo "$DEPLOY_RESPONSE" | sed -n 's/.*"status"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
           DEPLOY_ID=$(echo "$DEPLOY_RESPONSE" | sed -n 's/.*"id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
         fi
 
+        # Debug: Show parsed values
+        if [ "${DEBUG_RENDER:-}" = "1" ]; then
+          echo "   🐛 Parsed status: '$DEPLOY_STATUS', ID: '$DEPLOY_ID'"
+        fi
+
         if [ "$DEPLOY_STATUS" = "null" ] || [ -z "$DEPLOY_STATUS" ]; then
-          echo "   ⚠️  Could not parse deployment status"
+          echo "   ⚠️  Could not parse deployment status from response"
+          echo "   💡 Try setting DEBUG_RENDER=1 to see raw API response"
+          echo "   💡 Response preview: $(echo "$DEPLOY_RESPONSE" | head -c 100)..."
           break
         fi
 
