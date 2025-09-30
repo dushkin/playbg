@@ -174,11 +174,11 @@ const Game: React.FC = () => {
             if (!prevGame) return null;
 
             const ourIndex = (prevGame.players || []).findIndex(p => p.userId === user?.id);
-            let nextDice = data.state?.dice || prevGame.dice;
+            // Trust server's dice state - it will be null when turn ends
+            let nextDice = data.state?.dice !== undefined ? data.state.dice : prevGame.dice;
 
-            // If opponent just moved and it's now our turn, force dice to null until we roll
+            // If opponent just moved and it's now our turn, reset our turn state
             if (!isOurMove && data.state?.currentPlayer === ourIndex) {
-              nextDice = null as any;
               // Reset turn state when it becomes our turn
               setHasRolledThisTurn(false);
               setTurnSubmitted(false);
@@ -1109,36 +1109,12 @@ const Game: React.FC = () => {
               </div>
               
               {/* Center bar with dice */}
-              <div className="w-6 sm:w-10 lg:w-12 xl:w-14 flex flex-col items-center justify-between px-0.5 sm:px-1 flex-shrink-0">
+              <div className="w-6 sm:w-10 lg:w-12 xl:w-14 flex flex-col items-center justify-center px-0.5 sm:px-1 flex-shrink-0">
                 <div className="
                   bg-gradient-to-b from-amber-800 to-amber-900 w-full h-full rounded-sm sm:rounded-lg shadow-inner
-                  border border-amber-700 sm:border-2 flex flex-col items-center justify-between
-                  relative overflow-hidden py-1 sm:py-2
+                  border border-amber-700 sm:border-2 flex flex-col items-center justify-center
+                  relative overflow-hidden
                 ">
-                  {/* Top bar - Player 0 (white) captured checkers */}
-                  <div className="flex flex-col items-center gap-0.5 w-full z-10">
-                    {game?.board.bar[0] > 0 && Array.from({ length: Math.min(game.board.bar[0], 5) }).map((_, idx) => (
-                      <div
-                        key={`bar-p0-${idx}`}
-                        className={`w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 rounded-full ${
-                          isCurrentPlayer && game.currentPlayer === 0 ? 'cursor-pointer hover:scale-110' : 'cursor-default'
-                        }`}
-                        style={{
-                          background: 'radial-gradient(circle at 30% 30%, #ffffff, #f8f9fa 40%, #e5e7eb 70%, #d1d5db)',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.25), inset 0 1px 2px rgba(255,255,255,0.4)'
-                        }}
-                        onClick={handleBarClick}
-                        onTouchEnd={(e) => {
-                          e.preventDefault()
-                          handleBarClick()
-                        }}
-                      />
-                    ))}
-                    {game?.board.bar[0] > 5 && (
-                      <div className="text-white text-xs font-bold">{game.board.bar[0]}</div>
-                    )}
-                  </div>
-
                   {/* Dice display */}
                   {game?.dice && game.dice.length === 2 && hasRolledThisTurn && !turnSubmitted ? (
                     <div className="flex flex-col gap-0 sm:gap-1 z-20 items-center">
@@ -1197,30 +1173,6 @@ const Game: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Bottom bar - Player 1 (black) captured checkers */}
-                  <div className="flex flex-col items-center gap-0.5 w-full z-10">
-                    {game?.board.bar[1] > 0 && Array.from({ length: Math.min(game.board.bar[1], 5) }).map((_, idx) => (
-                      <div
-                        key={`bar-p1-${idx}`}
-                        className={`w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 rounded-full ${
-                          isCurrentPlayer && game.currentPlayer === 1 ? 'cursor-pointer hover:scale-110' : 'cursor-default'
-                        }`}
-                        style={{
-                          background: 'radial-gradient(circle at 30% 30%, #1f2937, #374151 40%, #4b5563 70%, #6b7280)',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.25), inset 0 1px 2px rgba(255,255,255,0.2)'
-                        }}
-                        onClick={handleBarClick}
-                        onTouchEnd={(e) => {
-                          e.preventDefault()
-                          handleBarClick()
-                        }}
-                      />
-                    ))}
-                    {game?.board.bar[1] > 5 && (
-                      <div className="text-white text-xs font-bold">{game.board.bar[1]}</div>
-                    )}
-                  </div>
-
                   {/* Wood grain effect */}
                   <div className="absolute inset-0 opacity-20 pointer-events-none z-0">
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-600 to-transparent transform -skew-y-12" />
@@ -1239,9 +1191,61 @@ const Game: React.FC = () => {
               </div>
             </div>
             
-            {/* Center divider */}
-            <div className="h-2 sm:h-4 lg:h-6 bg-gradient-to-r from-amber-800 via-amber-700 to-amber-800 my-1 sm:my-2 rounded shadow-inner relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-600 to-transparent opacity-30" />
+            {/* Center divider with bar checkers */}
+            <div className="h-6 sm:h-8 lg:h-10 bg-gradient-to-r from-amber-800 via-amber-700 to-amber-800 my-1 sm:my-2 rounded shadow-inner relative overflow-visible flex items-center justify-center gap-2">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-600 to-transparent opacity-30 pointer-events-none" />
+
+              {/* Player 0 (white) bar checkers - left side */}
+              <div className="flex flex-row items-center gap-0.5 z-10">
+                {game?.board.bar[0] > 0 && Array.from({ length: Math.min(game.board.bar[0], 5) }).map((_, idx) => (
+                  <div
+                    key={`bar-horizontal-p0-${idx}`}
+                    className={`w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 rounded-full ${
+                      isCurrentPlayer && game.currentPlayer === 0 ? 'cursor-pointer hover:scale-110 ring-2 ring-blue-400 ring-opacity-50' : 'cursor-default'
+                    }`}
+                    style={{
+                      background: 'radial-gradient(circle at 30% 30%, #ffffff, #f8f9fa 40%, #e5e7eb 70%, #d1d5db)',
+                      boxShadow: '0 3px 6px rgba(0,0,0,0.3), inset 0 1px 2px rgba(255,255,255,0.4)'
+                    }}
+                    onClick={handleBarClick}
+                    onTouchEnd={(e) => {
+                      e.preventDefault()
+                      handleBarClick()
+                    }}
+                  />
+                ))}
+                {game?.board.bar[0] > 5 && (
+                  <div className="text-white text-xs sm:text-sm font-bold bg-amber-900 rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center">
+                    {game.board.bar[0]}
+                  </div>
+                )}
+              </div>
+
+              {/* Player 1 (black) bar checkers - right side */}
+              <div className="flex flex-row items-center gap-0.5 z-10">
+                {game?.board.bar[1] > 0 && Array.from({ length: Math.min(game.board.bar[1], 5) }).map((_, idx) => (
+                  <div
+                    key={`bar-horizontal-p1-${idx}`}
+                    className={`w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 rounded-full ${
+                      isCurrentPlayer && game.currentPlayer === 1 ? 'cursor-pointer hover:scale-110 ring-2 ring-blue-400 ring-opacity-50' : 'cursor-default'
+                    }`}
+                    style={{
+                      background: 'radial-gradient(circle at 30% 30%, #1f2937, #374151 40%, #4b5563 70%, #6b7280)',
+                      boxShadow: '0 3px 6px rgba(0,0,0,0.3), inset 0 1px 2px rgba(255,255,255,0.2)'
+                    }}
+                    onClick={handleBarClick}
+                    onTouchEnd={(e) => {
+                      e.preventDefault()
+                      handleBarClick()
+                    }}
+                  />
+                ))}
+                {game?.board.bar[1] > 5 && (
+                  <div className="text-white text-xs sm:text-sm font-bold bg-amber-900 rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center">
+                    {game.board.bar[1]}
+                  </div>
+                )}
+              </div>
             </div>
             
             {/* Bottom half of board */}
@@ -1256,60 +1260,12 @@ const Game: React.FC = () => {
               </div>
               
               {/* Center bar - Bottom half */}
-              <div className="w-6 sm:w-10 lg:w-12 xl:w-14 flex flex-col items-center justify-between px-0.5 sm:px-1 flex-shrink-0">
+              <div className="w-6 sm:w-10 lg:w-12 xl:w-14 flex flex-col items-center justify-center px-0.5 sm:px-1 flex-shrink-0">
                 <div className="
                   bg-gradient-to-b from-amber-800 to-amber-900 w-full h-full rounded-sm sm:rounded-lg shadow-inner
-                  border border-amber-700 sm:border-2 flex flex-col items-center justify-between
-                  relative overflow-hidden py-1 sm:py-2
+                  border border-amber-700 sm:border-2 flex flex-col items-center justify-center
+                  relative overflow-hidden
                 ">
-                  {/* Top bar - Player 0 (white) captured checkers */}
-                  <div className="flex flex-col items-center gap-0.5 w-full z-10">
-                    {game?.board.bar[0] > 0 && Array.from({ length: Math.min(game.board.bar[0], 5) }).map((_, idx) => (
-                      <div
-                        key={`bar-bottom-p0-${idx}`}
-                        className={`w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 rounded-full ${
-                          isCurrentPlayer && game.currentPlayer === 0 ? 'cursor-pointer hover:scale-110' : 'cursor-default'
-                        }`}
-                        style={{
-                          background: 'radial-gradient(circle at 30% 30%, #ffffff, #f8f9fa 40%, #e5e7eb 70%, #d1d5db)',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.25), inset 0 1px 2px rgba(255,255,255,0.4)'
-                        }}
-                        onClick={handleBarClick}
-                        onTouchEnd={(e) => {
-                          e.preventDefault()
-                          handleBarClick()
-                        }}
-                      />
-                    ))}
-                    {game?.board.bar[0] > 5 && (
-                      <div className="text-white text-xs font-bold">{game.board.bar[0]}</div>
-                    )}
-                  </div>
-
-                  {/* Bottom bar - Player 1 (black) captured checkers */}
-                  <div className="flex flex-col-reverse items-center gap-0.5 w-full z-10">
-                    {game?.board.bar[1] > 0 && Array.from({ length: Math.min(game.board.bar[1], 5) }).map((_, idx) => (
-                      <div
-                        key={`bar-bottom-p1-${idx}`}
-                        className={`w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 rounded-full ${
-                          isCurrentPlayer && game.currentPlayer === 1 ? 'cursor-pointer hover:scale-110' : 'cursor-default'
-                        }`}
-                        style={{
-                          background: 'radial-gradient(circle at 30% 30%, #1f2937, #374151 40%, #4b5563 70%, #6b7280)',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.25), inset 0 1px 2px rgba(255,255,255,0.2)'
-                        }}
-                        onClick={handleBarClick}
-                        onTouchEnd={(e) => {
-                          e.preventDefault()
-                          handleBarClick()
-                        }}
-                      />
-                    ))}
-                    {game?.board.bar[1] > 5 && (
-                      <div className="text-white text-xs font-bold">{game.board.bar[1]}</div>
-                    )}
-                  </div>
-
                   {/* Wood grain effect */}
                   <div className="absolute inset-0 opacity-20 pointer-events-none z-0">
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-600 to-transparent transform -skew-y-12" />
