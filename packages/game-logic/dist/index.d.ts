@@ -41,6 +41,15 @@ export declare class BackgammonEngine {
      * Get current player
      */
     getCurrentPlayer(): 0 | 1;
+    /**
+     * Check if current player has any valid moves
+     * Returns false when player cannot make any moves (e.g., blocked bar entry)
+     */
+    hasValidMoves(): boolean;
+    /**
+     * Force end turn (used when no moves are possible)
+     */
+    forceEndTurn(): void;
     private getBarMoves;
     private getBearOffMoves;
     private getRegularMoves;

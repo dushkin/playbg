@@ -253,6 +253,10 @@ export interface SocketEvents {
         gameId: string;
         message: string;
     };
+    'game:completed': {
+        gameId: string;
+        winner: string;
+    };
     'game:offer_double': {
         gameId: string;
     };

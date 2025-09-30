@@ -278,6 +278,7 @@ export interface SocketEvents {
   'game:move': { gameId: string; move: GameMove };
   'game:dice_roll': { gameId: string; dice: [number, number] };
   'game:chat': { gameId: string; message: string };
+  'game:completed': { gameId: string; winner: string };
   'game:offer_double': { gameId: string };
   'game:accept_double': { gameId: string };
   'game:decline_double': { gameId: string };

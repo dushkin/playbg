@@ -352,16 +352,38 @@ const Game: React.FC = () => {
         }
       };
 
+      const handleGameCompleted = (data: any) => {
+        if (data.gameId === gameId) {
+          console.log('🏆 [Socket] Game completed!', data);
+          setGame(prevGame => {
+            if (!prevGame) return null;
+            return {
+              ...prevGame,
+              gameState: GameStateEnum.FINISHED,
+              winner: data.winner,
+              endTime: data.timestamp,
+              board: data.state?.board || prevGame.board,
+              currentPlayer: data.state?.currentPlayer !== undefined ? data.state.currentPlayer : prevGame.currentPlayer,
+              dice: data.state?.dice !== undefined ? data.state.dice : prevGame.dice,
+            } as GameType;
+          });
+          // Navigate to dashboard after a short delay
+          setTimeout(() => checkForNextGameOrDashboard(), 3000);
+        }
+      };
+
       socket.on('game:joined', handleGameJoined);
       socket.on('game:dice_roll', handleDiceRoll);
       socket.on('game:move', handleGameMove);
       socket.on('game:player_joined', handlePlayerJoined);
+      socket.on('game:completed', handleGameCompleted);
 
       return () => {
         socket.off('game:joined', handleGameJoined);
         socket.off('game:dice_roll', handleDiceRoll);
         socket.off('game:move', handleGameMove);
         socket.off('game:player_joined', handlePlayerJoined);
+        socket.off('game:completed', handleGameCompleted);
         if (gameId) {
           socketService.leaveGame(gameId);
         }

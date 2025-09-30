@@ -346,6 +346,17 @@ export const setupSocketHandlers = (io: SocketIOServer): void => {
           timestamp: new Date()
         });
 
+        // Check if game completed and broadcast completion event
+        if ((stateUpdate.state as any)?.gameState === 'finished' && (stateUpdate.state as any)?.winner) {
+          io.to(`game:${gameId}`).emit('game:completed', {
+            gameId,
+            winner: (stateUpdate.state as any).winner,
+            state: stateUpdate.state,
+            timestamp: new Date()
+          });
+          logger.info(`Game ${gameId} completed! Winner: ${(stateUpdate.state as any).winner}`);
+        }
+
         logger.info(`${socket.username} made move in game ${gameId}`);
       } catch (error) {
         logger.error(`Game move error:`, error);

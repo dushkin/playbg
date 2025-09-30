@@ -227,6 +227,18 @@ export class GameStateManager {
       gameDoc.currentPlayer = currentPlayer;
       gameDoc.dice = currentDice;
 
+      // Check if game is over after this move
+      if (engine.isGameOver()) {
+        const winnerIndex = engine.getWinner();
+        if (winnerIndex !== null) {
+          const winnerUserId = gameDoc.players[winnerIndex].userId;
+          gameDoc.gameState = GameState.FINISHED;
+          gameDoc.winner = winnerUserId;
+          gameDoc.endTime = new Date();
+          logger.info(`Game ${gameId} completed! Winner: ${winnerUserId} (player ${winnerIndex})`);
+        }
+      }
+
       // Save with retry logic for version conflicts
       await this.saveGameWithRetry(gameDoc);
 
@@ -237,7 +249,7 @@ export class GameStateManager {
         dice: currentDice,
         moves: [...gameDoc.moves, move]
       };
-      
+
       await getRedisService().cacheGameState(gameId, newState);
       await getRedisService().updateGameSession(gameId, {
         state: newState,
@@ -250,7 +262,9 @@ export class GameStateManager {
         state: {
           board: updatedBoard,
           currentPlayer,
-          dice: currentDice
+          dice: currentDice,
+          gameState: gameDoc.gameState,
+          winner: gameDoc.winner
         } as any
       };
 
@@ -329,15 +343,22 @@ export class GameStateManager {
 
       // Roll dice using BackgammonEngine
       const dice = engine.rollDice();
-      
+
+      // Check if player has any valid moves after rolling
+      // If not (e.g., bar entry is blocked), automatically end the turn
+      if (!engine.hasValidMoves()) {
+        logger.info(`Player ${playerId} has no valid moves after rolling [${dice.join(', ')}] in game ${gameId}, ending turn automatically`);
+        engine.forceEndTurn();
+      }
+
       // Update cache
       const newState = {
         board: engine.getBoardState(),
         currentPlayer: engine.getCurrentPlayer(),
-        dice,
+        dice: engine.getCurrentDice(),
         moves: gameDoc.moves
       };
-      
+
       await getRedisService().cacheGameState(gameId, newState);
       await getRedisService().updateGameSession(gameId, {
         state: newState,
@@ -347,7 +368,7 @@ export class GameStateManager {
       const stateUpdate: GameStateUpdate = {
         gameId,
         state: {
-          dice,
+          dice: engine.getCurrentDice(),
           currentPlayer: engine.getCurrentPlayer(),
           board: engine.getBoardState()
         } as any

@@ -49,10 +49,15 @@ export class BackgammonEngine {
 
     const moves: GameMove[] = [];
     const playerIndex = this.currentPlayer;
-    
+
     // Check if player has checkers on the bar
     if (this.board.bar[playerIndex] > 0) {
-      return this.getBarMoves();
+      const barMoves = this.getBarMoves();
+      // If no bar moves available, turn should end automatically
+      if (barMoves.length === 0) {
+        return [];
+      }
+      return barMoves;
     }
 
     // Check bearing off moves
@@ -160,6 +165,21 @@ export class BackgammonEngine {
    */
   getCurrentPlayer(): 0 | 1 {
     return this.currentPlayer;
+  }
+
+  /**
+   * Check if current player has any valid moves
+   * Returns false when player cannot make any moves (e.g., blocked bar entry)
+   */
+  hasValidMoves(): boolean {
+    return this.getPossibleMoves().length > 0;
+  }
+
+  /**
+   * Force end turn (used when no moves are possible)
+   */
+  forceEndTurn(): void {
+    this.endTurn();
   }
 
   // Private helper methods
