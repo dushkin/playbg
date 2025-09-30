@@ -394,6 +394,139 @@ const Game: React.FC = () => {
     }
   }
 
+  const handleBarClick = () => {
+    console.log('🎯 Bar clicked')
+    if (!game || game.gameState !== GameStateEnum.IN_PROGRESS) {
+      console.log('❌ Game not in progress')
+      return
+    }
+
+    if (turnSubmitted) {
+      console.log('❌ Turn already submitted')
+      return
+    }
+
+    const currentPlayerIndex = (game.players || []).findIndex(p => p.userId === user?.id)
+    if (currentPlayerIndex !== game.currentPlayer) {
+      console.log('❌ Not current player turn')
+      return
+    }
+
+    // Check if player has checkers on bar
+    if (game.board.bar[currentPlayerIndex] === 0) {
+      console.log('❌ No checkers on bar')
+      return
+    }
+
+    if (availableDiceValues.length === 0) {
+      console.log('❌ No available dice values')
+      return
+    }
+
+    // Try to find a valid bar entry move
+    const isDoubles = game.dice && game.dice[0] === game.dice[1]
+    let bestMove: { from: number; to: number; diceValue: number } | null = null
+
+    for (const diceValue of availableDiceValues) {
+      const targetPoint = currentPlayerIndex === 0 ? 24 - diceValue : diceValue - 1
+
+      if (isValidBarMove(targetPoint, diceValue, currentPlayerIndex)) {
+        bestMove = { from: -1, to: targetPoint, diceValue }
+        console.log('✅ Found valid bar move:', bestMove)
+        break
+      }
+    }
+
+    if (bestMove && gameId) {
+      console.log('🚀 Making bar move locally:', bestMove)
+      executeOptimisticMove(bestMove, currentPlayerIndex, isDoubles)
+    } else {
+      console.log('❌ No valid bar move found')
+    }
+  }
+
+  const executeOptimisticMove = (
+    bestMove: { from: number; to: number; diceValue: number },
+    currentPlayerIndex: number,
+    isDoubles: boolean | null
+  ) => {
+    // Track this move for potential submission
+    setMovesMadeThisTurn(prev => [...prev, bestMove])
+
+    // Optimistic update: immediately update the UI
+    setGame(prevGame => {
+      if (!prevGame) return null
+
+      console.log('🎮 Optimistic update - Move type:',
+        bestMove.from === -1 ? 'Bar move' : bestMove.to === -1 ? 'Bear off' : 'Regular move')
+
+      const newBoard = { ...prevGame.board }
+      newBoard.points = prevGame.board.points.map(point => [...point])
+      newBoard.bar = [...prevGame.board.bar]
+      newBoard.off = [...prevGame.board.off]
+
+      const opponentIndex = 1 - currentPlayerIndex
+
+      if (bestMove.from === -1) {
+        // Bar move: move from bar to board
+        console.log('🎮 Bar move: moving to point', bestMove.to)
+        newBoard.bar[currentPlayerIndex]--
+
+        // Handle hitting opponent checker at destination
+        if (newBoard.points[bestMove.to][opponentIndex] === 1) {
+          newBoard.points[bestMove.to][opponentIndex] = 0
+          newBoard.bar[opponentIndex]++
+          console.log('🎮 Hit opponent checker, sent to bar')
+        }
+
+        newBoard.points[bestMove.to][currentPlayerIndex]++
+      } else if (bestMove.to === -1) {
+        // Bear off move: move from board to off
+        console.log('🎮 Bear off: removing from point', bestMove.from)
+        newBoard.points[bestMove.from][currentPlayerIndex]--
+        newBoard.off[currentPlayerIndex]++
+      } else {
+        // Regular move: move from one point to another
+        console.log('🎮 Regular move:', bestMove.from, '→', bestMove.to)
+        newBoard.points[bestMove.from][currentPlayerIndex]--
+
+        // Handle hitting opponent checker at destination
+        if (newBoard.points[bestMove.to][opponentIndex] === 1) {
+          newBoard.points[bestMove.to][opponentIndex] = 0
+          newBoard.bar[opponentIndex]++
+          console.log('🎮 Hit opponent checker, sent to bar')
+        }
+
+        newBoard.points[bestMove.to][currentPlayerIndex]++
+      }
+
+      return { ...prevGame, board: newBoard }
+    })
+
+    // Update dice usage optimistically
+    setUsedDice(prev => {
+      console.log('🎲 Before dice usage update:', prev)
+      const newUsed = [...prev]
+      if (isDoubles) {
+        // For doubles, mark first available die as used
+        const firstAvailable = newUsed.findIndex(used => !used)
+        console.log('🎲 First available die index:', firstAvailable)
+        if (firstAvailable !== -1) {
+          newUsed[firstAvailable] = true
+        }
+      } else {
+        // For regular dice, mark the appropriate die as used
+        if (bestMove.diceValue === game!.dice![0] && !newUsed[0]) {
+          newUsed[0] = true
+        } else if (bestMove.diceValue === game!.dice![1] && !newUsed[1]) {
+          newUsed[1] = true
+        }
+      }
+      console.log('🎲 After dice usage update:', newUsed)
+      return newUsed
+    })
+  }
+
   const handlePointClick = (pointIndex: number) => {
     console.log('🎯 Point clicked:', pointIndex)
     if (!game || game.gameState !== GameStateEnum.IN_PROGRESS) {
@@ -428,6 +561,13 @@ const Game: React.FC = () => {
       return
     }
 
+    // If player has checkers on bar, they must move from bar first
+    if (game.board.bar[currentPlayerIndex] > 0) {
+      console.log('❌ Must move checkers from bar first - use handleBarClick or click on bar')
+      handleBarClick()
+      return
+    }
+
     // Debug: Show all points with current player's checkers
     const pointsWithMyCheckers = game.board.points
       .map((point, index) => ({ index, checkers: point[currentPlayerIndex] }))
@@ -457,19 +597,6 @@ const Game: React.FC = () => {
 
     for (const diceValue of availableDiceValues) {
       let targetPoint: number
-
-      // Check if player has checkers on bar - must handle bar moves first
-      if (game.board.bar[currentPlayerIndex] > 0) {
-        // This is a bar move - calculate entry point
-        targetPoint = currentPlayerIndex === 0 ? 24 - diceValue : diceValue - 1
-
-        if (isValidBarMove(targetPoint, diceValue, currentPlayerIndex)) {
-          bestMove = { from: -1, to: targetPoint, diceValue } // from: -1 indicates bar move
-          console.log('✅ Found valid bar move:', bestMove)
-          break
-        }
-        continue // Skip regular moves when on bar
-      }
 
       // Regular move calculation
       if (currentPlayerIndex === 0) {
@@ -502,82 +629,7 @@ const Game: React.FC = () => {
 
     if (bestMove && gameId) {
       console.log('🚀 Making move locally:', bestMove)
-
-      // Track this move for potential submission
-      setMovesMadeThisTurn(prev => [...prev, bestMove])
-
-      // Optimistic update: immediately update the UI
-      setGame(prevGame => {
-        if (!prevGame) return null
-
-        console.log('🎮 Optimistic update - Move type:',
-          bestMove.from === -1 ? 'Bar move' : bestMove.to === -1 ? 'Bear off' : 'Regular move')
-
-        const newBoard = { ...prevGame.board }
-        newBoard.points = prevGame.board.points.map(point => [...point])
-        newBoard.bar = [...prevGame.board.bar]
-        newBoard.off = [...prevGame.board.off]
-
-        const opponentIndex = 1 - currentPlayerIndex
-
-        if (bestMove.from === -1) {
-          // Bar move: move from bar to board
-          console.log('🎮 Bar move: moving to point', bestMove.to)
-          newBoard.bar[currentPlayerIndex]--
-
-          // Handle hitting opponent checker at destination
-          if (newBoard.points[bestMove.to][opponentIndex] === 1) {
-            newBoard.points[bestMove.to][opponentIndex] = 0
-            newBoard.bar[opponentIndex]++
-            console.log('🎮 Hit opponent checker, sent to bar')
-          }
-
-          newBoard.points[bestMove.to][currentPlayerIndex]++
-        } else if (bestMove.to === -1) {
-          // Bear off move: move from board to off
-          console.log('🎮 Bear off: removing from point', bestMove.from)
-          newBoard.points[bestMove.from][currentPlayerIndex]--
-          newBoard.off[currentPlayerIndex]++
-        } else {
-          // Regular move: move from one point to another
-          console.log('🎮 Regular move:', bestMove.from, '→', bestMove.to)
-          newBoard.points[bestMove.from][currentPlayerIndex]--
-
-          // Handle hitting opponent checker at destination
-          if (newBoard.points[bestMove.to][opponentIndex] === 1) {
-            newBoard.points[bestMove.to][opponentIndex] = 0
-            newBoard.bar[opponentIndex]++
-            console.log('🎮 Hit opponent checker, sent to bar')
-          }
-
-          newBoard.points[bestMove.to][currentPlayerIndex]++
-        }
-
-        return { ...prevGame, board: newBoard }
-      })
-
-      // Update dice usage optimistically
-      setUsedDice(prev => {
-        console.log('🎲 Before dice usage update:', prev)
-        const newUsed = [...prev]
-        if (isDoubles) {
-          // For doubles, mark first available die as used
-          const firstAvailable = newUsed.findIndex(used => !used)
-          console.log('🎲 First available die index:', firstAvailable)
-          if (firstAvailable !== -1) {
-            newUsed[firstAvailable] = true
-          }
-        } else {
-          // For regular dice, mark the appropriate die as used
-          if (bestMove.diceValue === game.dice![0] && !newUsed[0]) {
-            newUsed[0] = true
-          } else if (bestMove.diceValue === game.dice![1] && !newUsed[1]) {
-            newUsed[1] = true
-          }
-        }
-        console.log('🎲 After dice usage update:', newUsed)
-        return newUsed
-      })
+      executeOptimisticMove(bestMove, currentPlayerIndex, isDoubles)
     } else if (!bestMove) {
       console.log('❌ No valid move found')
     } else if (!gameId) {
@@ -1057,12 +1109,35 @@ const Game: React.FC = () => {
               </div>
               
               {/* Center bar with dice */}
-              <div className="w-6 sm:w-10 lg:w-12 xl:w-14 flex flex-col items-center justify-center px-0.5 sm:px-1 flex-shrink-0">
+              <div className="w-6 sm:w-10 lg:w-12 xl:w-14 flex flex-col items-center justify-between px-0.5 sm:px-1 flex-shrink-0">
                 <div className="
                   bg-gradient-to-b from-amber-800 to-amber-900 w-full h-full rounded-sm sm:rounded-lg shadow-inner
-                  border border-amber-700 sm:border-2 flex flex-col items-center justify-center
-                  relative overflow-hidden
+                  border border-amber-700 sm:border-2 flex flex-col items-center justify-between
+                  relative overflow-hidden py-1 sm:py-2
                 ">
+                  {/* Top bar - Player 0 (white) captured checkers */}
+                  <div className="flex flex-col items-center gap-0.5 w-full z-10">
+                    {game?.board.bar[0] > 0 && Array.from({ length: Math.min(game.board.bar[0], 5) }).map((_, idx) => (
+                      <div
+                        key={`bar-p0-${idx}`}
+                        className={`w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 rounded-full ${
+                          isCurrentPlayer && game.currentPlayer === 0 ? 'cursor-pointer hover:scale-110' : 'cursor-default'
+                        }`}
+                        style={{
+                          background: 'radial-gradient(circle at 30% 30%, #ffffff, #f8f9fa 40%, #e5e7eb 70%, #d1d5db)',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.25), inset 0 1px 2px rgba(255,255,255,0.4)'
+                        }}
+                        onClick={handleBarClick}
+                        onTouchEnd={(e) => {
+                          e.preventDefault()
+                          handleBarClick()
+                        }}
+                      />
+                    ))}
+                    {game?.board.bar[0] > 5 && (
+                      <div className="text-white text-xs font-bold">{game.board.bar[0]}</div>
+                    )}
+                  </div>
 
                   {/* Dice display */}
                   {game?.dice && game.dice.length === 2 && hasRolledThisTurn && !turnSubmitted ? (
@@ -1122,8 +1197,32 @@ const Game: React.FC = () => {
                     </div>
                   )}
 
+                  {/* Bottom bar - Player 1 (black) captured checkers */}
+                  <div className="flex flex-col items-center gap-0.5 w-full z-10">
+                    {game?.board.bar[1] > 0 && Array.from({ length: Math.min(game.board.bar[1], 5) }).map((_, idx) => (
+                      <div
+                        key={`bar-p1-${idx}`}
+                        className={`w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 rounded-full ${
+                          isCurrentPlayer && game.currentPlayer === 1 ? 'cursor-pointer hover:scale-110' : 'cursor-default'
+                        }`}
+                        style={{
+                          background: 'radial-gradient(circle at 30% 30%, #1f2937, #374151 40%, #4b5563 70%, #6b7280)',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.25), inset 0 1px 2px rgba(255,255,255,0.2)'
+                        }}
+                        onClick={handleBarClick}
+                        onTouchEnd={(e) => {
+                          e.preventDefault()
+                          handleBarClick()
+                        }}
+                      />
+                    ))}
+                    {game?.board.bar[1] > 5 && (
+                      <div className="text-white text-xs font-bold">{game.board.bar[1]}</div>
+                    )}
+                  </div>
+
                   {/* Wood grain effect */}
-                  <div className="absolute inset-0 opacity-20">
+                  <div className="absolute inset-0 opacity-20 pointer-events-none z-0">
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-600 to-transparent transform -skew-y-12" />
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-600 to-transparent transform skew-y-12 translate-y-2 sm:translate-y-4" />
                   </div>
@@ -1156,15 +1255,63 @@ const Game: React.FC = () => {
                 ))}
               </div>
               
-              {/* Center bar */}
-              <div className="w-6 sm:w-10 lg:w-12 xl:w-14 flex flex-col items-center justify-center px-0.5 sm:px-1 flex-shrink-0">
+              {/* Center bar - Bottom half */}
+              <div className="w-6 sm:w-10 lg:w-12 xl:w-14 flex flex-col items-center justify-between px-0.5 sm:px-1 flex-shrink-0">
                 <div className="
                   bg-gradient-to-b from-amber-800 to-amber-900 w-full h-full rounded-sm sm:rounded-lg shadow-inner
-                  border border-amber-700 sm:border-2 flex flex-col items-center justify-center
-                  relative overflow-hidden
+                  border border-amber-700 sm:border-2 flex flex-col items-center justify-between
+                  relative overflow-hidden py-1 sm:py-2
                 ">
+                  {/* Top bar - Player 0 (white) captured checkers */}
+                  <div className="flex flex-col items-center gap-0.5 w-full z-10">
+                    {game?.board.bar[0] > 0 && Array.from({ length: Math.min(game.board.bar[0], 5) }).map((_, idx) => (
+                      <div
+                        key={`bar-bottom-p0-${idx}`}
+                        className={`w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 rounded-full ${
+                          isCurrentPlayer && game.currentPlayer === 0 ? 'cursor-pointer hover:scale-110' : 'cursor-default'
+                        }`}
+                        style={{
+                          background: 'radial-gradient(circle at 30% 30%, #ffffff, #f8f9fa 40%, #e5e7eb 70%, #d1d5db)',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.25), inset 0 1px 2px rgba(255,255,255,0.4)'
+                        }}
+                        onClick={handleBarClick}
+                        onTouchEnd={(e) => {
+                          e.preventDefault()
+                          handleBarClick()
+                        }}
+                      />
+                    ))}
+                    {game?.board.bar[0] > 5 && (
+                      <div className="text-white text-xs font-bold">{game.board.bar[0]}</div>
+                    )}
+                  </div>
+
+                  {/* Bottom bar - Player 1 (black) captured checkers */}
+                  <div className="flex flex-col-reverse items-center gap-0.5 w-full z-10">
+                    {game?.board.bar[1] > 0 && Array.from({ length: Math.min(game.board.bar[1], 5) }).map((_, idx) => (
+                      <div
+                        key={`bar-bottom-p1-${idx}`}
+                        className={`w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 rounded-full ${
+                          isCurrentPlayer && game.currentPlayer === 1 ? 'cursor-pointer hover:scale-110' : 'cursor-default'
+                        }`}
+                        style={{
+                          background: 'radial-gradient(circle at 30% 30%, #1f2937, #374151 40%, #4b5563 70%, #6b7280)',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.25), inset 0 1px 2px rgba(255,255,255,0.2)'
+                        }}
+                        onClick={handleBarClick}
+                        onTouchEnd={(e) => {
+                          e.preventDefault()
+                          handleBarClick()
+                        }}
+                      />
+                    ))}
+                    {game?.board.bar[1] > 5 && (
+                      <div className="text-white text-xs font-bold">{game.board.bar[1]}</div>
+                    )}
+                  </div>
+
                   {/* Wood grain effect */}
-                  <div className="absolute inset-0 opacity-20">
+                  <div className="absolute inset-0 opacity-20 pointer-events-none z-0">
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-600 to-transparent transform -skew-y-12" />
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-600 to-transparent transform skew-y-12 translate-y-2 sm:translate-y-4" />
                   </div>
