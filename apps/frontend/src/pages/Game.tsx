@@ -179,6 +179,13 @@ const Game: React.FC = () => {
             // If opponent just moved and it's now our turn, force dice to null until we roll
             if (!isOurMove && data.state?.currentPlayer === ourIndex) {
               nextDice = null as any;
+              // Reset turn state when it becomes our turn
+              setHasRolledThisTurn(false);
+              setTurnSubmitted(false);
+              setMovesMadeThisTurn([]);
+              setUsedDice([]);
+              setIsRollingDice(false);
+              console.log('🔄 Reset turn state - it\'s now our turn');
             }
 
             return {
@@ -591,6 +598,12 @@ const Game: React.FC = () => {
       usedDice
     })
 
+    // Prevent rolling dice if game is not in progress
+    if (game?.gameState !== GameStateEnum.IN_PROGRESS) {
+      console.log('🎲 ❌ Cannot roll dice: Game is not in progress')
+      return
+    }
+
     if (gameId && isCurrentPlayer) {
       // If we have moves made this turn, reset them
       if (movesMadeThisTurn.length > 0 && !turnSubmitted) {
@@ -599,13 +612,14 @@ const Game: React.FC = () => {
         resetMovesThisTurn()
       }
 
-      // Only roll dice if no moves made, turn not submitted, and not currently rolling
-      if (!isRollingDice && !turnSubmitted) {
+      // Only roll dice if not already rolled, turn not submitted, and not currently rolling
+      if (!hasRolledThisTurn && !isRollingDice && !turnSubmitted) {
         console.log('🎲 ✅ Rolling dice!')
         setIsRollingDice(true);
         socketService.rollDice(gameId);
       } else {
         console.log('🎲 ❌ Cannot roll dice:', {
+          hasRolledThisTurn,
           isRollingDice,
           turnSubmitted
         })

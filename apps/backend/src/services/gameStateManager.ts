@@ -316,6 +316,17 @@ export class GameStateManager {
         throw new Error('Player not in game');
       }
 
+      // Validate game is in progress
+      if (gameDoc.gameState !== 'in_progress') {
+        throw new Error('Cannot roll dice - game is not in progress');
+      }
+
+      // Validate it's the player's turn
+      const playerIndex = gameDoc.players.findIndex(p => p.userId === playerId);
+      if (playerIndex !== engine.getCurrentPlayer()) {
+        throw new Error('Not your turn');
+      }
+
       // Roll dice using BackgammonEngine
       const dice = engine.rollDice();
       
