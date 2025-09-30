@@ -224,6 +224,43 @@ const Game: React.FC = () => {
                   newUsed[1] = true;
                 }
               }
+
+              // Check if all dice are now used after this move
+              const allDiceUsed = newUsed.every(used => used);
+              console.log('🎲 Dice usage after opponent move:', { newUsed, allDiceUsed, isDoubles });
+
+              // If all dice are used, the turn should switch
+              if (allDiceUsed) {
+                const ourIndex = (game.players || []).findIndex(p => p.userId === user?.id);
+                console.log('✅ All opponent dice used, turn should switch to us', { ourIndex, currentPlayer: game.currentPlayer });
+
+                // Force game state update to switch turns
+                setTimeout(() => {
+                  setGame(prevGame => {
+                    if (!prevGame) return null;
+
+                    // Only switch if server hasn't already switched
+                    if (prevGame.currentPlayer !== ourIndex) {
+                      console.log('🔄 Client-side turn correction: switching currentPlayer from', prevGame.currentPlayer, 'to', ourIndex);
+                      return {
+                        ...prevGame,
+                        currentPlayer: ourIndex as 0 | 1,
+                        dice: null, // Clear dice for new turn
+                      };
+                    }
+                    return prevGame;
+                  });
+
+                  // Reset turn state
+                  setHasRolledThisTurn(false);
+                  setTurnSubmitted(false);
+                  setMovesMadeThisTurn([]);
+                  setUsedDice([]);
+                  setIsRollingDice(false);
+                  console.log('🔄 Reset turn state after client-side turn correction');
+                }, 100); // Small delay to let server update arrive first if it's coming
+              }
+
               return newUsed;
             });
           }
