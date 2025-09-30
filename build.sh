@@ -197,8 +197,9 @@ else
   CHANGED_FILES=$(git diff --name-only | tr '\n' ', ' | sed 's/,$//')
 
   # Get diff excluding version/build files to focus on meaningful changes
-  MEANINGFUL_DIFF=$(git diff -- ':!package.json' ':!package-lock.json' ':!apps/frontend/android/app/build.gradle' | head -n 150)
-  VERSION_DIFF=$(git diff -- 'package.json' 'apps/frontend/android/app/build.gradle' | head -n 50)
+  # Limit diff size more aggressively to prevent "Argument list too long" error
+  MEANINGFUL_DIFF=$(git diff -- ':!package.json' ':!package-lock.json' ':!apps/frontend/android/app/build.gradle' | head -n 80)
+  VERSION_DIFF=$(git diff -- 'package.json' 'apps/frontend/android/app/build.gradle' | head -n 20)
 
   # Check if we have meaningful changes beyond version bumps
   if [ -n "$MEANINGFUL_DIFF" ]; then
@@ -210,18 +211,35 @@ else
   fi
 
   # Create the JSON payload for the Gemini API
-  JSON_PAYLOAD=$(jq -n --arg changes "$CHANGES_SUMMARY" --arg priority "$PRIORITY_INSTRUCTION" \
+  # Write to temp file to avoid "Argument list too long" error
+  TEMP_PROMPT_FILE=$(mktemp)
+  cat > "$TEMP_PROMPT_FILE" <<EOF
+Based on the following git changes summary, suggest a concise commit message in the conventional commit format (e.g., feat: summary, fix: summary, chore: summary).
+
+$PRIORITY_INSTRUCTION
+
+The message should have a subject line and an optional, brief body if needed. Prioritize the most important functional changes over version number updates.
+
+$CHANGES_SUMMARY
+EOF
+
+  # Read prompt from file and create JSON
+  PROMPT_TEXT=$(cat "$TEMP_PROMPT_FILE")
+  JSON_PAYLOAD=$(jq -n --arg text "$PROMPT_TEXT" \
     '{
       "contents": [
         {
           "parts": [
             {
-              "text": "Based on the following git changes summary, suggest a concise commit message in the conventional commit format (e.g., feat: summary, fix: summary, chore: summary).\n\n\($priority)\n\nThe message should have a subject line and an optional, brief body if needed. Prioritize the most important functional changes over version number updates.\n\n\($changes)"
+              "text": $text
             }
           ]
         }
       ]
     }')
+
+  # Clean up temp file
+  rm -f "$TEMP_PROMPT_FILE"
 
   # Debug: Check JSON payload size
   echo "Debug: JSON payload size: $(echo "$JSON_PAYLOAD" | wc -c) characters"

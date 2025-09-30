@@ -322,12 +322,15 @@ export interface AuthResponse {
 }
 
 // Game Logic Constants
+// Board layout: Both players move from top-right (point 23) towards bottom-right (point 0)
+// Player 0 (white) starts at points 23, 12, 7, 5
+// Player 1 (black) starts at points 18, 16, 11, 0
 export const INITIAL_BOARD_STATE: BoardState = {
   points: [
-    [0, 2], [0, 0], [0, 0], [0, 0], [0, 0], [5, 0],  // Points 1-6
-    [0, 0], [3, 0], [0, 0], [0, 0], [0, 0], [0, 5],  // Points 7-12
-    [5, 0], [0, 0], [0, 0], [0, 0], [0, 3], [0, 0],  // Points 13-18
-    [0, 5], [0, 0], [0, 0], [0, 0], [0, 0], [2, 0]   // Points 19-24
+    [0, 2], [0, 0], [0, 0], [0, 0], [0, 0], [5, 0],  // Points 0-5: Player 0 at 5(5), Player 1 at 0(2)
+    [0, 0], [3, 0], [0, 0], [0, 0], [0, 0], [0, 5],  // Points 6-11: Player 0 at 7(3), Player 1 at 11(5)
+    [5, 0], [0, 0], [0, 0], [0, 0], [0, 3], [0, 0],  // Points 12-17: Player 0 at 12(5), Player 1 at 16(3)
+    [0, 5], [0, 0], [0, 0], [0, 0], [0, 0], [2, 0]   // Points 18-23: Player 0 at 23(2), Player 1 at 18(5)
   ],
   bar: [0, 0],
   off: [0, 0]

@@ -165,10 +165,10 @@ class BackgammonEngine {
     getBarMoves() {
         const moves = [];
         const playerIndex = this.currentPlayer;
-        const homeBoard = playerIndex === 0 ? [18, 19, 20, 21, 22, 23] : [0, 1, 2, 3, 4, 5];
         const availableDice = this.getAvailableDiceValues();
         for (const diceValue of availableDice) {
-            const targetPoint = playerIndex === 0 ? 24 - diceValue : diceValue - 1;
+            // Both players enter from the top (point 24) and move towards point 0
+            const targetPoint = 24 - diceValue;
             if (this.canMoveToPoint(targetPoint, playerIndex)) {
                 moves.push({
                     playerId: '', // Will be set by caller
@@ -183,12 +183,14 @@ class BackgammonEngine {
     getBearOffMoves() {
         const moves = [];
         const playerIndex = this.currentPlayer;
-        const homeBoard = playerIndex === 0 ? [18, 19, 20, 21, 22, 23] : [0, 1, 2, 3, 4, 5];
+        // Both players bear off from points 0-5 (bottom right)
+        const homeBoard = [0, 1, 2, 3, 4, 5];
         const availableDice = this.getAvailableDiceValues();
         for (const diceValue of availableDice) {
             for (const point of homeBoard) {
                 if (this.board.points[point][playerIndex] > 0) {
-                    const distance = playerIndex === 0 ? point - 17 : 6 - point;
+                    // Distance from point to bearing off (point 0 is 1 away, point 5 is 6 away)
+                    const distance = point + 1;
                     if (distance === diceValue) {
                         moves.push({
                             playerId: '',
@@ -217,7 +219,8 @@ class BackgammonEngine {
         for (let point = 0; point < 24; point++) {
             if (this.board.points[point][playerIndex] > 0) {
                 for (const diceValue of availableDice) {
-                    const targetPoint = playerIndex === 0 ? point - diceValue : point + diceValue;
+                    // Both players now move from higher to lower points (23 → 0)
+                    const targetPoint = point - diceValue;
                     if (targetPoint >= 0 && targetPoint < 24 && this.canMoveToPoint(targetPoint, playerIndex)) {
                         moves.push({
                             playerId: '',
@@ -236,7 +239,8 @@ class BackgammonEngine {
         return this.board.points[point][opponentIndex] <= 1;
     }
     canBearOff(playerIndex) {
-        const homeBoard = playerIndex === 0 ? [18, 19, 20, 21, 22, 23] : [0, 1, 2, 3, 4, 5];
+        // Both players bear off from points 0-5 (bottom right)
+        const homeBoard = [0, 1, 2, 3, 4, 5];
         // Check if all checkers are in home board
         for (let point = 0; point < 24; point++) {
             if (!homeBoard.includes(point) && this.board.points[point][playerIndex] > 0) {
@@ -247,7 +251,9 @@ class BackgammonEngine {
         return this.board.bar[playerIndex] === 0;
     }
     isHighestChecker(point, playerIndex) {
-        const homeBoard = playerIndex === 0 ? [18, 19, 20, 21, 22, 23] : [0, 1, 2, 3, 4, 5];
+        // Both players bear off from points 0-5 (bottom right)
+        const homeBoard = [0, 1, 2, 3, 4, 5];
+        // Check if there are any checkers on higher points in home board
         for (const p of homeBoard) {
             if (p > point && this.board.points[p][playerIndex] > 0) {
                 return false;
