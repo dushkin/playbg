@@ -174,11 +174,25 @@ const Game: React.FC = () => {
             if (!prevGame) return null;
 
             const ourIndex = (prevGame.players || []).findIndex(p => p.userId === user?.id);
-            // Trust server's dice state - it will be null when turn ends
-            let nextDice = data.state?.dice !== undefined ? data.state.dice : prevGame.dice;
+
+            // Apply full server state if available, otherwise preserve previous state
+            const updatedGame = data.state ? {
+              ...prevGame,
+              ...data.state,
+              // Ensure we preserve properties that might not be in the update
+              id: prevGame.id,
+              players: data.state.players || prevGame.players,
+            } : prevGame;
+
+            console.log('🎮 Game state update:', {
+              previousCurrentPlayer: prevGame.currentPlayer,
+              newCurrentPlayer: updatedGame.currentPlayer,
+              dataStateCurrentPlayer: data.state?.currentPlayer,
+              ourIndex
+            });
 
             // If opponent just moved and it's now our turn, reset our turn state
-            if (!isOurMove && data.state?.currentPlayer === ourIndex) {
+            if (!isOurMove && updatedGame.currentPlayer === ourIndex) {
               // Reset turn state when it becomes our turn
               setHasRolledThisTurn(false);
               setTurnSubmitted(false);
@@ -188,12 +202,7 @@ const Game: React.FC = () => {
               console.log('🔄 Reset turn state - it\'s now our turn');
             }
 
-            return {
-              ...prevGame,
-              board: data.state?.board || prevGame.board,
-              currentPlayer: data.state?.currentPlayer !== undefined ? data.state.currentPlayer : prevGame.currentPlayer,
-              dice: nextDice as any,
-            };
+            return updatedGame;
           });
 
           // Update dice usage for opponent moves only (we handle our own moves optimistically)
