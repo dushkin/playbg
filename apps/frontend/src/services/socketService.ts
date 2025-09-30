@@ -28,11 +28,15 @@ class SocketService {
       reconnectionAttempts: 10, // Increased for mobile networks
       reconnectionDelay: 1000,  // Start faster
       reconnectionDelayMax: 10000, // Max 10s between attempts
-      timeout: 20000, // Increased for slower connections
+      timeout: 45000, // Match backend connectTimeout
       forceNew: false,
       transports: ['websocket', 'polling'], // Ensure both transports are available
       upgrade: true, // Allow transport upgrades
-      rememberUpgrade: true // Remember successful upgrades
+      rememberUpgrade: true, // Remember successful upgrades
+      // Add ack timeout to prevent hanging on slow networks
+      ackTimeout: 10000, // 10 seconds for acknowledgments
+      // Ensure connection stays alive with proper ping/pong
+      closeOnBeforeunload: false // Don't close on page refresh
     })
 
     this.setupEventListeners()

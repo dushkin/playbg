@@ -78,14 +78,24 @@ const allowedOriginsProd: string[] = [
   'http://10.0.2.2:3000'
 ];
 
-// Setup Socket.IO
+// Setup Socket.IO with proper timeout and connection settings
 const io = new SocketIOServer(server, {
   cors: {
     // Use combined origins to handle environment detection issues
     origin: [...new Set([...allowedOriginsDev, ...allowedOriginsProd])],
     methods: ['GET', 'POST'],
     credentials: true
-  }
+  },
+  // Connection settings to prevent premature disconnections
+  pingTimeout: 60000, // 60 seconds - how long to wait for pong before considering connection dead
+  pingInterval: 25000, // 25 seconds - how often to send ping packets
+  upgradeTimeout: 30000, // 30 seconds - time to wait for upgrade to complete
+  maxHttpBufferSize: 1e6, // 1MB - max message size
+  transports: ['websocket', 'polling'], // Allow both transports
+  allowUpgrades: true, // Allow transport upgrades
+  perMessageDeflate: false, // Disable compression for better performance
+  httpCompression: true, // Enable HTTP compression
+  connectTimeout: 45000 // 45 seconds - connection timeout
 });
 
 // Setup logging - production-friendly configuration

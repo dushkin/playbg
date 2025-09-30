@@ -746,11 +746,41 @@ const Game: React.FC = () => {
     }
 
     if (gameId && isCurrentPlayer) {
-      // If we have moves made this turn, reset them
-      if (movesMadeThisTurn.length > 0 && !turnSubmitted) {
-        console.log('🔄 Resetting moves due to dice click')
-        // Reset stale local moves from previous turn but continue to roll in this click
+      // If dice are already rolled and we have moves made, reset and swap dice order
+      if (hasRolledThisTurn && movesMadeThisTurn.length > 0 && !turnSubmitted && game?.dice) {
+        console.log('🔄 Resetting moves and swapping dice order due to dice click')
         resetMovesThisTurn()
+
+        // Swap dice order (only if not doubles)
+        if (game.dice[0] !== game.dice[1]) {
+          const swappedDice: [number, number] = [game.dice[1], game.dice[0]]
+          console.log('🔄 Swapping dice order:', game.dice, '→', swappedDice)
+          setGame(prevGame => {
+            if (!prevGame) return null
+            return {
+              ...prevGame,
+              dice: swappedDice
+            } as GameType
+          })
+        }
+        return
+      }
+
+      // If dice are already rolled but no moves made, just swap dice order
+      if (hasRolledThisTurn && movesMadeThisTurn.length === 0 && !turnSubmitted && game?.dice) {
+        // Swap dice order (only if not doubles)
+        if (game.dice[0] !== game.dice[1]) {
+          const swappedDice: [number, number] = [game.dice[1], game.dice[0]]
+          console.log('🔄 Swapping dice order:', game.dice, '→', swappedDice)
+          setGame(prevGame => {
+            if (!prevGame) return null
+            return {
+              ...prevGame,
+              dice: swappedDice
+            } as GameType
+          })
+        }
+        return
       }
 
       // Only roll dice if not already rolled, turn not submitted, and not currently rolling
