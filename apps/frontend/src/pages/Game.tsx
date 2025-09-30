@@ -170,6 +170,9 @@ const Game: React.FC = () => {
           // For all other moves (opponent moves or non-optimistic updates), apply full server state
           console.log('📋 Applying server update for', isOurMove ? 'our non-optimistic' : 'opponent', 'move')
 
+          // Capture current game state before update for dice tracking
+          const gameBeforeUpdate = game;
+
           setGame(prevGame => {
             if (!prevGame) return null;
 
@@ -188,6 +191,8 @@ const Game: React.FC = () => {
               previousCurrentPlayer: prevGame.currentPlayer,
               newCurrentPlayer: updatedGame.currentPlayer,
               dataStateCurrentPlayer: data.state?.currentPlayer,
+              prevDice: prevGame.dice,
+              newDice: updatedGame.dice,
               ourIndex
             });
 
@@ -205,10 +210,19 @@ const Game: React.FC = () => {
             return updatedGame;
           });
 
-          // Update dice usage for opponent moves only (we handle our own moves optimistically)
-          if (data.move && game?.dice && !isOurMove) {
+          // Track opponent dice usage for client-side turn switching
+          if (data.move && gameBeforeUpdate?.dice && !isOurMove) {
             const distance = Math.abs(data.move.to - data.move.from);
-            const isDoubles = game.dice[0] === game.dice[1];
+            const dice = gameBeforeUpdate.dice;
+            const isDoubles = dice[0] === dice[1];
+
+            console.log('🎲 Tracking opponent dice usage:', {
+              move: data.move,
+              distance,
+              dice,
+              isDoubles,
+              currentUsedDice: usedDice
+            });
 
             setUsedDice(prev => {
               const newUsed = [...prev];
@@ -218,9 +232,9 @@ const Game: React.FC = () => {
                   newUsed[firstAvailable] = true;
                 }
               } else {
-                if (distance === game.dice![0] && !newUsed[0]) {
+                if (distance === dice[0] && !newUsed[0]) {
                   newUsed[0] = true;
-                } else if (distance === game.dice![1] && !newUsed[1]) {
+                } else if (distance === dice[1] && !newUsed[1]) {
                   newUsed[1] = true;
                 }
               }
@@ -230,9 +244,9 @@ const Game: React.FC = () => {
               console.log('🎲 Dice usage after opponent move:', { newUsed, allDiceUsed, isDoubles });
 
               // If all dice are used, the turn should switch
-              if (allDiceUsed) {
-                const ourIndex = (game.players || []).findIndex(p => p.userId === user?.id);
-                console.log('✅ All opponent dice used, turn should switch to us', { ourIndex, currentPlayer: game.currentPlayer });
+              if (allDiceUsed && gameBeforeUpdate) {
+                const ourIndex = (gameBeforeUpdate.players || []).findIndex(p => p.userId === user?.id);
+                console.log('✅ All opponent dice used, turn should switch to us', { ourIndex, currentPlayer: gameBeforeUpdate.currentPlayer });
 
                 // Force game state update to switch turns
                 setTimeout(() => {
@@ -262,6 +276,13 @@ const Game: React.FC = () => {
               }
 
               return newUsed;
+            });
+          } else if (data.move && !isOurMove) {
+            console.log('⚠️ Cannot track opponent dice - dice is null:', {
+              hasMove: !!data.move,
+              gameBeforeUpdateDice: gameBeforeUpdate?.dice,
+              dataStateDice: data.state?.dice,
+              isOurMove
             });
           }
 
