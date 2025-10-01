@@ -1117,15 +1117,59 @@ const Game: React.FC = () => {
           ${isTopHalf ? 'justify-start pt-0.5 sm:pt-1' : 'justify-start pt-0.5 sm:pt-1'}
           h-full px-0.5 sm:px-1 max-w-full overflow-hidden
         `}>
-          {point && point.map((playerCheckers, playerIndex) => {
-            if (playerCheckers === 0) return null
-            
-            const isMyChecker = playerIndex === currentPlayerIndex
-            const canMoveThisChecker = isMyChecker && canMove
+          {point && (() => {
+            const bothPlayersPresent = point[0] > 0 && point[1] > 0;
 
-            return (
-              <div key={playerIndex} className={`flex ${isTopHalf ? 'flex-col' : 'flex-col-reverse'} items-center`}>
-                {Array.from({ length: Math.min(playerCheckers, 5) }, (_, checkerIndex) => (
+            if (bothPlayersPresent) {
+              // Both players have checkers - display side by side
+              return (
+                <div className="flex flex-row gap-0.5 items-start justify-center w-full">
+                  {point.map((playerCheckers, playerIndex) => {
+                    if (playerCheckers === 0) return null;
+                    const isMyChecker = playerIndex === currentPlayerIndex;
+                    const canMoveThisChecker = isMyChecker && canMove;
+
+                    return (
+                      <div key={playerIndex} className={`flex ${isTopHalf ? 'flex-col' : 'flex-col-reverse'} items-center flex-1 min-w-0`}>
+                        {Array.from({ length: Math.min(playerCheckers, 3) }, (_, checkerIndex) => (
+                          <div
+                            key={checkerIndex}
+                            className={`
+                              relative w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 xl:w-6 xl:h-6 rounded-full transition-all duration-300 ease-out
+                              ${checkerIndex === 0 ? '' : '-mt-0.5'}
+                              ${canMoveThisChecker ? 'hover:scale-110 hover:z-30 cursor-pointer ring-1 ring-green-400 ring-opacity-60' : 'cursor-default'}
+                              ${canMoveThisChecker ? 'animate-pulse' : ''}
+                              max-w-full max-h-full
+                            `}
+                            style={{
+                              background: playerIndex === 0
+                                ? `radial-gradient(circle at 30% 30%, #ffffff, #f8f9fa 40%, #e5e7eb 70%, #d1d5db)`
+                                : `radial-gradient(circle at 30% 30%, #1f2937, #374151 40%, #4b5563 70%, #6b7280)`,
+                              boxShadow: `0 2px 4px rgba(0,0,0,0.25), inset 0 1px 2px rgba(255,255,255,0.4)`
+                            }}
+                          />
+                        ))}
+                        {playerCheckers > 3 && (
+                          <div className="bg-blue-600 text-white text-[0.5rem] font-bold rounded-full w-3 h-3 flex items-center justify-center shadow-lg mt-0.5">
+                            {playerCheckers}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            }
+
+            // Single player - display normally
+            return point.map((playerCheckers, playerIndex) => {
+              if (playerCheckers === 0) return null;
+              const isMyChecker = playerIndex === currentPlayerIndex;
+              const canMoveThisChecker = isMyChecker && canMove;
+
+              return (
+                <div key={playerIndex} className={`flex ${isTopHalf ? 'flex-col' : 'flex-col-reverse'} items-center`}>
+                  {Array.from({ length: Math.min(playerCheckers, 5) }, (_, checkerIndex) => (
                 <div
                   key={checkerIndex}
                   className={`
@@ -1179,8 +1223,9 @@ const Game: React.FC = () => {
                   </div>
                 )}
               </div>
-            )
-          })}
+            );
+          });
+          })()}
         </div>
 
       </div>
