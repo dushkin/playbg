@@ -322,20 +322,17 @@ export interface AuthResponse {
 }
 
 // Game Logic Constants
-// Board layout: Standard backgammon BUT both players move in same direction (24→1)
+// Board layout: BOTH players start at point 24 and move towards point 1
 // Array index starts at 0, so: index 0 = point 1, index 23 = point 24
-// This is the STANDARD layout - in standard backgammon:
-//   - Player 0 moves 24→1 (normal direction)
-//   - Player 1 moves 1→24 (opposite direction)
-// But we changed the engine so BOTH move 24→1, so this layout is correct!
+// Both players move in the SAME direction: 24→1 (right to left)
 // Player 0 (white): points 24(2), 13(5), 8(3), 6(5) - total 15
-// Player 1 (black): points 1(2), 12(5), 17(3), 19(5) - total 15
+// Player 1 (black): points 24(2), 13(5), 8(3), 6(5) - total 15 (SAME positions)
 export const INITIAL_BOARD_STATE: BoardState = {
   points: [
-    [0, 2], [0, 0], [0, 0], [0, 0], [0, 0], [5, 0],  // Points 1-6: P1 at 1(2) | P0 at 6(5)
-    [0, 0], [3, 0], [0, 0], [0, 0], [0, 0], [0, 5],  // Points 7-12: P0 at 8(3) | P1 at 12(5)
-    [5, 0], [0, 0], [0, 0], [0, 0], [0, 3], [0, 0],  // Points 13-18: P0 at 13(5) | P1 at 17(3)
-    [0, 5], [0, 0], [0, 0], [0, 0], [0, 0], [2, 0]   // Points 19-24: P1 at 19(5) | P0 at 24(2)
+    [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [5, 5],  // Points 1-6: Both at 6(5)
+    [0, 0], [3, 3], [0, 0], [0, 0], [0, 0], [0, 0],  // Points 7-12: Both at 8(3)
+    [5, 5], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0],  // Points 13-18: Both at 13(5)
+    [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [2, 2]   // Points 19-24: Both at 24(2)
   ],
   bar: [0, 0],
   off: [0, 0]
