@@ -1236,10 +1236,21 @@ const Game: React.FC = () => {
 
     const isCurrentPlayer = Array.isArray(game.players) && typeof game.currentPlayer === 'number' && game.players[game.currentPlayer]?.userId === user?.id
 
+    // Get current player's index (0 or 1)
+    const currentPlayerIndex = (game.players || []).findIndex(p => p.userId === user?.id)
+    // Player 1 (black) sees the board rotated 180°
+    const shouldRotateBoard = currentPlayerIndex === 1
+
     return (
-      <div className="bg-gradient-to-br from-amber-50 via-amber-100 to-amber-200 p-0.5 sm:p-2 lg:p-3 rounded-lg sm:rounded-2xl shadow-2xl w-full mx-auto max-w-5xl overflow-hidden">
+      <div
+        className="bg-gradient-to-br from-amber-50 via-amber-100 to-amber-200 p-0.5 sm:p-2 lg:p-3 rounded-lg sm:rounded-2xl shadow-2xl w-full mx-auto max-w-5xl overflow-hidden"
+        style={shouldRotateBoard ? { transform: 'rotate(180deg)' } : {}}
+      >
         {/* Board border with wood grain effect */}
-        <div className="bg-gradient-to-br from-amber-900 via-amber-800 to-amber-900 p-1 sm:p-2 lg:p-3 rounded-md sm:rounded-xl shadow-inner overflow-hidden">
+        <div
+          className="bg-gradient-to-br from-amber-900 via-amber-800 to-amber-900 p-1 sm:p-2 lg:p-3 rounded-md sm:rounded-xl shadow-inner overflow-hidden"
+          style={shouldRotateBoard ? { transform: 'rotate(180deg)' } : {}}
+        >
           <div className="bg-gradient-to-br from-amber-100 to-amber-50 p-1 sm:p-2 lg:p-3 rounded-sm sm:rounded-lg overflow-hidden">
             
             {/* Top numbers */}
@@ -1526,7 +1537,13 @@ const Game: React.FC = () => {
         {/* Game Header */}
         <div className="bg-white shadow rounded-lg p-2 sm:p-3 mb-2 sm:mb-3 flex-shrink-0">
           <div className="flex justify-between items-center mb-3 sm:mb-4">
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Your turn</h1>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
+              {game.gameState === GameStateEnum.WAITING && 'Waiting for opponent...'}
+              {game.gameState === GameStateEnum.IN_PROGRESS && (
+                isCurrentPlayer ? 'Your turn' : `${currentPlayer?.username}'s turn`
+              )}
+              {game.gameState === GameStateEnum.FINISHED && 'Game finished'}
+            </h1>
             <button
               onClick={() => navigate('/dashboard')}
               className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-1 px-2 sm:py-2 sm:px-4 rounded text-sm sm:text-base"
