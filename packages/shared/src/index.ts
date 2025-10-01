@@ -325,14 +325,15 @@ export interface AuthResponse {
 // Board layout: Both players move from top-right (point 24) towards bottom-right (point 1)
 // Both players start in the top half of the board and move downward
 // Array index starts at 0, so: index 0 = point 1, index 23 = point 24
-// Player 0 (white) starts at points 24(2), 19(5), 17(3), 13(5) - total 15 checkers
-// Player 1 (black) starts at points 23(2), 20(5), 18(3), 14(5) - total 15 checkers
+// Standard backgammon mirrored setup - both players move in same direction (24→1)
+// Player 0 (white) starts at points 24(2), 13(5), 8(3), 6(5) - total 15 checkers
+// Player 1 (black) starts at points 23(2), 12(5), 7(3), 5(5) - total 15 checkers
 export const INITIAL_BOARD_STATE: BoardState = {
   points: [
-    [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0],  // Points 1-6: Empty (bearing off zone)
-    [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0],  // Points 7-12: Empty (middle zone)
-    [5, 0], [0, 5], [0, 0], [0, 0], [3, 0], [0, 3],  // Points 13-18: P0 at 13(5),17(3) | P1 at 14(5),18(3)
-    [5, 0], [0, 5], [0, 0], [0, 2], [2, 0], [0, 0]   // Points 19-24: P0 at 19(5),24(2) | P1 at 20(5),23(2)
+    [0, 0], [0, 0], [0, 0], [0, 0], [0, 5], [5, 0],  // Points 1-6: P0 at 6(5) | P1 at 5(5)
+    [0, 3], [3, 0], [0, 0], [0, 0], [0, 0], [0, 5],  // Points 7-12: P0 at 8(3) | P1 at 7(3),12(5)
+    [5, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0],  // Points 13-18: P0 at 13(5)
+    [0, 0], [0, 0], [0, 0], [0, 0], [0, 2], [2, 0]   // Points 19-24: P0 at 24(2) | P1 at 23(2)
   ],
   bar: [0, 0],
   off: [0, 0]
