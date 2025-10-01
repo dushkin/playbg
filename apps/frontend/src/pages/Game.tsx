@@ -1060,6 +1060,9 @@ const Game: React.FC = () => {
     const isCurrentPlayer = Array.isArray(game?.players) && typeof game?.currentPlayer === 'number' && (game!.players as any[])[game!.currentPlayer]?.userId === user?.id
     const hasCurrentPlayerCheckers = point && point[currentPlayerIndex] > 0
     const canMove = isCurrentPlayer && hasCurrentPlayerCheckers && availableDiceValues.length > 0
+
+    // For Player 1 (black), swap the visual representation (they see themselves as white)
+    const shouldSwapColors = currentPlayerIndex === 1
     
     // Determine point color (alternating pattern)
     const isEvenPoint = pointIndex % 2 === 0
@@ -1142,7 +1145,7 @@ const Game: React.FC = () => {
                               max-w-full max-h-full
                             `}
                             style={{
-                              background: playerIndex === 0
+                              background: (shouldSwapColors ? playerIndex === 1 : playerIndex === 0)
                                 ? `radial-gradient(circle at 30% 30%, #ffffff, #f8f9fa 40%, #e5e7eb 70%, #d1d5db)`
                                 : `radial-gradient(circle at 30% 30%, #1f2937, #374151 40%, #4b5563 70%, #6b7280)`,
                               boxShadow: `0 2px 4px rgba(0,0,0,0.25), inset 0 1px 2px rgba(255,255,255,0.4)`
@@ -1181,7 +1184,7 @@ const Game: React.FC = () => {
                     max-w-full max-h-full
                   `}
                   style={{
-                    background: playerIndex === 0
+                    background: (shouldSwapColors ? playerIndex === 1 : playerIndex === 0)
                       ? `radial-gradient(circle at 30% 30%, #ffffff, #f8f9fa 40%, #e5e7eb 70%, #d1d5db)`
                       : `radial-gradient(circle at 30% 30%, #1f2937, #374151 40%, #4b5563 70%, #6b7280)`,
                     boxShadow: `
@@ -1193,20 +1196,20 @@ const Game: React.FC = () => {
                   }}
                 >
                   {/* Inner highlight for 3D effect */}
-                  <div 
+                  <div
                     className="absolute inset-1 rounded-full"
                     style={{
-                      background: playerIndex === 0
+                      background: (shouldSwapColors ? playerIndex === 1 : playerIndex === 0)
                         ? `radial-gradient(circle at 25% 25%, rgba(255,255,255,0.9), transparent 50%)`
                         : `radial-gradient(circle at 25% 25%, rgba(255,255,255,0.2), transparent 50%)`
                     }}
                   />
-                  
+
                   {/* Subtle border */}
-                  <div 
+                  <div
                     className="absolute inset-0 rounded-full"
                     style={{
-                      border: `1px solid ${playerIndex === 0 ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.3)'}`,
+                      border: `1px solid ${(shouldSwapColors ? playerIndex === 1 : playerIndex === 0) ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.3)'}`,
                       background: 'transparent'
                     }}
                   />
@@ -1244,33 +1247,37 @@ const Game: React.FC = () => {
     return (
       <div
         className="bg-gradient-to-br from-amber-50 via-amber-100 to-amber-200 p-0.5 sm:p-2 lg:p-3 rounded-lg sm:rounded-2xl shadow-2xl w-full mx-auto max-w-5xl overflow-hidden"
-        style={shouldRotateBoard ? { transform: 'rotate(180deg)' } : {}}
       >
         {/* Board border with wood grain effect */}
         <div
           className="bg-gradient-to-br from-amber-900 via-amber-800 to-amber-900 p-1 sm:p-2 lg:p-3 rounded-md sm:rounded-xl shadow-inner overflow-hidden"
-          style={shouldRotateBoard ? { transform: 'rotate(180deg)' } : {}}
         >
           <div className="bg-gradient-to-br from-amber-100 to-amber-50 p-1 sm:p-2 lg:p-3 rounded-sm sm:rounded-lg overflow-hidden">
             
             {/* Top numbers */}
             <div className="flex text-xs font-bold text-amber-900 opacity-50 mb-0.5 sm:mb-1">
               <div className="flex-1 grid grid-cols-6 gap-0.5 sm:gap-1">
-                {Array.from({ length: 6 }, (_, i) => 13 + i).map(num => <div key={num} className="text-center text-xs sm:text-sm">{num}</div>)}
+                {shouldRotateBoard ?
+                  Array.from({ length: 6 }, (_, i) => 12 - i).map(num => <div key={num} className="text-center text-xs sm:text-sm">{num}</div>) :
+                  Array.from({ length: 6 }, (_, i) => 13 + i).map(num => <div key={num} className="text-center text-xs sm:text-sm">{num}</div>)
+                }
               </div>
               <div className="w-6 sm:w-10 lg:w-12 xl:w-14" />
               <div className="flex-1 grid grid-cols-6 gap-0.5 sm:gap-1">
-                {Array.from({ length: 6 }, (_, i) => 19 + i).map(num => <div key={num} className="text-center text-xs sm:text-sm">{num}</div>)}
+                {shouldRotateBoard ?
+                  Array.from({ length: 6 }, (_, i) => 6 - i).map(num => <div key={num} className="text-center text-xs sm:text-sm">{num}</div>) :
+                  Array.from({ length: 6 }, (_, i) => 19 + i).map(num => <div key={num} className="text-center text-xs sm:text-sm">{num}</div>)
+                }
               </div>
             </div>
 
             {/* Top half of board */}
             <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-32 sm:h-48 lg:h-60 xl:h-72 overflow-visible">
-              {/* Points 12-17 */}
+              {/* For white: 13-18, For black: 12-7 */}
               <div className="flex gap-0.5 sm:gap-1 flex-1 min-w-0 overflow-hidden">
                 {Array.from({ length: 6 }, (_, i) => (
                   <div key={`top-left-${i}`} className="flex-1 min-w-0 max-w-full overflow-hidden">
-                    {renderPoint(12 + i, true)}
+                    {renderPoint(shouldRotateBoard ? 11 - i : 12 + i, !shouldRotateBoard)}
                   </div>
                 ))}
               </div>
@@ -1348,11 +1355,11 @@ const Game: React.FC = () => {
                 </div>
               </div>
               
-              {/* Points 18-23 */}
+              {/* For white: 19-24, For black: 6-1 */}
               <div className="flex gap-0.5 sm:gap-1 flex-1 min-w-0 overflow-hidden">
                 {Array.from({ length: 6 }, (_, i) => (
                   <div key={`top-right-${i}`} className="flex-1 min-w-0 max-w-full overflow-hidden">
-                    {renderPoint(18 + i, true)}
+                    {renderPoint(shouldRotateBoard ? 5 - i : 18 + i, !shouldRotateBoard)}
                   </div>
                 ))}
               </div>
@@ -1417,11 +1424,11 @@ const Game: React.FC = () => {
             
             {/* Bottom half of board */}
             <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-32 sm:h-48 lg:h-60 xl:h-72 overflow-visible">
-              {/* Points 11-6 */}
+              {/* For white: 12-7, For black: 13-18 */}
               <div className="flex gap-0.5 sm:gap-1 flex-1 min-w-0 overflow-hidden">
                 {Array.from({ length: 6 }, (_, i) => (
                   <div key={`bottom-left-${i}`} className="flex-1 min-w-0 max-w-full overflow-hidden">
-                    {renderPoint(11 - i, false)}
+                    {renderPoint(shouldRotateBoard ? 12 + i : 11 - i, shouldRotateBoard)}
                   </div>
                 ))}
               </div>
@@ -1441,11 +1448,11 @@ const Game: React.FC = () => {
                 </div>
               </div>
               
-              {/* Points 5-0 */}
+              {/* For white: 6-1, For black: 19-24 */}
               <div className="flex gap-0.5 sm:gap-1 flex-1 min-w-0 overflow-hidden">
                 {Array.from({ length: 6 }, (_, i) => (
                   <div key={`bottom-right-${i}`} className="flex-1 min-w-0 max-w-full overflow-hidden">
-                    {renderPoint(5 - i, false)}
+                    {renderPoint(shouldRotateBoard ? 18 + i : 5 - i, shouldRotateBoard)}
                   </div>
                 ))}
               </div>
@@ -1454,11 +1461,17 @@ const Game: React.FC = () => {
             {/* Bottom numbers */}
             <div className="flex text-xs font-bold text-amber-900 opacity-50 mt-0.5 sm:mt-1">
               <div className="flex-1 grid grid-cols-6 gap-0.5 sm:gap-1">
-                {Array.from({ length: 6 }, (_, i) => 12 - i).map(num => <div key={num} className="text-center text-xs sm:text-sm">{num}</div>)}
+                {shouldRotateBoard ?
+                  Array.from({ length: 6 }, (_, i) => 13 + i).map(num => <div key={num} className="text-center text-xs sm:text-sm">{num}</div>) :
+                  Array.from({ length: 6 }, (_, i) => 12 - i).map(num => <div key={num} className="text-center text-xs sm:text-sm">{num}</div>)
+                }
               </div>
               <div className="w-6 sm:w-10 lg:w-12 xl:w-14" />
               <div className="flex-1 grid grid-cols-6 gap-0.5 sm:gap-1">
-                {Array.from({ length: 6 }, (_, i) => 6 - i).map(num => <div key={num} className="text-center text-xs sm:text-sm">{num}</div>)}
+                {shouldRotateBoard ?
+                  Array.from({ length: 6 }, (_, i) => 19 + i).map(num => <div key={num} className="text-center text-xs sm:text-sm">{num}</div>) :
+                  Array.from({ length: 6 }, (_, i) => 6 - i).map(num => <div key={num} className="text-center text-xs sm:text-sm">{num}</div>)
+                }
               </div>
             </div>
 
