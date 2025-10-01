@@ -1277,7 +1277,7 @@ const Game: React.FC = () => {
               <div className="flex gap-0.5 sm:gap-1 flex-1 min-w-0 overflow-hidden">
                 {Array.from({ length: 6 }, (_, i) => (
                   <div key={`top-left-${i}`} className="flex-1 min-w-0 max-w-full overflow-hidden">
-                    {renderPoint(shouldRotateBoard ? 11 - i : 12 + i, !shouldRotateBoard)}
+                    {renderPoint(shouldRotateBoard ? 11 - i : 12 + i, true)}
                   </div>
                 ))}
               </div>
@@ -1359,7 +1359,7 @@ const Game: React.FC = () => {
               <div className="flex gap-0.5 sm:gap-1 flex-1 min-w-0 overflow-hidden">
                 {Array.from({ length: 6 }, (_, i) => (
                   <div key={`top-right-${i}`} className="flex-1 min-w-0 max-w-full overflow-hidden">
-                    {renderPoint(shouldRotateBoard ? 5 - i : 18 + i, !shouldRotateBoard)}
+                    {renderPoint(shouldRotateBoard ? 5 - i : 18 + i, true)}
                   </div>
                 ))}
               </div>
@@ -1429,7 +1429,7 @@ const Game: React.FC = () => {
               <div className="flex gap-0.5 sm:gap-1 flex-1 min-w-0 overflow-hidden">
                 {Array.from({ length: 6 }, (_, i) => (
                   <div key={`bottom-left-${i}`} className="flex-1 min-w-0 max-w-full overflow-hidden">
-                    {renderPoint(shouldRotateBoard ? 12 + i : 11 - i, shouldRotateBoard)}
+                    {renderPoint(shouldRotateBoard ? 12 + i : 11 - i, false)}
                   </div>
                 ))}
               </div>
@@ -1453,7 +1453,7 @@ const Game: React.FC = () => {
               <div className="flex gap-0.5 sm:gap-1 flex-1 min-w-0 overflow-hidden">
                 {Array.from({ length: 6 }, (_, i) => (
                   <div key={`bottom-right-${i}`} className="flex-1 min-w-0 max-w-full overflow-hidden">
-                    {renderPoint(shouldRotateBoard ? 18 + i : 5 - i, shouldRotateBoard)}
+                    {renderPoint(shouldRotateBoard ? 18 + i : 5 - i, false)}
                   </div>
                 ))}
               </div>
