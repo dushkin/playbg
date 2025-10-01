@@ -1369,16 +1369,19 @@ const Game: React.FC = () => {
             <div className="h-6 sm:h-8 lg:h-10 bg-gradient-to-r from-amber-800 via-amber-700 to-amber-800 my-1 sm:my-2 rounded shadow-inner relative overflow-visible flex items-center justify-center gap-2">
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-600 to-transparent opacity-30 pointer-events-none" />
 
-              {/* Player 0 (white) bar checkers - left side */}
+              {/* Bar checkers - swap colors for Player 1 */}
+              {/* Left side checkers */}
               <div className="flex flex-row items-center gap-0.5 z-10">
-                {game?.board.bar[0] > 0 && Array.from({ length: Math.min(game.board.bar[0], 5) }).map((_, idx) => (
+                {game?.board.bar[shouldRotateBoard ? 1 : 0] > 0 && Array.from({ length: Math.min(game.board.bar[shouldRotateBoard ? 1 : 0], 5) }).map((_, idx) => (
                   <div
-                    key={`bar-horizontal-p0-${idx}`}
+                    key={`bar-horizontal-left-${idx}`}
                     className={`w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 rounded-full ${
-                      isCurrentPlayer && game.currentPlayer === 0 ? 'cursor-pointer hover:scale-110 ring-2 ring-blue-400 ring-opacity-50' : 'cursor-default'
+                      isCurrentPlayer && game.currentPlayer === currentPlayerIndex ? 'cursor-pointer hover:scale-110 ring-2 ring-blue-400 ring-opacity-50' : 'cursor-default'
                     }`}
                     style={{
-                      background: 'radial-gradient(circle at 30% 30%, #ffffff, #f8f9fa 40%, #e5e7eb 70%, #d1d5db)',
+                      background: shouldRotateBoard
+                        ? 'radial-gradient(circle at 30% 30%, #1f2937, #374151 40%, #4b5563 70%, #6b7280)'
+                        : 'radial-gradient(circle at 30% 30%, #ffffff, #f8f9fa 40%, #e5e7eb 70%, #d1d5db)',
                       boxShadow: '0 3px 6px rgba(0,0,0,0.3), inset 0 1px 2px rgba(255,255,255,0.4)'
                     }}
                     onClick={handleBarClick}
@@ -1388,23 +1391,25 @@ const Game: React.FC = () => {
                     }}
                   />
                 ))}
-                {game?.board.bar[0] > 5 && (
+                {game?.board.bar[shouldRotateBoard ? 1 : 0] > 5 && (
                   <div className="text-white text-xs sm:text-sm font-bold bg-amber-900 rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center">
-                    {game.board.bar[0]}
+                    {game.board.bar[shouldRotateBoard ? 1 : 0]}
                   </div>
                 )}
               </div>
 
-              {/* Player 1 (black) bar checkers - right side */}
+              {/* Right side checkers */}
               <div className="flex flex-row items-center gap-0.5 z-10">
-                {game?.board.bar[1] > 0 && Array.from({ length: Math.min(game.board.bar[1], 5) }).map((_, idx) => (
+                {game?.board.bar[shouldRotateBoard ? 0 : 1] > 0 && Array.from({ length: Math.min(game.board.bar[shouldRotateBoard ? 0 : 1], 5) }).map((_, idx) => (
                   <div
-                    key={`bar-horizontal-p1-${idx}`}
+                    key={`bar-horizontal-right-${idx}`}
                     className={`w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 rounded-full ${
-                      isCurrentPlayer && game.currentPlayer === 1 ? 'cursor-pointer hover:scale-110 ring-2 ring-blue-400 ring-opacity-50' : 'cursor-default'
+                      isCurrentPlayer && game.currentPlayer === currentPlayerIndex ? 'cursor-pointer hover:scale-110 ring-2 ring-blue-400 ring-opacity-50' : 'cursor-default'
                     }`}
                     style={{
-                      background: 'radial-gradient(circle at 30% 30%, #1f2937, #374151 40%, #4b5563 70%, #6b7280)',
+                      background: shouldRotateBoard
+                        ? 'radial-gradient(circle at 30% 30%, #ffffff, #f8f9fa 40%, #e5e7eb 70%, #d1d5db)'
+                        : 'radial-gradient(circle at 30% 30%, #1f2937, #374151 40%, #4b5563 70%, #6b7280)',
                       boxShadow: '0 3px 6px rgba(0,0,0,0.3), inset 0 1px 2px rgba(255,255,255,0.2)'
                     }}
                     onClick={handleBarClick}
@@ -1414,9 +1419,9 @@ const Game: React.FC = () => {
                     }}
                   />
                 ))}
-                {game?.board.bar[1] > 5 && (
+                {game?.board.bar[shouldRotateBoard ? 0 : 1] > 5 && (
                   <div className="text-white text-xs sm:text-sm font-bold bg-amber-900 rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center">
-                    {game.board.bar[1]}
+                    {game.board.bar[shouldRotateBoard ? 0 : 1]}
                   </div>
                 )}
               </div>
