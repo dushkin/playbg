@@ -1061,8 +1061,8 @@ const Game: React.FC = () => {
     const hasCurrentPlayerCheckers = point && point[currentPlayerIndex] > 0
     const canMove = isCurrentPlayer && hasCurrentPlayerCheckers && availableDiceValues.length > 0
 
-    // For Player 1 (black), swap the visual representation (they see themselves as white)
-    const shouldSwapColors = currentPlayerIndex === 1
+    // For Player 1 (black), DON'T swap colors - they see themselves as black
+    const shouldSwapColors = false
     
     // Determine point color (alternating pattern)
     const isEvenPoint = pointIndex % 2 === 0
@@ -1369,19 +1369,17 @@ const Game: React.FC = () => {
             <div className="h-6 sm:h-8 lg:h-10 bg-gradient-to-r from-amber-800 via-amber-700 to-amber-800 my-1 sm:my-2 rounded shadow-inner relative overflow-visible flex items-center justify-center gap-2">
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-600 to-transparent opacity-30 pointer-events-none" />
 
-              {/* Bar checkers - swap colors for Player 1 */}
-              {/* Left side checkers */}
+              {/* Bar checkers - Player 0 (white) on left, Player 1 (black) on right */}
+              {/* Left side checkers - Player 0 (white) */}
               <div className="flex flex-row items-center gap-0.5 z-10">
-                {game?.board.bar[shouldRotateBoard ? 1 : 0] > 0 && Array.from({ length: Math.min(game.board.bar[shouldRotateBoard ? 1 : 0], 5) }).map((_, idx) => (
+                {game?.board.bar[0] > 0 && Array.from({ length: Math.min(game.board.bar[0], 5) }).map((_, idx) => (
                   <div
-                    key={`bar-horizontal-left-${idx}`}
+                    key={`bar-horizontal-p0-${idx}`}
                     className={`w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 rounded-full ${
-                      isCurrentPlayer && game.currentPlayer === currentPlayerIndex ? 'cursor-pointer hover:scale-110 ring-2 ring-blue-400 ring-opacity-50' : 'cursor-default'
+                      isCurrentPlayer && game.currentPlayer === 0 && currentPlayerIndex === 0 ? 'cursor-pointer hover:scale-110 ring-2 ring-blue-400 ring-opacity-50' : 'cursor-default'
                     }`}
                     style={{
-                      background: shouldRotateBoard
-                        ? 'radial-gradient(circle at 30% 30%, #1f2937, #374151 40%, #4b5563 70%, #6b7280)'
-                        : 'radial-gradient(circle at 30% 30%, #ffffff, #f8f9fa 40%, #e5e7eb 70%, #d1d5db)',
+                      background: 'radial-gradient(circle at 30% 30%, #ffffff, #f8f9fa 40%, #e5e7eb 70%, #d1d5db)',
                       boxShadow: '0 3px 6px rgba(0,0,0,0.3), inset 0 1px 2px rgba(255,255,255,0.4)'
                     }}
                     onClick={handleBarClick}
@@ -1391,25 +1389,23 @@ const Game: React.FC = () => {
                     }}
                   />
                 ))}
-                {game?.board.bar[shouldRotateBoard ? 1 : 0] > 5 && (
+                {game?.board.bar[0] > 5 && (
                   <div className="text-white text-xs sm:text-sm font-bold bg-amber-900 rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center">
-                    {game.board.bar[shouldRotateBoard ? 1 : 0]}
+                    {game.board.bar[0]}
                   </div>
                 )}
               </div>
 
-              {/* Right side checkers */}
+              {/* Right side checkers - Player 1 (black) */}
               <div className="flex flex-row items-center gap-0.5 z-10">
-                {game?.board.bar[shouldRotateBoard ? 0 : 1] > 0 && Array.from({ length: Math.min(game.board.bar[shouldRotateBoard ? 0 : 1], 5) }).map((_, idx) => (
+                {game?.board.bar[1] > 0 && Array.from({ length: Math.min(game.board.bar[1], 5) }).map((_, idx) => (
                   <div
-                    key={`bar-horizontal-right-${idx}`}
+                    key={`bar-horizontal-p1-${idx}`}
                     className={`w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 rounded-full ${
-                      isCurrentPlayer && game.currentPlayer === currentPlayerIndex ? 'cursor-pointer hover:scale-110 ring-2 ring-blue-400 ring-opacity-50' : 'cursor-default'
+                      isCurrentPlayer && game.currentPlayer === 1 && currentPlayerIndex === 1 ? 'cursor-pointer hover:scale-110 ring-2 ring-blue-400 ring-opacity-50' : 'cursor-default'
                     }`}
                     style={{
-                      background: shouldRotateBoard
-                        ? 'radial-gradient(circle at 30% 30%, #ffffff, #f8f9fa 40%, #e5e7eb 70%, #d1d5db)'
-                        : 'radial-gradient(circle at 30% 30%, #1f2937, #374151 40%, #4b5563 70%, #6b7280)',
+                      background: 'radial-gradient(circle at 30% 30%, #1f2937, #374151 40%, #4b5563 70%, #6b7280)',
                       boxShadow: '0 3px 6px rgba(0,0,0,0.3), inset 0 1px 2px rgba(255,255,255,0.2)'
                     }}
                     onClick={handleBarClick}
@@ -1419,9 +1415,9 @@ const Game: React.FC = () => {
                     }}
                   />
                 ))}
-                {game?.board.bar[shouldRotateBoard ? 0 : 1] > 5 && (
+                {game?.board.bar[1] > 5 && (
                   <div className="text-white text-xs sm:text-sm font-bold bg-amber-900 rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center">
-                    {game.board.bar[shouldRotateBoard ? 0 : 1]}
+                    {game.board.bar[1]}
                   </div>
                 )}
               </div>
