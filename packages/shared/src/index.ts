@@ -322,18 +322,37 @@ export interface AuthResponse {
 }
 
 // Game Logic Constants
-// Board layout: BOTH players start near point 24 and move towards point 1
+// Standard backgammon starting position
 // Array index starts at 0, so: index 0 = point 1, index 23 = point 24
-// Both players move in the SAME direction: 24→1 (right to left)
-// Player 0 (white): points 24(2), 23(2), 13(5), 8(3), 6(3) - total 15
-// Player 1 (black): points 24(2), 23(2), 13(5), 8(3), 6(3) - total 15
-// Note: Players share the same starting triangles and will compete for space
+// Player 0 (white): 2 on point 24, 5 on point 13, 3 on point 8, 5 on point 6 - total 15
+// Player 1 (black): 2 on point 1, 5 on point 12, 3 on point 17, 5 on point 19 - total 15
+// Display: Each player sees their starting point at top right of their screen
 export const INITIAL_BOARD_STATE: BoardState = {
   points: [
-    [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [3, 3],  // Points 1-6: Both at 6(3)
-    [0, 0], [3, 3], [0, 0], [0, 0], [0, 0], [0, 0],  // Points 7-12: Both at 8(3)
-    [5, 5], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0],  // Points 13-18: Both at 13(5)
-    [0, 0], [0, 0], [0, 0], [0, 0], [2, 2], [2, 2]   // Points 19-24: Both at 23(2) and 24(2)
+    [0, 2], // Point 1 - Player 1 starts with 2
+    [0, 0], // Point 2
+    [0, 0], // Point 3
+    [0, 0], // Point 4
+    [0, 0], // Point 5
+    [5, 0], // Point 6 - Player 0 has 5
+    [0, 0], // Point 7
+    [3, 0], // Point 8 - Player 0 has 3
+    [0, 0], // Point 9
+    [0, 0], // Point 10
+    [0, 0], // Point 11
+    [0, 5], // Point 12 - Player 1 has 5
+    [5, 0], // Point 13 - Player 0 has 5
+    [0, 0], // Point 14
+    [0, 0], // Point 15
+    [0, 0], // Point 16
+    [0, 3], // Point 17 - Player 1 has 3
+    [0, 0], // Point 18
+    [0, 5], // Point 19 - Player 1 has 5
+    [0, 0], // Point 20
+    [0, 0], // Point 21
+    [0, 0], // Point 22
+    [0, 0], // Point 23
+    [2, 0]  // Point 24 - Player 0 starts with 2
   ],
   bar: [0, 0],
   off: [0, 0]
