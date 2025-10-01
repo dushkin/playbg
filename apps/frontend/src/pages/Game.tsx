@@ -517,7 +517,8 @@ const Game: React.FC = () => {
     let bestMove: { from: number; to: number; diceValue: number } | null = null
 
     for (const diceValue of availableDiceValues) {
-      const targetPoint = currentPlayerIndex === 0 ? 24 - diceValue : diceValue - 1
+      // BOTH players enter from point 24 moving towards point 1
+      const targetPoint = 24 - diceValue
 
       if (isValidBarMove(targetPoint, diceValue, currentPlayerIndex)) {
         bestMove = { from: -1, to: targetPoint, diceValue }
@@ -687,14 +688,10 @@ const Game: React.FC = () => {
     for (const diceValue of availableDiceValues) {
       let targetPoint: number
 
-      // Regular move calculation
-      if (currentPlayerIndex === 0) {
-        // Player 0 moves counter-clockwise (decreasing point numbers)
-        targetPoint = pointIndex - diceValue
-      } else {
-        // Player 1 moves clockwise (increasing point numbers)
-        targetPoint = pointIndex + diceValue
-      }
+      // Regular move calculation - BOTH players move in same direction (24→1)
+      // Player 0 moves counter-clockwise (decreasing point numbers)
+      // Player 1 NOW ALSO moves counter-clockwise (decreasing point numbers)
+      targetPoint = pointIndex - diceValue
 
       console.log(`🎯 Trying dice ${diceValue}: ${pointIndex} → ${targetPoint}`)
 
@@ -890,8 +887,8 @@ const Game: React.FC = () => {
       return false
     }
 
-    // Calculate entry point based on dice value
-    const entryPoint = playerIndex === 0 ? 24 - diceValue : diceValue - 1
+    // Calculate entry point based on dice value - BOTH players enter from point 24
+    const entryPoint = 24 - diceValue
 
     if (to !== entryPoint) {
       console.log(`❌ Invalid: Wrong entry point. Expected ${entryPoint}, got ${to}`)
@@ -916,9 +913,8 @@ const Game: React.FC = () => {
   const canBearOff = (playerIndex: number) => {
     if (!game) return false
 
-    const homeBoard = playerIndex === 0
-      ? [0, 1, 2, 3, 4, 5] // Player 0 home board
-      : [18, 19, 20, 21, 22, 23] // Player 1 home board
+    // BOTH players now have the same home board (points 0-5) since they move in same direction
+    const homeBoard = [0, 1, 2, 3, 4, 5]
 
     // Check if all checkers are in home board or already borne off
     for (let i = 0; i < 24; i++) {
@@ -947,10 +943,8 @@ const Game: React.FC = () => {
       return false
     }
 
-    // Must be moving from home board
-    const homeBoard = playerIndex === 0
-      ? [0, 1, 2, 3, 4, 5]
-      : [18, 19, 20, 21, 22, 23]
+    // Must be moving from home board - BOTH players use same home board now
+    const homeBoard = [0, 1, 2, 3, 4, 5]
 
     if (!homeBoard.includes(from)) {
       console.log('❌ Invalid: Not moving from home board')
@@ -963,8 +957,8 @@ const Game: React.FC = () => {
       return false
     }
 
-    // Validate dice usage for bearing off
-    const distanceToEnd = playerIndex === 0 ? from + 1 : 24 - from
+    // Validate dice usage for bearing off - BOTH players bear off from same direction
+    const distanceToEnd = from + 1 // Distance from point to bearing off (point 0 = 1 away, point 5 = 6 away)
 
     if (diceValue >= distanceToEnd) {
       // Can use this dice value
@@ -972,9 +966,7 @@ const Game: React.FC = () => {
       return true
     } else {
       // Check if there are checkers on higher points that must be moved first
-      const higherPoints = playerIndex === 0
-        ? homeBoard.filter(p => p > from)
-        : homeBoard.filter(p => p < from)
+      const higherPoints = homeBoard.filter(p => p > from)
 
       const hasCheckersOnHigherPoints = higherPoints.some(p =>
         game.board.points[p] && game.board.points[p][playerIndex] > 0
