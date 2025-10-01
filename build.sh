@@ -211,32 +211,31 @@ else
   fi
 
   # Create the JSON payload for the Gemini API
-  # Write to temp file to avoid "Argument list too long" error
+  # Write prompt to temp file and use jq to read it to avoid "Argument list too long"
   TEMP_PROMPT_FILE=$(mktemp)
-  cat > "$TEMP_PROMPT_FILE" <<EOF
+  cat > "$TEMP_PROMPT_FILE" <<'EOF_PROMPT'
 Based on the following git changes summary, suggest a concise commit message in the conventional commit format (e.g., feat: summary, fix: summary, chore: summary).
+EOF_PROMPT
 
-$PRIORITY_INSTRUCTION
+  echo "" >> "$TEMP_PROMPT_FILE"
+  echo "$PRIORITY_INSTRUCTION" >> "$TEMP_PROMPT_FILE"
+  echo "" >> "$TEMP_PROMPT_FILE"
+  echo "The message should have a subject line and an optional, brief body if needed. Prioritize the most important functional changes over version number updates." >> "$TEMP_PROMPT_FILE"
+  echo "" >> "$TEMP_PROMPT_FILE"
+  echo "$CHANGES_SUMMARY" >> "$TEMP_PROMPT_FILE"
 
-The message should have a subject line and an optional, brief body if needed. Prioritize the most important functional changes over version number updates.
-
-$CHANGES_SUMMARY
-EOF
-
-  # Read prompt from file and create JSON
-  PROMPT_TEXT=$(cat "$TEMP_PROMPT_FILE")
-  JSON_PAYLOAD=$(jq -n --arg text "$PROMPT_TEXT" \
-    '{
-      "contents": [
-        {
-          "parts": [
-            {
-              "text": $text
-            }
-          ]
-        }
-      ]
-    }')
+  # Use jq --rawfile to read prompt from file (avoids command-line length limits)
+  JSON_PAYLOAD=$(jq -n --rawfile prompttext "$TEMP_PROMPT_FILE" '{
+    "contents": [
+      {
+        "parts": [
+          {
+            "text": $prompttext
+          }
+        ]
+      }
+    ]
+  }')
 
   # Clean up temp file
   rm -f "$TEMP_PROMPT_FILE"

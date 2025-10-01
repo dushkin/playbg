@@ -167,9 +167,10 @@ class BackgammonEngine {
         const playerIndex = this.currentPlayer;
         const availableDice = this.getAvailableDiceValues();
         for (const diceValue of availableDice) {
-            // Both players enter from the top (point 24) and move towards point 0
+            // Both players enter from the top (array index 23 = point 24)
+            // Entry point = 23 - (diceValue - 1) = 24 - diceValue
             const targetPoint = 24 - diceValue;
-            if (this.canMoveToPoint(targetPoint, playerIndex)) {
+            if (targetPoint >= 0 && targetPoint < 24 && this.canMoveToPoint(targetPoint, playerIndex)) {
                 moves.push({
                     playerId: '', // Will be set by caller
                     from: -1, // Bar
