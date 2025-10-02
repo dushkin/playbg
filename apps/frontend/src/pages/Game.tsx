@@ -1314,22 +1314,22 @@ const Game: React.FC = () => {
                   {game?.dice && game.dice.length === 2 && hasRolledThisTurn && !turnSubmitted ? (
                     <div className="flex flex-col gap-0 sm:gap-1 z-20 items-center">
                       <div
-                        className="scale-75 sm:scale-100 cursor-pointer"
-                        onClick={handleDiceClick}
-                        onTouchEnd={(e) => {
+                        className={`scale-75 sm:scale-100 ${isCurrentPlayer ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
+                        onClick={isCurrentPlayer ? handleDiceClick : undefined}
+                        onTouchEnd={isCurrentPlayer ? (e) => {
                           e.preventDefault()
                           handleDiceClick()
-                        }}
+                        } : undefined}
                       >
                         <Dice3D value={game.dice[0]} size="xs" isRolling={isRollingDice} color={game.currentPlayer === 0 ? 'white' : 'black'} />
                       </div>
                       <div
-                        className="scale-75 sm:scale-100 cursor-pointer"
-                        onClick={handleDiceClick}
-                        onTouchEnd={(e) => {
+                        className={`scale-75 sm:scale-100 ${isCurrentPlayer ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
+                        onClick={isCurrentPlayer ? handleDiceClick : undefined}
+                        onTouchEnd={isCurrentPlayer ? (e) => {
                           e.preventDefault()
                           handleDiceClick()
-                        }}
+                        } : undefined}
                       >
                         <Dice3D value={game.dice[1]} size="xs" isRolling={isRollingDice} color={game.currentPlayer === 0 ? 'white' : 'black'} />
                       </div>

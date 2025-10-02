@@ -349,6 +349,11 @@ export class GameStateManager {
       if (!engine.hasValidMoves()) {
         logger.info(`Player ${playerId} has no valid moves after rolling [${dice.join(', ')}] in game ${gameId}, ending turn automatically`);
         engine.forceEndTurn();
+
+        // Update game document with new current player after turn ended
+        gameDoc.currentPlayer = engine.getCurrentPlayer();
+        gameDoc.dice = engine.getCurrentDice();
+        await this.saveGameWithRetry(gameDoc);
       }
 
       // Update cache
