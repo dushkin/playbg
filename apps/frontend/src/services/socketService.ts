@@ -238,14 +238,27 @@ class SocketService {
     this.socket.emit('game:leave', { gameId })
   }
 
-  makeMove(gameId: string, move: any) {
+  makeMove(gameId: string, move: any): Promise<void> {
     if (!this.socket) {
       throw new Error('Socket not connected')
     }
 
-    this.socket.emit('game:move', {
-      gameId,
-      move
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Move acknowledgment timeout'))
+      }, 10000) // 10 second timeout
+
+      this.socket!.emit('game:move', {
+        gameId,
+        move
+      }, (response: any) => {
+        clearTimeout(timeout)
+        if (response?.error) {
+          reject(new Error(response.error))
+        } else {
+          resolve()
+        }
+      })
     })
   }
 

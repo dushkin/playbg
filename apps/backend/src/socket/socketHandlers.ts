@@ -307,16 +307,22 @@ export const setupSocketHandlers = (io: SocketIOServer): void => {
       }
     });
 
-    socket.on('game:move', async (data) => {
+    socket.on('game:move', async (data, callback) => {
       try {
-        if (!await checkSocketRateLimit(socket, 'game:move')) return;
-        
+        if (!await checkSocketRateLimit(socket, 'game:move')) {
+          if (callback) callback({ error: 'Rate limit exceeded' });
+          return;
+        }
+
         const validation = validateSocketEvent(socket, 'game:move', data);
-        if (!validation.isValid) return;
-        
+        if (!validation.isValid) {
+          if (callback) callback({ error: 'Validation failed' });
+          return;
+        }
+
         const validatedData = validation.sanitizedData;
         const gameId = validatedData.gameId;
-        
+
         // Add player ID and timestamp to move - explicitly don't include dice from frontend
         const move = {
           playerId: socket.userId!,
@@ -359,11 +365,15 @@ export const setupSocketHandlers = (io: SocketIOServer): void => {
         }
 
         logger.info(`${socket.username} made move in game ${gameId}`);
+
+        // Send acknowledgment to the client
+        if (callback) callback({ success: true });
       } catch (error) {
         logger.error(`Game move error:`, error);
-        socket.emit('game:error', { 
+        socket.emit('game:error', {
           message: error instanceof Error ? error.message : 'Invalid move'
         });
+        if (callback) callback({ error: error instanceof Error ? error.message : 'Invalid move' });
       }
     });
 

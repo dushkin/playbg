@@ -832,25 +832,38 @@ const Game: React.FC = () => {
     console.log('📡 Submitting moves:', movesMadeThisTurn)
     setTurnSubmitted(true)
 
-    // Send moves one at a time with delay to prevent race conditions
-    for (let i = 0; i < movesMadeThisTurn.length; i++) {
-      const move = movesMadeThisTurn[i]
-      const moveData = {
-        from: move.from,
-        to: move.to
+    try {
+      // Send moves one at a time, waiting for acknowledgment
+      for (let i = 0; i < movesMadeThisTurn.length; i++) {
+        const move = movesMadeThisTurn[i]
+        const moveData = {
+          from: move.from,
+          to: move.to
+        }
+
+        // Add to pending optimistic moves tracking with unique ID using counter for duplicate moves
+        const moveId = `${move.from}-${move.to}-${moveCounter.current++}`
+        pendingOptimisticMoves.current.add(moveId)
+
+        console.log(`📡 Sending move ${i + 1}/${movesMadeThisTurn.length}:`, moveData)
+
+        // Wait for acknowledgment before sending next move
+        await socketService.makeMove(gameId, moveData)
+        console.log(`✅ Move ${i + 1}/${movesMadeThisTurn.length} acknowledged`)
+
+        // Small delay between moves for backend processing
+        if (i < movesMadeThisTurn.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 100))
+        }
       }
+      console.log('✅ All moves submitted successfully')
+    } catch (error) {
+      console.error('❌ Error submitting moves:', error)
+      toast.error('Failed to submit moves. Please try again.')
+      setTurnSubmitted(false)
 
-      // Add to pending optimistic moves tracking with unique ID using counter for duplicate moves
-      const moveId = `${move.from}-${move.to}-${moveCounter.current++}`
-      pendingOptimisticMoves.current.add(moveId)
-
-      console.log(`📡 Sending move ${i + 1}/${movesMadeThisTurn.length}:`, moveData)
-      socketService.makeMove(gameId, moveData)
-
-      // Add delay between moves to allow backend processing
-      if (i < movesMadeThisTurn.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 200)) // Increased from 100ms to 200ms
-      }
+      // Clear pending optimistic moves on error
+      pendingOptimisticMoves.current.clear()
     }
   };
 
