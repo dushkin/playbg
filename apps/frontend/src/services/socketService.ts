@@ -9,6 +9,7 @@ import toast from 'react-hot-toast'
 
 class SocketService {
   private socket: Socket | null = null
+  private currentGameId: string | null = null
 
   connect(token: string) {
     if (this.socket?.connected) {
@@ -74,6 +75,12 @@ class SocketService {
     this.socket.on('reconnect', (attemptNumber) => {
       console.log(`Reconnected after ${attemptNumber} attempts`)
       toast.success('Connection restored!', { duration: 2000 })
+
+      // Rejoin the game if we were in one
+      if (this.currentGameId) {
+        console.log(`Rejoining game ${this.currentGameId} after reconnection`)
+        this.socket?.emit('game:join', { gameId: this.currentGameId })
+      }
     })
 
     this.socket.on('reconnect_attempt', (attemptNumber) => {
@@ -212,6 +219,7 @@ class SocketService {
       throw new Error('Socket not connected')
     }
 
+    this.currentGameId = gameId
     this.socket.emit('game:join', { gameId })
   }
 
@@ -220,6 +228,9 @@ class SocketService {
       throw new Error('Socket not connected')
     }
 
+    if (this.currentGameId === gameId) {
+      this.currentGameId = null
+    }
     this.socket.emit('game:leave', { gameId })
   }
 
