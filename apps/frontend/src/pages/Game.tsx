@@ -840,8 +840,8 @@ const Game: React.FC = () => {
       return false
     }
 
-    // 2. Direction validation
-    const expectedDistance = playerIndex === 0 ? from - to : to - from
+    // 2. Direction validation - BOTH players move from higher to lower points (24→1)
+    const expectedDistance = from - to
     if (expectedDistance !== diceValue) {
       console.log(`❌ Invalid: Wrong distance. Expected ${diceValue}, got ${expectedDistance}`)
       return false
