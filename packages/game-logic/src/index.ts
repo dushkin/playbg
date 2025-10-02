@@ -191,9 +191,8 @@ export class BackgammonEngine {
     const availableDice = this.getAvailableDiceValues();
 
     for (const diceValue of availableDice) {
-      // Both players enter from the top (array index 23 = point 24)
-      // Entry point = 23 - (diceValue - 1) = 24 - diceValue
-      const targetPoint = 24 - diceValue;
+      // Player 0 (white) enters from point 24, Player 1 (black) enters from point 1
+      const targetPoint = playerIndex === 0 ? 24 - diceValue : diceValue - 1;
 
       if (targetPoint >= 0 && targetPoint < 24 && this.canMoveToPoint(targetPoint, playerIndex)) {
         moves.push({
@@ -211,16 +210,23 @@ export class BackgammonEngine {
   private getBearOffMoves(): GameMove[] {
     const moves: GameMove[] = [];
     const playerIndex = this.currentPlayer;
-    // Both players bear off from points 0-5 (bottom right)
-    const homeBoard = [0, 1, 2, 3, 4, 5];
+    // Player 0 (white) bears off from points 0-5, Player 1 (black) bears off from points 18-23
+    const homeBoard = playerIndex === 0 ? [0, 1, 2, 3, 4, 5] : [18, 19, 20, 21, 22, 23];
 
     const availableDice = this.getAvailableDiceValues();
 
     for (const diceValue of availableDice) {
       for (const point of homeBoard) {
         if (this.board.points[point][playerIndex] > 0) {
-          // Distance from point to bearing off (point 0 is 1 away, point 5 is 6 away)
-          const distance = point + 1;
+          // Calculate distance from point to bearing off
+          let distance: number;
+          if (playerIndex === 0) {
+            // White bears off toward point -1 (decreasing)
+            distance = point + 1; // point 0 = 1 away, point 5 = 6 away
+          } else {
+            // Black bears off toward point 24 (increasing)
+            distance = 24 - point; // point 23 = 1 away, point 18 = 6 away
+          }
 
           if (distance === diceValue) {
             moves.push({
@@ -253,8 +259,8 @@ export class BackgammonEngine {
     for (let point = 0; point < 24; point++) {
       if (this.board.points[point][playerIndex] > 0) {
         for (const diceValue of availableDice) {
-          // Both players now move from higher to lower points (23 → 0)
-          const targetPoint = point - diceValue;
+          // Player 0 (white) moves 24→1 (decreasing), Player 1 (black) moves 1→24 (increasing)
+          const targetPoint = playerIndex === 0 ? point - diceValue : point + diceValue;
 
           if (targetPoint >= 0 && targetPoint < 24 && this.canMoveToPoint(targetPoint, playerIndex)) {
             moves.push({
@@ -277,8 +283,8 @@ export class BackgammonEngine {
   }
 
   private canBearOff(playerIndex: number): boolean {
-    // Both players bear off from points 0-5 (bottom right)
-    const homeBoard = [0, 1, 2, 3, 4, 5];
+    // Player 0 (white) bears off from points 0-5, Player 1 (black) bears off from points 18-23
+    const homeBoard = playerIndex === 0 ? [0, 1, 2, 3, 4, 5] : [18, 19, 20, 21, 22, 23];
 
     // Check if all checkers are in home board
     for (let point = 0; point < 24; point++) {
@@ -292,13 +298,21 @@ export class BackgammonEngine {
   }
 
   private isHighestChecker(point: number, playerIndex: number): boolean {
-    // Both players bear off from points 0-5 (bottom right)
-    const homeBoard = [0, 1, 2, 3, 4, 5];
+    // Player 0 (white) bears off from points 0-5, Player 1 (black) bears off from points 18-23
+    const homeBoard = playerIndex === 0 ? [0, 1, 2, 3, 4, 5] : [18, 19, 20, 21, 22, 23];
 
-    // Check if there are any checkers on higher points in home board
+    // Check if there are any checkers further from bearing off
     for (const p of homeBoard) {
-      if (p > point && this.board.points[p][playerIndex] > 0) {
-        return false;
+      if (playerIndex === 0) {
+        // White: check higher points (further from 0)
+        if (p > point && this.board.points[p][playerIndex] > 0) {
+          return false;
+        }
+      } else {
+        // Black: check lower points (further from 24)
+        if (p < point && this.board.points[p][playerIndex] > 0) {
+          return false;
+        }
       }
     }
     return true;
