@@ -86,10 +86,11 @@ const NotationImport: React.FC<NotationImportProps> = ({ onImport }) => {
       />
       <label
         htmlFor="notation-file-input"
-        className="px-3 py-1 text-sm bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors cursor-pointer inline-flex items-center gap-2"
+        className="px-2 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors cursor-pointer inline-flex items-center gap-1 whitespace-nowrap"
         title="Import notation from file"
       >
-        📂 Import
+        <span className="hidden sm:inline">📂 Import</span>
+        <span className="sm:hidden">📂</span>
       </label>
     </div>
   );
