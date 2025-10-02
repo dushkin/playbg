@@ -1277,7 +1277,7 @@ const Game: React.FC = () => {
 
             {/* Top half of board */}
             <div className="flex gap-0.5 sm:gap-1 lg:gap-2 h-32 sm:h-48 lg:h-60 xl:h-72 overflow-visible">
-              {/* For white: 13-18, For black: 12-7 */}
+              {/* For white: 13-18 (top left), For black: 12-7 (top left after 180° rotation) */}
               <div className="flex gap-0.5 sm:gap-1 flex-1 min-w-0 overflow-hidden">
                 {Array.from({ length: 6 }, (_, i) => (
                   <div key={`top-left-${i}`} className="flex-1 min-w-0 max-w-full overflow-hidden">
