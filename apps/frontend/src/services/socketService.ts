@@ -102,6 +102,10 @@ class SocketService {
         console.log('Server starting up, connection will retry automatically')
       } else if (error.message.includes('CORS')) {
         toast.error('Connection blocked by CORS policy. Please contact support.')
+      } else if (error.message.includes('Authentication')) {
+        // Token expired - need to refresh and reconnect
+        console.warn('Socket authentication failed - token may have expired. Page reload required.')
+        toast.error('Session expired. Please refresh the page.', { duration: 0 })
       } else {
         toast.error('Connection error. Please check your internet connection.')
       }

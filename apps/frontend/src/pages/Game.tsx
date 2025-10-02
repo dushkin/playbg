@@ -26,6 +26,7 @@ const Game: React.FC = () => {
   const [originalBoardState, setOriginalBoardState] = useState<any>(null)
   const [turnSubmitted, setTurnSubmitted] = useState<boolean>(false)
   const hydratedFromSocket = useRef(false)
+  const moveCounter = useRef(0)
 
   useEffect(() => {
     if (gameId) {
@@ -93,14 +94,21 @@ const Game: React.FC = () => {
 
           // Check if this is our optimistic move being confirmed
           if (data.move && isOurMove) {
-            const serverMoveId = `${data.move.from}-${data.move.to}`
-            const isOptimisticConfirmation = pendingOptimisticMoves.current.has(serverMoveId)
+            const serverMovePattern = `${data.move.from}-${data.move.to}`
+            // Find and delete the first matching optimistic move (by prefix pattern)
+            let matchedMoveId: string | null = null
+            for (const moveId of pendingOptimisticMoves.current) {
+              if (moveId.startsWith(serverMovePattern)) {
+                matchedMoveId = moveId
+                break
+              }
+            }
 
-            if (isOptimisticConfirmation) {
+            if (matchedMoveId) {
               console.log('✅ Confirmed optimistic move, cleaning up')
-              pendingOptimisticMoves.current.delete(serverMoveId)
+              pendingOptimisticMoves.current.delete(matchedMoveId)
 
-              if (optimisticMoveRef.current === serverMoveId) {
+              if (optimisticMoveRef.current === matchedMoveId) {
                 setOptimisticMoveId(null)
                 optimisticMoveRef.current = null
               }
@@ -789,6 +797,20 @@ const Game: React.FC = () => {
         console.log('🎲 ✅ Rolling dice!')
         setIsRollingDice(true);
         socketService.rollDice(gameId);
+
+        // Safety timeout: Reset rolling state if no response after 5 seconds
+        setTimeout(() => {
+          setIsRollingDice(prev => {
+            if (prev) {
+              console.warn('🎲 ⏱️ Dice roll timeout - resetting rolling state')
+              if (!socketService.isConnected()) {
+                toast.error('Connection lost. Please check your connection and try again.')
+              }
+              return false
+            }
+            return prev
+          })
+        }, 5000)
       } else {
         console.log('🎲 ❌ Cannot roll dice:', {
           hasRolledThisTurn,
@@ -818,8 +840,8 @@ const Game: React.FC = () => {
         to: move.to
       }
 
-      // Add to pending optimistic moves tracking
-      const moveId = `${move.from}-${move.to}`
+      // Add to pending optimistic moves tracking with unique ID using counter for duplicate moves
+      const moveId = `${move.from}-${move.to}-${moveCounter.current++}`
       pendingOptimisticMoves.current.add(moveId)
 
       console.log(`📡 Sending move ${i + 1}/${movesMadeThisTurn.length}:`, moveData)
