@@ -377,13 +377,19 @@ export const setupSocketHandlers = (io: SocketIOServer): void => {
       }
     });
 
-    socket.on('game:dice_roll', async (data) => {
+    socket.on('game:dice_roll', async (data, callback) => {
       try {
-        if (!await checkSocketRateLimit(socket, 'game:dice_roll')) return;
+        if (!await checkSocketRateLimit(socket, 'game:dice_roll')) {
+          if (callback) callback({ error: 'Rate limit exceeded' });
+          return;
+        }
 
         const validation = validateSocketEvent(socket, 'game:dice_roll', data);
-        if (!validation.isValid) return;
-        
+        if (!validation.isValid) {
+          if (callback) callback({ error: 'Validation failed' });
+          return;
+        }
+
         const validatedData = validation.sanitizedData;
         const gameId = validatedData.gameId;
 
@@ -400,11 +406,15 @@ export const setupSocketHandlers = (io: SocketIOServer): void => {
         });
 
         logger.info(`${socket.username} rolled dice in game ${gameId}: [${(stateUpdate.state as any)?.dice?.join(', ')}]`);
+
+        // Send acknowledgment to the client
+        if (callback) callback({ success: true, dice: (stateUpdate.state as any)?.dice });
       } catch (error) {
         logger.error(`Dice roll error:`, error);
-        socket.emit('game:error', { 
+        socket.emit('game:error', {
           message: error instanceof Error ? error.message : 'Failed to roll dice'
         });
+        if (callback) callback({ error: error instanceof Error ? error.message : 'Failed to roll dice' });
       }
     });
 

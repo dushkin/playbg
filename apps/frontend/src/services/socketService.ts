@@ -262,12 +262,25 @@ class SocketService {
     })
   }
 
-  rollDice(gameId: string) {
+  rollDice(gameId: string): Promise<{ success: boolean; dice?: [number, number]; error?: string }> {
     if (!this.socket) {
-      throw new Error('Socket not connected')
+      return Promise.reject(new Error('Socket not connected'))
     }
 
-    this.socket.emit('game:dice_roll', { gameId })
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Dice roll acknowledgment timeout'))
+      }, 10000) // 10 second timeout
+
+      this.socket!.emit('game:dice_roll', { gameId }, (response: any) => {
+        clearTimeout(timeout)
+        if (response?.error) {
+          reject(new Error(response.error))
+        } else {
+          resolve(response)
+        }
+      })
+    })
   }
 
   sendChat(gameId: string, message: string) {

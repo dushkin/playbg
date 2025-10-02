@@ -55,6 +55,7 @@ export interface Game {
   endTime?: Date;
   winner?: string;
   moves: GameMove[];
+  notation?: TurnNotation[]; // Game notation in standard backgammon format
   spectators: string[];
   chatMessages: ChatMessage[];
 }
@@ -80,6 +81,15 @@ export interface GameMove {
   to: number;
   timestamp: Date;
   dice?: [number, number];
+  hit?: boolean; // Indicates if this move hit an opponent's checker
+}
+
+export interface TurnNotation {
+  turnNumber: number;
+  playerId: string;
+  dice: [number, number];
+  moves: string[]; // Array of move notations like "13/7*", "bar/22", "5/off"
+  timestamp: Date;
 }
 
 export interface ChatMessage {
@@ -368,6 +378,9 @@ export type DeepPartial<T> = {
 };
 
 export type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
+
+// Re-export notation utilities
+export * from './notationUtils';
 
 // Error Types
 export interface ValidationError {

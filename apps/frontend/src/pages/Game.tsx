@@ -2,11 +2,12 @@ import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAppSelector } from '../hooks/redux'
 import { gamesAPI } from '../services/api'
-import { Game as GameType, GameState as GameStateEnum } from '@playbg/shared'
+import { Game as GameType, GameState as GameStateEnum, TurnNotation, GameMove } from '@playbg/shared'
 import LoadingSpinner from '../components/UI/LoadingSpinner'
 import socketService from '../services/socketService'
 import Dice3D from '../components/Game/Dice3D'
 import toast from 'react-hot-toast'
+import GameNotation from '../components/GameNotation'
 
 const Game: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>()
@@ -27,6 +28,17 @@ const Game: React.FC = () => {
   const [turnSubmitted, setTurnSubmitted] = useState<boolean>(false)
   const hydratedFromSocket = useRef(false)
   const moveCounter = useRef(0)
+  const [turnNotations, setTurnNotations] = useState<TurnNotation[]>([])
+  const currentTurnMoves = useRef<GameMove[]>([])
+  const currentTurnNumber = useRef(1)
+
+  const handleNotationImport = (importedNotations: TurnNotation[]) => {
+    setTurnNotations(importedNotations);
+    // Update the turn counter to continue from where the imported notation left off
+    if (importedNotations.length > 0) {
+      currentTurnNumber.current = importedNotations[importedNotations.length - 1].turnNumber + 1;
+    }
+  }
 
   useEffect(() => {
     if (gameId) {
@@ -178,6 +190,19 @@ const Game: React.FC = () => {
           // For all other moves (opponent moves or non-optimistic updates), apply full server state
           console.log('📋 Applying server update for', isOurMove ? 'our non-optimistic' : 'opponent', 'move')
 
+          // Track move for notation
+          if (data.move && data.state?.dice) {
+            const move: GameMove = {
+              playerId: data.playerId,
+              from: data.move.from,
+              to: data.move.to,
+              timestamp: new Date(data.timestamp || Date.now()),
+              dice: data.state.dice,
+              hit: data.move.hit || false
+            };
+            currentTurnMoves.current.push(move);
+          }
+
           // Capture current game state before update for dice tracking
           const gameBeforeUpdate = game;
 
@@ -206,6 +231,27 @@ const Game: React.FC = () => {
 
             // If opponent just moved and it's now our turn, reset our turn state
             if (!isOurMove && updatedGame.currentPlayer === ourIndex) {
+              // Finalize opponent's turn notation before resetting
+              if (currentTurnMoves.current.length > 0) {
+                const firstMove = currentTurnMoves.current[0];
+                if (firstMove.dice) {
+                  const turnNotation: TurnNotation = {
+                    turnNumber: currentTurnNumber.current++,
+                    playerId: firstMove.playerId,
+                    dice: firstMove.dice,
+                    moves: currentTurnMoves.current.map(m => {
+                      const playerIndex = updatedGame.players.findIndex((p: any) => p.userId === m.playerId);
+                      let startPos = m.from === -1 ? 'bar' : String(playerIndex === 0 ? m.from + 1 : 24 - m.from);
+                      let endPos = m.to === 25 ? 'off' : String(playerIndex === 0 ? m.to + 1 : 24 - m.to);
+                      return `${startPos}/${endPos}${m.hit ? '*' : ''}`;
+                    }),
+                    timestamp: firstMove.timestamp
+                  };
+                  setTurnNotations(prev => [...prev, turnNotation]);
+                  currentTurnMoves.current = [];
+                }
+              }
+
               // Reset turn state when it becomes our turn
               setHasRolledThisTurn(false);
               setTurnSubmitted(false);
@@ -285,13 +331,9 @@ const Game: React.FC = () => {
 
               return newUsed;
             });
-          } else if (data.move && !isOurMove) {
-            console.log('⚠️ Cannot track opponent dice - dice is null:', {
-              hasMove: !!data.move,
-              gameBeforeUpdateDice: gameBeforeUpdate?.dice,
-              dataStateDice: data.state?.dice,
-              isOurMove
-            });
+          } else if (data.move && !isOurMove && !gameBeforeUpdate?.dice) {
+            // This is normal when opponent makes their last move of the turn
+            console.log('ℹ️ Opponent move received after turn ended (dice already cleared)');
           }
 
           // Handle turn changes
@@ -796,21 +838,23 @@ const Game: React.FC = () => {
       if (!hasRolledThisTurn && !isRollingDice && !turnSubmitted) {
         console.log('🎲 ✅ Rolling dice!')
         setIsRollingDice(true);
-        socketService.rollDice(gameId);
 
-        // Safety timeout: Reset rolling state if no response after 5 seconds
-        setTimeout(() => {
-          setIsRollingDice(prev => {
-            if (prev) {
-              console.warn('🎲 ⏱️ Dice roll timeout - resetting rolling state')
-              if (!socketService.isConnected()) {
-                toast.error('Connection lost. Please check your connection and try again.')
-              }
-              return false
-            }
-            return prev
+        socketService.rollDice(gameId)
+          .then((response) => {
+            console.log('🎲 ✅ Dice roll acknowledged:', response);
+            // The actual dice values will come through the 'game:dice_roll' event
+            // This just confirms the server received and processed the request
           })
-        }, 5000)
+          .catch((error) => {
+            console.error('🎲 ❌ Dice roll failed:', error);
+            setIsRollingDice(false);
+
+            if (!socketService.isConnected()) {
+              toast.error('Connection lost. Please check your connection and try again.');
+            } else {
+              toast.error('Failed to roll dice. Please try again.');
+            }
+          });
       } else {
         console.log('🎲 ❌ Cannot roll dice:', {
           hasRolledThisTurn,
@@ -1710,6 +1754,11 @@ const Game: React.FC = () => {
              "Waiting for opponent's move..."}
           </p>
         </div>
+
+        {/* Game Notation (Mobile) */}
+        <div className="flex-shrink-0">
+          <GameNotation game={game} notations={turnNotations} onImport={handleNotationImport} />
+        </div>
       </div>
 
       {/* Desktop Layout (Three Columns) */}
@@ -1842,6 +1891,9 @@ const Game: React.FC = () => {
                 "Waiting for opponent's move..."}
             </p>
           </div>
+
+          {/* Game Notation */}
+          <GameNotation game={game} notations={turnNotations} onImport={handleNotationImport} />
         </div>
       </div>
     </div>

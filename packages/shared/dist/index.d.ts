@@ -49,6 +49,7 @@ export interface Game {
     endTime?: Date;
     winner?: string;
     moves: GameMove[];
+    notation?: TurnNotation[];
     spectators: string[];
     chatMessages: ChatMessage[];
 }
@@ -71,6 +72,14 @@ export interface GameMove {
     to: number;
     timestamp: Date;
     dice?: [number, number];
+    hit?: boolean;
+}
+export interface TurnNotation {
+    turnNumber: number;
+    playerId: string;
+    dice: [number, number];
+    moves: string[];
+    timestamp: Date;
 }
 export interface ChatMessage {
     id: string;
@@ -329,6 +338,7 @@ export type DeepPartial<T> = {
     [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
 };
 export type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
+export * from './notationUtils';
 export interface ValidationError {
     field: string;
     message: string;
