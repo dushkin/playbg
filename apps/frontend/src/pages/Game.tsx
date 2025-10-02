@@ -733,7 +733,11 @@ const Game: React.FC = () => {
       movesMadeThisTurnLength: movesMadeThisTurn.length,
       gameState: game?.gameState,
       gameDice: game?.dice,
-      usedDice
+      usedDice,
+      currentPlayer,
+      gameCurrentPlayer: game?.currentPlayer,
+      userId: user?.id,
+      players: game?.players
     })
 
     // Prevent rolling dice if game is not in progress
