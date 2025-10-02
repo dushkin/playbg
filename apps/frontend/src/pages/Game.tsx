@@ -1311,36 +1311,27 @@ const Game: React.FC = () => {
                   relative overflow-hidden
                 ">
                   {/* Dice display */}
-                  {game?.dice && game.dice.length === 2 && hasRolledThisTurn && !turnSubmitted ? (
+                  {game?.dice && game.dice.length === 2 && hasRolledThisTurn ? (
                     <div className="flex flex-col gap-0 sm:gap-1 z-20 items-center">
                       <div
-                        className={`scale-75 sm:scale-100 ${isCurrentPlayer ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
-                        onClick={isCurrentPlayer ? handleDiceClick : undefined}
-                        onTouchEnd={isCurrentPlayer ? (e) => {
+                        className={`scale-75 sm:scale-100 ${isCurrentPlayer && !turnSubmitted ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+                        onClick={isCurrentPlayer && !turnSubmitted ? handleDiceClick : undefined}
+                        onTouchEnd={isCurrentPlayer && !turnSubmitted ? (e) => {
                           e.preventDefault()
                           handleDiceClick()
                         } : undefined}
                       >
-                        <Dice3D value={game.dice[0]} size="xs" isRolling={isRollingDice} color={game.currentPlayer === 0 ? 'white' : 'black'} />
+                        <Dice3D value={game.dice[0]} size="xs" isRolling={isRollingDice} color={game.currentPlayer === 0 ? 'white' : 'black'} disabled={turnSubmitted} />
                       </div>
                       <div
-                        className={`scale-75 sm:scale-100 ${isCurrentPlayer ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
-                        onClick={isCurrentPlayer ? handleDiceClick : undefined}
-                        onTouchEnd={isCurrentPlayer ? (e) => {
+                        className={`scale-75 sm:scale-100 ${isCurrentPlayer && !turnSubmitted ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+                        onClick={isCurrentPlayer && !turnSubmitted ? handleDiceClick : undefined}
+                        onTouchEnd={isCurrentPlayer && !turnSubmitted ? (e) => {
                           e.preventDefault()
                           handleDiceClick()
                         } : undefined}
                       >
-                        <Dice3D value={game.dice[1]} size="xs" isRolling={isRollingDice} color={game.currentPlayer === 0 ? 'white' : 'black'} />
-                      </div>
-                    </div>
-                  ) : turnSubmitted && hasRolledThisTurn ? (
-                    <div className="flex flex-col gap-0 sm:gap-1 z-20 items-center">
-                      <div className="scale-75 sm:scale-100">
-                        <Dice3D value={1} size="xs" isRolling={false} color={game.currentPlayer === 0 ? 'white' : 'black'} showR={true} />
-                      </div>
-                      <div className="scale-75 sm:scale-100">
-                        <Dice3D value={1} size="xs" isRolling={false} color={game.currentPlayer === 0 ? 'white' : 'black'} showR={true} />
+                        <Dice3D value={game.dice[1]} size="xs" isRolling={isRollingDice} color={game.currentPlayer === 0 ? 'white' : 'black'} disabled={turnSubmitted} />
                       </div>
                     </div>
                   ) : (

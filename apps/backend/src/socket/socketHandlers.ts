@@ -335,6 +335,7 @@ export const setupSocketHandlers = (io: SocketIOServer): void => {
         // Get all sockets in the game room for debugging
         const socketsInRoom = await io.in(`game:${gameId}`).fetchSockets();
         logger.info(`Broadcasting move to game:${gameId} room with ${socketsInRoom.length} sockets: ${socketsInRoom.map(s => (s as any).username || 'unknown').join(', ')}`);
+        logger.info(`Move result - currentPlayer: ${(stateUpdate.state as any).currentPlayer}, dice: ${JSON.stringify((stateUpdate.state as any).dice)}`);
 
         // Broadcast move to all players in the game
         io.to(`game:${gameId}`).emit('game:move', {

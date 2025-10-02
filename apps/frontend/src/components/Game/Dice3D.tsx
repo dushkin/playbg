@@ -8,9 +8,10 @@ interface Dice3DProps {
   color?: 'white' | 'black'
   blank?: boolean
   showR?: boolean
+  disabled?: boolean
 }
 
-const Dice3D: React.FC<Dice3DProps> = ({ value, size = 'md', isRolling = false, animationDelay = 0, color = 'white', blank = false, showR = false }) => {
+const Dice3D: React.FC<Dice3DProps> = ({ value, size = 'md', isRolling = false, animationDelay = 0, color = 'white', blank = false, showR = false, disabled = false }) => {
   const sizeClasses = useMemo(() => {
     switch (size) {
       case 'xs':
@@ -75,7 +76,9 @@ const Dice3D: React.FC<Dice3DProps> = ({ value, size = 'md', isRolling = false, 
 
   const dotPositions = blank || showR ? [] : getDotPositions(value)
 
-  const diceBackground = color === 'white'
+  const diceBackground = disabled
+    ? 'linear-gradient(135deg, #9ca3af 0%, #6b7280 25%, #4b5563 50%, #374151 75%, #1f2937 100%)'
+    : color === 'white'
     ? 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 25%, #e9ecef 50%, #dee2e6 75%, #ced4da 100%)'
     : 'linear-gradient(135deg, #1f2937 0%, #374151 25%, #4b5563 50%, #6b7280 75%, #9ca3af 100%)'
 
@@ -83,7 +86,7 @@ const Dice3D: React.FC<Dice3DProps> = ({ value, size = 'md', isRolling = false, 
     <div
       className={`
         ${sizeClasses} relative rounded-lg shadow-lg transition-all duration-300 ease-out
-        ${isRolling ? 'animate-bounce' : 'hover:scale-110'}
+        ${disabled ? 'opacity-40 cursor-not-allowed' : isRolling ? 'animate-bounce' : 'hover:scale-110'}
         transform-gpu perspective-1000
       `}
       style={{
