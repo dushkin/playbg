@@ -126,23 +126,38 @@ const Game: React.FC = () => {
               }
 
               // Track our own move for notation
-              if (data.move && data.state?.dice) {
-                const move: GameMove = {
-                  playerId: data.playerId,
-                  from: data.move.from,
-                  to: data.move.to,
-                  timestamp: new Date(data.timestamp || Date.now()),
-                  dice: data.state.dice,
-                  hit: data.move.hit || false
-                };
-                currentTurnMoves.current.push(move);
-                console.log('📝 Tracked our move for notation:', { moveCount: currentTurnMoves.current.length, from: data.move.from, to: data.move.to });
+              if (data.move) {
+                // Use current game dice if state dice is null (happens on subsequent moves in same turn)
+                const diceToUse = data.state?.dice || game?.dice;
+                if (diceToUse) {
+                  const move: GameMove = {
+                    playerId: data.playerId,
+                    from: data.move.from,
+                    to: data.move.to,
+                    timestamp: new Date(data.timestamp || Date.now()),
+                    dice: diceToUse,
+                    hit: data.move.hit || false
+                  };
+                  currentTurnMoves.current.push(move);
+                  console.log('📝 Tracked our move for notation:', {
+                    moveCount: currentTurnMoves.current.length,
+                    from: data.move.from,
+                    to: data.move.to,
+                    dice: diceToUse,
+                    dataStateDice: data.state?.dice,
+                    gameDice: game?.dice
+                  });
+                } else {
+                  console.warn('⚠️ Could not track move - no dice available:', { dataStateDice: data.state?.dice, gameDice: game?.dice });
+                }
               }
 
               // Check if turn is ending (optimistic path)
               const prevPlayer = game?.currentPlayer;
               const newPlayer = data.state?.currentPlayer;
               const turnIsEnding = prevPlayer !== undefined && newPlayer !== undefined && prevPlayer !== newPlayer;
+
+              console.log('🔍 Turn change check:', { prevPlayer, newPlayer, turnIsEnding, movesCount: currentTurnMoves.current.length });
 
               if (turnIsEnding && currentTurnMoves.current.length > 0) {
                 const firstMove = currentTurnMoves.current[0];
