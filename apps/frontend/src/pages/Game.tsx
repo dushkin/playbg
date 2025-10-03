@@ -463,6 +463,7 @@ const Game: React.FC = () => {
 
       const handlePlayerJoined = (data: any) => {
         if (data.gameId === gameId) {
+          console.log('👥 Player joined:', data);
           setGame(prevGame => {
             if (!prevGame) return null;
             return {
@@ -473,6 +474,14 @@ const Game: React.FC = () => {
               board: data.state?.board || prevGame.board,
             };
           });
+        }
+      };
+
+      const handleGameUnavailable = (data: any) => {
+        if (data.gameId === gameId) {
+          console.log('🎮 Game started - second player joined:', data);
+          // Reload the game to get the updated state
+          loadGame();
         }
       };
 
@@ -500,6 +509,7 @@ const Game: React.FC = () => {
       socket.on('game:dice_roll', handleDiceRoll);
       socket.on('game:move', handleGameMove);
       socket.on('game:player_joined', handlePlayerJoined);
+      socket.on('game:unavailable', handleGameUnavailable);
       socket.on('game:completed', handleGameCompleted);
 
       return () => {
@@ -507,6 +517,7 @@ const Game: React.FC = () => {
         socket.off('game:dice_roll', handleDiceRoll);
         socket.off('game:move', handleGameMove);
         socket.off('game:player_joined', handlePlayerJoined);
+        socket.off('game:unavailable', handleGameUnavailable);
         socket.off('game:completed', handleGameCompleted);
         if (gameId) {
           socketService.leaveGame(gameId);
