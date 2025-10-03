@@ -10,6 +10,8 @@ import toast from 'react-hot-toast'
 class SocketService {
   private socket: Socket | null = null
   private currentGameId: string | null = null
+  private heartbeatInterval: NodeJS.Timeout | null = null
+  private lastPongTime: number = Date.now()
 
   connect(token: string) {
     if (this.socket?.connected) {
@@ -45,6 +47,7 @@ class SocketService {
   }
 
   disconnect() {
+    this.stopHeartbeat()
     if (this.socket) {
       this.socket.disconnect()
       this.socket = null
@@ -57,10 +60,13 @@ class SocketService {
     // Connection events
     this.socket.on('connect', () => {
       console.log('Connected to server')
+      this.lastPongTime = Date.now()
+      this.startHeartbeat()
     })
 
     this.socket.on('disconnect', (reason) => {
       console.log('Disconnected from server:', reason)
+      this.stopHeartbeat()
 
       if (reason === 'io server disconnect') {
         // Server-initiated disconnect, don't auto-reconnect
@@ -71,6 +77,20 @@ class SocketService {
         toast('Connection lost, reconnecting...', { duration: 3000, icon: 'ℹ️' })
       }
     })
+
+    // Monitor server pings/pongs for connection health
+    // Socket.IO automatically handles ping/pong at the engine level
+    // We track pongs by listening to the underlying engine events
+    if (this.socket.io.engine) {
+      this.socket.io.engine.on('ping', () => {
+        console.log('📡 Ping sent to server')
+      })
+
+      this.socket.io.engine.on('pong', () => {
+        this.lastPongTime = Date.now()
+        console.log('📡 Pong received from server')
+      })
+    }
 
     this.socket.on('reconnect', (attemptNumber) => {
       console.log(`Reconnected after ${attemptNumber} attempts`)
@@ -300,6 +320,34 @@ class SocketService {
       gameId,
       message
     })
+  }
+
+  // Heartbeat monitoring to detect stale connections
+  private startHeartbeat() {
+    this.stopHeartbeat() // Clear any existing interval
+
+    // Check connection health every 30 seconds
+    this.heartbeatInterval = setInterval(() => {
+      const timeSinceLastPong = Date.now() - this.lastPongTime
+
+      // If no pong received in 90 seconds, connection might be stale
+      if (timeSinceLastPong > 90000) {
+        console.warn(`⚠️ No pong received for ${Math.round(timeSinceLastPong / 1000)}s - connection may be stale`)
+
+        // If connection appears stale but socket thinks it's connected, force reconnect
+        if (this.socket?.connected && timeSinceLastPong > 150000) {
+          console.error('🔴 Connection stale for >150s, forcing reconnect')
+          this.socket.disconnect().connect()
+        }
+      }
+    }, 30000)
+  }
+
+  private stopHeartbeat() {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval)
+      this.heartbeatInterval = null
+    }
   }
 
   // Utility methods
