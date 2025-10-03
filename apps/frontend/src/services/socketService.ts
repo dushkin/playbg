@@ -33,9 +33,10 @@ class SocketService {
       reconnectionDelayMax: 15000, // Max 15s between attempts for server wake-up
       timeout: 60000, // Increased to 60s for Render free tier wake-up
       forceNew: false,
-      transports: ['polling', 'websocket'], // Start with polling for better reliability
-      upgrade: true, // Allow transport upgrades
-      rememberUpgrade: true, // Remember successful upgrades
+      // Try websocket first since it's more stable once connected
+      // Falls back to polling automatically if websocket fails
+      transports: ['websocket', 'polling'],
+      upgrade: false, // Disable upgrade - stay on the initial transport
       // Add ack timeout to prevent hanging on slow networks
       ackTimeout: 15000, // 15 seconds for acknowledgments (server wake-up)
       // Ensure connection stays alive with proper ping/pong
@@ -90,11 +91,25 @@ class SocketService {
         this.lastPongTime = Date.now()
         console.log('📡 Pong received from server')
       })
+
+      // Monitor transport changes to debug connection issues
+      this.socket.io.engine.on('upgrade', (transport: any) => {
+        console.log('🔄 Transport upgraded to:', transport.name)
+      })
+
+      this.socket.io.engine.on('upgradeError', (error: any) => {
+        console.error('❌ Transport upgrade failed:', error)
+      })
     }
 
     this.socket.on('reconnect', (attemptNumber) => {
       console.log(`Reconnected after ${attemptNumber} attempts`)
-      toast.success('Connection restored! Reloading game...', { duration: 3000 })
+
+      if (attemptNumber > 5) {
+        toast.success('Connection restored! Your game is being reloaded...', { duration: 4000, icon: '✅' })
+      } else {
+        toast.success('Reconnected successfully!', { duration: 2000 })
+      }
 
       // Rejoin the game if we were in one
       if (this.currentGameId) {
@@ -110,10 +125,12 @@ class SocketService {
       console.log(`Reconnection attempt ${attemptNumber}`)
       if (attemptNumber === 1) {
         toast('Reconnecting...', { duration: 2000, icon: '🔄' })
-      } else if (attemptNumber === 5) {
-        toast('Server may be waking up, please wait...', { duration: 3000, icon: '⏳' })
-      } else if (attemptNumber % 10 === 0) {
-        toast(`Still reconnecting... (attempt ${attemptNumber})`, { duration: 3000, icon: '🔄' })
+      } else if (attemptNumber === 3) {
+        toast('Server is starting up, this may take a moment...', { duration: 5000, icon: '⏳' })
+      } else if (attemptNumber === 8) {
+        toast('Still waiting for server to wake up... Please be patient.', { duration: 5000, icon: '☕' })
+      } else if (attemptNumber % 15 === 0) {
+        toast(`Reconnection in progress... (attempt ${attemptNumber})`, { duration: 4000, icon: '🔄' })
       }
     })
 

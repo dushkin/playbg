@@ -416,11 +416,6 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* Notation Importer */}
-          <div className="mb-8">
-            <NotationImporter />
-          </div>
-
           {/* Game Lists */}
           {loading ? (
             <div className="flex justify-center py-8">
@@ -607,6 +602,11 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* Notation Importer */}
+          <div className="mt-8">
+            <NotationImporter />
+          </div>
         </div>
       </div>
     </div>

@@ -88,15 +88,15 @@ const io = new SocketIOServer(server, {
   },
   // Connection settings to prevent premature disconnections
   // Render Hobby plan should not spin down, but network can still have issues
-  pingTimeout: 120000, // 120 seconds (2 min) - increased to handle slow networks
-  pingInterval: 20000, // 20 seconds - more frequent pings to keep connection alive
-  upgradeTimeout: 30000, // 30 seconds - time to wait for upgrade to complete
+  pingTimeout: 60000, // 60 seconds - if no pong in 60s, consider connection dead
+  pingInterval: 25000, // 25 seconds - server sends ping every 25s (must be < pingTimeout)
+  upgradeTimeout: 60000, // 60 seconds - increased time to wait for transport upgrade
   maxHttpBufferSize: 1e6, // 1MB - max message size
   transports: ['websocket', 'polling'], // Allow both transports
   allowUpgrades: true, // Allow transport upgrades
   perMessageDeflate: false, // Disable compression for better performance
   httpCompression: true, // Enable HTTP compression
-  connectTimeout: 45000, // 45 seconds - connection timeout
+  connectTimeout: 60000, // 60 seconds - connection timeout (increased)
   // Allow EIO v3 for better compatibility
   allowEIO3: true
 });

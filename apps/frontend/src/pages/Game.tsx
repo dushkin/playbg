@@ -623,6 +623,72 @@ const Game: React.FC = () => {
     }
   };
 
+  // Reconstruct notation from stored moves
+  const reconstructNotationFromMoves = (gameData: any) => {
+    if (!gameData.moves || gameData.moves.length === 0) {
+      console.log('📝 No moves to reconstruct notation from');
+      return;
+    }
+
+    console.log(`📝 Reconstructing notation from ${gameData.moves.length} stored moves`);
+
+    // Group moves by turn (consecutive moves with same dice from same player)
+    const turnGroups: GameMove[][] = [];
+    let currentTurn: GameMove[] = [];
+    let lastPlayerId: string | null = null;
+    let lastDice: string | null = null;
+
+    gameData.moves.forEach((move: GameMove, index: number) => {
+      if (!move.dice || move.dice.length !== 2) {
+        console.warn('⚠️ Move missing dice, skipping:', move);
+        return;
+      }
+
+      const diceKey = move.dice.join(',');
+
+      // Check if this is a new turn (different player or different dice)
+      if (move.playerId !== lastPlayerId || diceKey !== lastDice) {
+        // Save previous turn if it exists
+        if (currentTurn.length > 0) {
+          turnGroups.push([...currentTurn]);
+        }
+        // Start new turn
+        currentTurn = [move];
+        lastPlayerId = move.playerId;
+        lastDice = diceKey;
+      } else {
+        // Same turn, add move
+        currentTurn.push(move);
+      }
+
+      // If this is the last move, save the turn
+      if (index === gameData.moves.length - 1 && currentTurn.length > 0) {
+        turnGroups.push([...currentTurn]);
+      }
+    });
+
+    // Convert grouped moves to turn notations
+    const reconstructedNotations: TurnNotation[] = turnGroups.map((turnMoves, index) => {
+      const firstMove = turnMoves[0];
+      return {
+        turnNumber: index + 1,
+        playerId: firstMove.playerId,
+        dice: firstMove.dice!,
+        moves: turnMoves.map(m => {
+          const playerIndex = gameData.players.findIndex((p: any) => p.userId === m.playerId);
+          let startPos = m.from === -1 ? 'bar' : String(playerIndex === 0 ? m.from + 1 : 24 - m.from);
+          let endPos = m.to === 25 ? 'off' : String(playerIndex === 0 ? m.to + 1 : 24 - m.to);
+          return `${startPos}/${endPos}${m.hit ? '*' : ''}`;
+        }),
+        timestamp: new Date(firstMove.timestamp || Date.now())
+      };
+    });
+
+    console.log(`📝 Reconstructed ${reconstructedNotations.length} turns from stored moves`);
+    setTurnNotations(reconstructedNotations);
+    currentTurnNumber.current = reconstructedNotations.length + 1;
+  };
+
   const loadGame = async (retryCount = 0) => {
     if (!gameId) return
 
@@ -649,6 +715,9 @@ const Game: React.FC = () => {
 
         setGame(targetGame)
         setError(null) // Clear any previous errors
+
+        // Reconstruct notation from stored moves
+        reconstructNotationFromMoves(targetGame);
 
         // Initialize dice state based on the final target game data
         if (targetGame.dice && targetGame.dice.length === 2) {
