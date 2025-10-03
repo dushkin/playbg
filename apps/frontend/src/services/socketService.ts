@@ -26,16 +26,16 @@ class SocketService {
       auth: { token },
       autoConnect: true,
       reconnection: true,
-      reconnectionAttempts: 10, // Increased for mobile networks
-      reconnectionDelay: 1000,  // Start faster
-      reconnectionDelayMax: 10000, // Max 10s between attempts
-      timeout: 45000, // Match backend connectTimeout
+      reconnectionAttempts: Infinity, // Keep trying indefinitely for server wake-up
+      reconnectionDelay: 1000,  // Start at 1 second
+      reconnectionDelayMax: 15000, // Max 15s between attempts for server wake-up
+      timeout: 60000, // Increased to 60s for Render free tier wake-up
       forceNew: false,
-      transports: ['websocket', 'polling'], // Ensure both transports are available
+      transports: ['polling', 'websocket'], // Start with polling for better reliability
       upgrade: true, // Allow transport upgrades
       rememberUpgrade: true, // Remember successful upgrades
       // Add ack timeout to prevent hanging on slow networks
-      ackTimeout: 10000, // 10 seconds for acknowledgments
+      ackTimeout: 15000, // 15 seconds for acknowledgments (server wake-up)
       // Ensure connection stays alive with proper ping/pong
       closeOnBeforeunload: false // Don't close on page refresh
     })
@@ -85,14 +85,13 @@ class SocketService {
 
     this.socket.on('reconnect_attempt', (attemptNumber) => {
       console.log(`Reconnection attempt ${attemptNumber}`)
-      if (attemptNumber <= 3) {
-        toast(`Reconnecting... (attempt ${attemptNumber})`, { duration: 2000, icon: '🔄' })
+      if (attemptNumber === 1) {
+        toast('Reconnecting...', { duration: 2000, icon: '🔄' })
+      } else if (attemptNumber === 5) {
+        toast('Server may be waking up, please wait...', { duration: 3000, icon: '⏳' })
+      } else if (attemptNumber % 10 === 0) {
+        toast(`Still reconnecting... (attempt ${attemptNumber})`, { duration: 3000, icon: '🔄' })
       }
-    })
-
-    this.socket.on('reconnect_failed', () => {
-      console.error('Failed to reconnect after all attempts')
-      toast.error('Unable to reconnect. Please refresh the page.', { duration: 0 })
     })
 
     this.socket.on('connect_error', (error) => {
