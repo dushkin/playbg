@@ -136,6 +136,7 @@ const Game: React.FC = () => {
                   hit: data.move.hit || false
                 };
                 currentTurnMoves.current.push(move);
+                console.log('📝 Tracked our move for notation:', { moveCount: currentTurnMoves.current.length, from: data.move.from, to: data.move.to });
               }
 
               // Just update turn state for our confirmed moves, keep board as-is
@@ -160,27 +161,6 @@ const Game: React.FC = () => {
                   prevHasRolledThisTurn: hasRolledThisTurn,
                   prevTurnSubmitted: turnSubmitted
                 })
-
-                // When turn switches away from us, finalize our notation
-                if (!isNowMyTurn && currentTurnMoves.current.length > 0) {
-                  const firstMove = currentTurnMoves.current[0];
-                  if (firstMove.dice && game?.players) {
-                    const turnNotation: TurnNotation = {
-                      turnNumber: currentTurnNumber.current++,
-                      playerId: firstMove.playerId,
-                      dice: firstMove.dice,
-                      moves: currentTurnMoves.current.map(m => {
-                        const playerIndex = game.players.findIndex((p: any) => p.userId === m.playerId);
-                        let startPos = m.from === -1 ? 'bar' : String(playerIndex === 0 ? m.from + 1 : 24 - m.from);
-                        let endPos = m.to === 25 ? 'off' : String(playerIndex === 0 ? m.to + 1 : 24 - m.to);
-                        return `${startPos}/${endPos}${m.hit ? '*' : ''}`;
-                      }),
-                      timestamp: firstMove.timestamp
-                    };
-                    setTurnNotations(prev => [...prev, turnNotation]);
-                    currentTurnMoves.current = [];
-                  }
-                }
 
                 // Only reset dice roll state when it becomes our turn
                 if (isNowMyTurn) {
@@ -224,8 +204,8 @@ const Game: React.FC = () => {
           // For all other moves (opponent moves or non-optimistic updates), apply full server state
           console.log('📋 Applying server update for', isOurMove ? 'our non-optimistic' : 'opponent', 'move')
 
-          // Track move for notation
-          if (data.move && data.state?.dice) {
+          // Track move for notation (opponent moves)
+          if (data.move && data.state?.dice && !isOurMove) {
             const move: GameMove = {
               playerId: data.playerId,
               from: data.move.from,
@@ -235,6 +215,7 @@ const Game: React.FC = () => {
               hit: data.move.hit || false
             };
             currentTurnMoves.current.push(move);
+            console.log('📝 Tracked opponent move for notation:', { moveCount: currentTurnMoves.current.length, from: data.move.from, to: data.move.to });
           }
 
           // Capture current game state before update for dice tracking
@@ -263,28 +244,40 @@ const Game: React.FC = () => {
               ourIndex
             });
 
+            // Check if turn changed (finalize notation for the completed turn)
+            const turnChanged = prevGame.currentPlayer !== undefined &&
+                               updatedGame.currentPlayer !== undefined &&
+                               prevGame.currentPlayer !== updatedGame.currentPlayer;
+
+            if (turnChanged && currentTurnMoves.current.length > 0) {
+              const firstMove = currentTurnMoves.current[0];
+              if (firstMove.dice) {
+                console.log('🎯 Finalizing notation for completed turn:', {
+                  moveCount: currentTurnMoves.current.length,
+                  playerId: firstMove.playerId,
+                  dice: firstMove.dice,
+                  prevPlayer: prevGame.currentPlayer,
+                  newPlayer: updatedGame.currentPlayer
+                });
+                const turnNotation: TurnNotation = {
+                  turnNumber: currentTurnNumber.current++,
+                  playerId: firstMove.playerId,
+                  dice: firstMove.dice,
+                  moves: currentTurnMoves.current.map(m => {
+                    const playerIndex = updatedGame.players.findIndex((p: any) => p.userId === m.playerId);
+                    let startPos = m.from === -1 ? 'bar' : String(playerIndex === 0 ? m.from + 1 : 24 - m.from);
+                    let endPos = m.to === 25 ? 'off' : String(playerIndex === 0 ? m.to + 1 : 24 - m.to);
+                    return `${startPos}/${endPos}${m.hit ? '*' : ''}`;
+                  }),
+                  timestamp: firstMove.timestamp
+                };
+                setTurnNotations(prev => [...prev, turnNotation]);
+                currentTurnMoves.current = [];
+              }
+            }
+
             // If opponent just moved and it's now our turn, reset our turn state
             if (!isOurMove && updatedGame.currentPlayer === ourIndex) {
-              // Finalize opponent's turn notation before resetting
-              if (currentTurnMoves.current.length > 0) {
-                const firstMove = currentTurnMoves.current[0];
-                if (firstMove.dice) {
-                  const turnNotation: TurnNotation = {
-                    turnNumber: currentTurnNumber.current++,
-                    playerId: firstMove.playerId,
-                    dice: firstMove.dice,
-                    moves: currentTurnMoves.current.map(m => {
-                      const playerIndex = updatedGame.players.findIndex((p: any) => p.userId === m.playerId);
-                      let startPos = m.from === -1 ? 'bar' : String(playerIndex === 0 ? m.from + 1 : 24 - m.from);
-                      let endPos = m.to === 25 ? 'off' : String(playerIndex === 0 ? m.to + 1 : 24 - m.to);
-                      return `${startPos}/${endPos}${m.hit ? '*' : ''}`;
-                    }),
-                    timestamp: firstMove.timestamp
-                  };
-                  setTurnNotations(prev => [...prev, turnNotation]);
-                  currentTurnMoves.current = [];
-                }
-              }
 
               // Reset turn state when it becomes our turn
               setHasRolledThisTurn(false);
