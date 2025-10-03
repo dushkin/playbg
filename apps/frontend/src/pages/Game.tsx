@@ -125,6 +125,19 @@ const Game: React.FC = () => {
                 optimisticMoveRef.current = null
               }
 
+              // Track our own move for notation
+              if (data.move && data.state?.dice) {
+                const move: GameMove = {
+                  playerId: data.playerId,
+                  from: data.move.from,
+                  to: data.move.to,
+                  timestamp: new Date(data.timestamp || Date.now()),
+                  dice: data.state.dice,
+                  hit: data.move.hit || false
+                };
+                currentTurnMoves.current.push(move);
+              }
+
               // Just update turn state for our confirmed moves, keep board as-is
               setGame(prevGame => {
                 if (!prevGame) return null;
@@ -147,6 +160,27 @@ const Game: React.FC = () => {
                   prevHasRolledThisTurn: hasRolledThisTurn,
                   prevTurnSubmitted: turnSubmitted
                 })
+
+                // When turn switches away from us, finalize our notation
+                if (!isNowMyTurn && currentTurnMoves.current.length > 0) {
+                  const firstMove = currentTurnMoves.current[0];
+                  if (firstMove.dice && game?.players) {
+                    const turnNotation: TurnNotation = {
+                      turnNumber: currentTurnNumber.current++,
+                      playerId: firstMove.playerId,
+                      dice: firstMove.dice,
+                      moves: currentTurnMoves.current.map(m => {
+                        const playerIndex = game.players.findIndex((p: any) => p.userId === m.playerId);
+                        let startPos = m.from === -1 ? 'bar' : String(playerIndex === 0 ? m.from + 1 : 24 - m.from);
+                        let endPos = m.to === 25 ? 'off' : String(playerIndex === 0 ? m.to + 1 : 24 - m.to);
+                        return `${startPos}/${endPos}${m.hit ? '*' : ''}`;
+                      }),
+                      timestamp: firstMove.timestamp
+                    };
+                    setTurnNotations(prev => [...prev, turnNotation]);
+                    currentTurnMoves.current = [];
+                  }
+                }
 
                 // Only reset dice roll state when it becomes our turn
                 if (isNowMyTurn) {
@@ -1636,9 +1670,9 @@ const Game: React.FC = () => {
 
 
   return (
-    <div className="h-screen bg-gray-100 overflow-hidden">
+    <div className="min-h-screen bg-gray-100">
       {/* Mobile Layout (Stack Vertically) */}
-      <div className="lg:hidden max-w-7xl mx-auto h-full flex flex-col py-1 sm:py-2 px-1 sm:px-4">
+      <div className="lg:hidden max-w-7xl mx-auto flex flex-col py-1 sm:py-2 px-1 sm:px-4">
         {/* Game Header */}
         <div className="bg-white shadow rounded-lg p-2 sm:p-3 mb-2 sm:mb-3 flex-shrink-0">
           <div className="flex justify-between items-center mb-3 sm:mb-4">
@@ -1690,9 +1724,9 @@ const Game: React.FC = () => {
         </div>
 
         {/* Game Board */}
-        <div className="bg-white shadow rounded-lg p-1 sm:p-2 lg:p-4 flex-1 flex flex-col overflow-hidden">
-          <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-1 sm:mb-2 text-center flex-shrink-0">Game Board</h2>
-          <div className="flex-1 flex items-start justify-center overflow-auto">
+        <div className="bg-white shadow rounded-lg p-1 sm:p-2 lg:p-4 flex-shrink-0">
+          <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-1 sm:mb-2 text-center">Game Board</h2>
+          <div className="flex items-start justify-center w-full">
             {renderBoard()}
           </div>
         </div>
@@ -1719,24 +1753,6 @@ const Game: React.FC = () => {
               Reset Moves
             </button>
 
-            {/* End Turn Button */}
-            <button
-              className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50 text-sm sm:text-base"
-              disabled={!isCurrentPlayer || game.gameState !== GameStateEnum.IN_PROGRESS || !turnSubmitted}
-              onClick={() => {
-                if (gameId && isCurrentPlayer && turnSubmitted) {
-                  // End turn - send socket event
-                  socketService.getSocket()?.emit('game:end_turn', { gameId });
-                  setUsedDice([]);
-                  setTurnSubmitted(false);
-                  setMovesMadeThisTurn([]);
-                  setHasRolledThisTurn(false);
-                }
-              }}
-            >
-              End Turn
-            </button>
-
             <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded text-sm sm:text-base">
               Resign
             </button>
@@ -1745,7 +1761,7 @@ const Game: React.FC = () => {
             {!game?.dice ? 'Click the dice on the board to roll them!' :
              isCurrentPlayer ?
                turnSubmitted ?
-                 'Moves submitted. Click "End Turn" to pass turn to opponent.' :
+                 'Moves submitted. Turn will end automatically.' :
                  movesMadeThisTurn.length > 0 ?
                    `Made ${movesMadeThisTurn.length} move${movesMadeThisTurn.length > 1 ? 's' : ''}. Click "Submit Moves" to confirm or make more moves.` :
                    availableDiceValues.length > 0 ?
@@ -1842,24 +1858,6 @@ const Game: React.FC = () => {
               }}
             >
               Reset Moves
-            </button>
-
-            {/* End Turn Button */}
-            <button
-              className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50 w-full"
-              disabled={!isCurrentPlayer || game.gameState !== GameStateEnum.IN_PROGRESS || !turnSubmitted}
-              onClick={() => {
-                if (gameId && isCurrentPlayer && turnSubmitted) {
-                  // End turn - send socket event (server may auto-end turn when moves exhausted, but keep client state consistent)
-                  socketService.getSocket()?.emit('game:end_turn', { gameId });
-                  setUsedDice([]);
-                  setTurnSubmitted(false);
-                  setMovesMadeThisTurn([]);
-                  setHasRolledThisTurn(false);
-                }
-              }}
-            >
-              End Turn
             </button>
 
             {/* Resign Button */}
