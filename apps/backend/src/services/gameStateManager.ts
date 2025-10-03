@@ -250,11 +250,21 @@ export class GameStateManager {
         moves: [...gameDoc.moves, move]
       };
 
-      await getRedisService().cacheGameState(gameId, newState);
-      await getRedisService().updateGameSession(gameId, {
-        state: newState,
-        lastActivity: Date.now()
-      });
+      // Update Redis cache with error handling and timeout (non-blocking)
+      try {
+        await Promise.race([
+          Promise.all([
+            getRedisService().cacheGameState(gameId, newState),
+            getRedisService().updateGameSession(gameId, {
+              state: newState,
+              lastActivity: Date.now()
+            })
+          ]),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Redis timeout')), 2000))
+        ]);
+      } catch (error) {
+        logger.warn(`Redis cache update failed for game ${gameId}, continuing anyway:`, error);
+      }
 
       const stateUpdate: GameStateUpdate = {
         gameId,
@@ -268,8 +278,15 @@ export class GameStateManager {
         } as any
       };
 
-      // Publish game event
-      await getRedisService().publishGameEvent(gameId, 'move', stateUpdate);
+      // Publish game event with error handling and timeout
+      try {
+        await Promise.race([
+          getRedisService().publishGameEvent(gameId, 'move', stateUpdate),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Redis publish timeout')), 2000))
+        ]);
+      } catch (error) {
+        logger.warn(`Redis publish failed for game ${gameId}, continuing anyway:`, error);
+      }
 
       logger.info(`Processed move for game ${gameId}: ${JSON.stringify(move)}`);
       return stateUpdate;
@@ -364,11 +381,21 @@ export class GameStateManager {
         moves: gameDoc.moves
       };
 
-      await getRedisService().cacheGameState(gameId, newState);
-      await getRedisService().updateGameSession(gameId, {
-        state: newState,
-        lastActivity: Date.now()
-      });
+      // Update Redis cache with error handling and timeout (non-blocking)
+      try {
+        await Promise.race([
+          Promise.all([
+            getRedisService().cacheGameState(gameId, newState),
+            getRedisService().updateGameSession(gameId, {
+              state: newState,
+              lastActivity: Date.now()
+            })
+          ]),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Redis timeout')), 2000))
+        ]);
+      } catch (error) {
+        logger.warn(`Redis cache update failed for game ${gameId}, continuing anyway:`, error);
+      }
 
       const stateUpdate: GameStateUpdate = {
         gameId,
@@ -379,8 +406,15 @@ export class GameStateManager {
         } as any
       };
 
-      // Publish game event
-      await getRedisService().publishGameEvent(gameId, 'dice_roll', stateUpdate);
+      // Publish game event with error handling and timeout
+      try {
+        await Promise.race([
+          getRedisService().publishGameEvent(gameId, 'dice_roll', stateUpdate),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Redis publish timeout')), 2000))
+        ]);
+      } catch (error) {
+        logger.warn(`Redis publish failed for game ${gameId}, continuing anyway:`, error);
+      }
 
       logger.info(`Player ${playerId} rolled dice in game ${gameId}: [${dice.join(', ')}]`);
       return stateUpdate;
