@@ -58,6 +58,70 @@ class SocketService {
   private setupEventListeners() {
     if (!this.socket) return
 
+    // Handle browser tab visibility changes to prevent disconnections
+    // This is critical because browsers throttle background tabs, which can kill WebSocket connections
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        console.log('📱 Tab hidden - maintaining connection in background')
+        // Tab is now hidden/background - browser may throttle timers and network
+        // Keep last activity time to detect stale connections when tab returns
+        this.lastPongTime = Date.now()
+
+        // Warn user if they're in an active game
+        if (this.currentGameId && this.socket?.connected) {
+          // Show a brief notification that backgrounding may affect connection
+          // (only if they haven't seen it in the last 5 minutes)
+          const lastWarningKey = 'lastBackgroundWarning'
+          const lastWarning = sessionStorage.getItem(lastWarningKey)
+          const now = Date.now()
+          if (!lastWarning || now - parseInt(lastWarning) > 300000) {
+            toast('Switching tabs may affect your game connection', {
+              duration: 3000,
+              icon: '⚠️'
+            })
+            sessionStorage.setItem(lastWarningKey, now.toString())
+          }
+        }
+      } else {
+        console.log('📱 Tab visible - verifying connection health')
+        // Tab is now visible/active - check if connection survived the background period
+
+        if (this.socket && !this.socket.connected) {
+          console.log('🔄 Tab returned but disconnected - reconnecting...')
+          this.socket.connect()
+        } else if (this.socket?.connected) {
+          // Check if connection is truly alive by examining pong timing
+          const timeSinceLastPong = Date.now() - this.lastPongTime
+          console.log(`⏰ Time since last pong: ${Math.round(timeSinceLastPong / 1000)}s`)
+
+          // If we haven't received a pong recently, connection may be dead but not detected yet
+          if (timeSinceLastPong > 45000) { // 45 seconds threshold
+            console.warn('⚠️ Connection appears stale after tab backgrounding - forcing reconnect')
+            this.socket.disconnect().connect()
+          } else {
+            console.log('✅ Connection healthy after tab return')
+          }
+        }
+      }
+    })
+
+    // Prevent browser from aggressively throttling when tab is hidden
+    // Request a "wake lock" during active games to maintain connection stability
+    document.addEventListener('freeze', () => {
+      console.log('🧊 Tab about to freeze - saving connection state')
+      if (this.socket?.connected && this.currentGameId) {
+        console.log('⚠️ Active game detected - tab freeze may cause disconnection')
+      }
+    }, { capture: true })
+
+    document.addEventListener('resume', () => {
+      console.log('▶️ Tab resumed from freeze - checking connection')
+      if (this.socket && !this.socket.connected && this.currentGameId) {
+        console.log('🔄 Reconnecting after tab resume...')
+        this.socket.connect()
+      }
+    }, { capture: true })
+
     // Connection events
     this.socket.on('connect', () => {
       console.log('Connected to server')

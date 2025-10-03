@@ -87,9 +87,9 @@ const io = new SocketIOServer(server, {
     credentials: true
   },
   // Connection settings to prevent premature disconnections
-  // Render Hobby plan should not spin down, but network can still have issues
-  pingTimeout: 60000, // 60 seconds - if no pong in 60s, consider connection dead
-  pingInterval: 25000, // 25 seconds - server sends ping every 25s (must be < pingTimeout)
+  // Must handle browser tab backgrounding - browsers throttle timers/network in background tabs
+  pingTimeout: 90000, // 90 seconds - if no pong in 90s, consider connection dead (allows for browser throttling)
+  pingInterval: 30000, // 30 seconds - server sends ping every 30s (must be < pingTimeout)
   upgradeTimeout: 60000, // 60 seconds - increased time to wait for transport upgrade
   maxHttpBufferSize: 1e6, // 1MB - max message size
   transports: ['websocket', 'polling'], // Allow both transports
