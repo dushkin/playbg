@@ -1804,7 +1804,18 @@ const Game: React.FC = () => {
               Reset Moves
             </button>
 
-            <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded text-sm sm:text-base">
+            <button
+              className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded text-sm sm:text-base"
+              onClick={() => {
+                if (confirm('Are you sure you want to resign?')) {
+                  if (gameId) {
+                    socketService.getSocket()?.emit('game:resign', { gameId });
+                    toast.error('You resigned from the game');
+                    setTimeout(() => navigate('/dashboard'), 1000);
+                  }
+                }
+              }}
+            >
               Resign
             </button>
           </div>
@@ -1916,8 +1927,11 @@ const Game: React.FC = () => {
               className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded w-full"
               onClick={() => {
                 if (confirm('Are you sure you want to resign?')) {
-                  toast.error('Game resigned')
-                  navigate('/dashboard')
+                  if (gameId) {
+                    socketService.getSocket()?.emit('game:resign', { gameId });
+                    toast.error('You resigned from the game');
+                    setTimeout(() => navigate('/dashboard'), 1000);
+                  }
                 }
               }}
             >

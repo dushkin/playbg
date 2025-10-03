@@ -456,8 +456,54 @@ export const setupSocketHandlers = (io: SocketIOServer): void => {
         logger.info(`${socket.username} sent chat in game ${gameId}`);
       } catch (error) {
         logger.error(`Chat error:`, error);
-        socket.emit('game:error', { 
+        socket.emit('game:error', {
           message: error instanceof Error ? error.message : 'Failed to send message'
+        });
+      }
+    });
+
+    socket.on('game:resign', async (data) => {
+      try {
+        if (!socket.userId || !data.gameId) return;
+
+        const game = await gameStateManager.loadGame(data.gameId);
+        if (!game) {
+          socket.emit('game:error', { message: 'Game not found' });
+          return;
+        }
+
+        // Verify user is in the game
+        if (!game.isPlayerInGame(socket.userId)) {
+          socket.emit('game:error', { message: 'You are not in this game' });
+          return;
+        }
+
+        // Determine winner (the other player)
+        const resigningPlayerIndex = game.players.findIndex(p => p.userId === socket.userId);
+        const winnerIndex = resigningPlayerIndex === 0 ? 1 : 0;
+        const winner = game.players[winnerIndex];
+
+        // Update game state to finished
+        game.gameState = 'finished' as any;
+        game.winner = winner.userId;
+        await game.save();
+
+        // Broadcast resignation to all players
+        io.to(`game:${data.gameId}`).emit('game:completed', {
+          gameId: data.gameId,
+          winner: winner.userId,
+          winnerUsername: winner.username,
+          reason: 'resignation',
+          resignedPlayer: socket.username,
+          state: await gameStateManager.getGameState(data.gameId),
+          timestamp: new Date()
+        });
+
+        logger.info(`${socket.username} resigned from game ${data.gameId}, ${winner.username} wins`);
+      } catch (error) {
+        logger.error(`Resign error:`, error);
+        socket.emit('game:error', {
+          message: error instanceof Error ? error.message : 'Failed to resign'
         });
       }
     });

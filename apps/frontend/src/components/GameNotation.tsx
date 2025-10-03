@@ -30,7 +30,7 @@ const GameNotation: React.FC<GameNotationProps> = ({ game, notations, onImport }
       player1.username,
       player2.username,
       {
-        date: game.startTime,
+        date: new Date(game.startTime),
         result: game.winner ? `${game.winner} wins` : 'In progress',
         gameType: game.gameType
       }
@@ -57,7 +57,7 @@ const GameNotation: React.FC<GameNotationProps> = ({ game, notations, onImport }
       player1.username,
       player2.username,
       {
-        date: game.startTime,
+        date: new Date(game.startTime),
         result: game.winner ? `${game.winner} wins` : 'In progress',
         gameType: game.gameType
       }
