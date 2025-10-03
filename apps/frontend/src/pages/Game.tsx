@@ -185,6 +185,12 @@ const Game: React.FC = () => {
                     setTurnNotations(prev => [...prev, turnNotation]);
                     currentTurnMoves.current = [];
                   }
+                } else if (!turnIsEnding && prevPlayer === newPlayer) {
+                  // Turn is NOT ending (e.g., doubles with more moves to make)
+                  // Reset turnSubmitted and movesMadeThisTurn to allow more moves
+                  console.log('🔄 Turn continues - resetting submission state for more moves');
+                  setTurnSubmitted(false);
+                  setMovesMadeThisTurn([]);
                 }
 
                 return {
