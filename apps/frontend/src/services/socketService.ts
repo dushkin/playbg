@@ -74,12 +74,15 @@ class SocketService {
 
     this.socket.on('reconnect', (attemptNumber) => {
       console.log(`Reconnected after ${attemptNumber} attempts`)
-      toast.success('Connection restored!', { duration: 2000 })
+      toast.success('Connection restored! Reloading game...', { duration: 3000 })
 
       // Rejoin the game if we were in one
       if (this.currentGameId) {
         console.log(`Rejoining game ${this.currentGameId} after reconnection`)
         this.socket?.emit('game:join', { gameId: this.currentGameId })
+
+        // Emit a custom event that Game component can listen to
+        this.socket?.emit('game:reconnected', { gameId: this.currentGameId })
       }
     })
 

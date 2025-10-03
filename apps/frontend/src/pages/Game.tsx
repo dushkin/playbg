@@ -505,6 +505,26 @@ const Game: React.FC = () => {
         }
       };
 
+      const handleDisconnect = () => {
+        console.log('🔌 Socket disconnected - clearing optimistic moves');
+        // Clear any pending optimistic moves
+        setMovesMadeThisTurn([]);
+        setTurnSubmitted(false);
+        pendingOptimisticMoves.current.clear();
+        optimisticMoveRef.current = null;
+        setOptimisticMoveId(null);
+      };
+
+      const handleReconnected = (data: any) => {
+        if (data.gameId === gameId) {
+          console.log('🔄 Reconnected to game - reloading state');
+          // Reload the game to get fresh state from server
+          loadGame();
+        }
+      };
+
+      socket.on('disconnect', handleDisconnect);
+      socket.on('game:reconnected', handleReconnected);
       socket.on('game:joined', handleGameJoined);
       socket.on('game:dice_roll', handleDiceRoll);
       socket.on('game:move', handleGameMove);
@@ -513,6 +533,8 @@ const Game: React.FC = () => {
       socket.on('game:completed', handleGameCompleted);
 
       return () => {
+        socket.off('disconnect', handleDisconnect);
+        socket.off('game:reconnected', handleReconnected);
         socket.off('game:joined', handleGameJoined);
         socket.off('game:dice_roll', handleDiceRoll);
         socket.off('game:move', handleGameMove);
