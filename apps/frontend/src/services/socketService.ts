@@ -102,14 +102,20 @@ class SocketService {
       if (error.message.includes('502') || error.message.includes('Bad Gateway')) {
         // Don't show repeated messages for server wake-up
         console.log('Server starting up, connection will retry automatically')
-      } else if (error.message.includes('CORS')) {
-        toast.error('Connection blocked by CORS policy. Please contact support.')
+      } else if (error.message.includes('CORS') || error.message.toLowerCase().includes('cors')) {
+        // CORS errors during reconnection are often due to server spin-down on free tier
+        console.warn('CORS error detected - likely server spin-down, will retry')
+        // Don't show scary error message, this is normal for free tier
       } else if (error.message.includes('Authentication')) {
         // Token expired - need to refresh and reconnect
         console.warn('Socket authentication failed - token may have expired. Page reload required.')
         toast.error('Session expired. Please refresh the page.', { duration: 0 })
+      } else if (error.message.includes('xhr poll error') || error.message.includes('websocket error')) {
+        // Network/transport errors - likely server spin-down
+        console.log('Transport error - server may be waking up, retrying...')
       } else {
-        toast.error('Connection error. Please check your internet connection.')
+        // Only show user-facing error for unexpected errors
+        console.warn('Unexpected connection error:', error.message)
       }
     })
 

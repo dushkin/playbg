@@ -32,16 +32,14 @@ const Game: React.FC = () => {
   const currentTurnMoves = useRef<GameMove[]>([])
   const currentTurnNumber = useRef(1)
 
-  const handleNotationImport = (importedNotations: TurnNotation[]) => {
-    setTurnNotations(importedNotations);
-    // Update the turn counter to continue from where the imported notation left off
-    if (importedNotations.length > 0) {
-      currentTurnNumber.current = importedNotations[importedNotations.length - 1].turnNumber + 1;
-    }
-  }
-
   useEffect(() => {
     if (gameId) {
+      // Check for offline imported game
+      if (gameId === 'offline-imported') {
+        loadOfflineGame();
+        return; // Don't join socket or load from API
+      }
+
       // Join socket first so we can hydrate with live state before API
       socketService.joinGame(gameId);
       loadGame();
@@ -251,25 +249,35 @@ const Game: React.FC = () => {
           // For all other moves (opponent moves or non-optimistic updates), apply full server state
           console.log('📋 Applying server update for', isOurMove ? 'our non-optimistic' : 'opponent', 'move')
 
-          // Track move for notation (opponent moves)
-          if (data.move && data.state?.dice && !isOurMove) {
-            const move: GameMove = {
-              playerId: data.playerId,
-              from: data.move.from,
-              to: data.move.to,
-              timestamp: new Date(data.timestamp || Date.now()),
-              dice: data.state.dice,
-              hit: data.move.hit || false
-            };
-            currentTurnMoves.current.push(move);
-            console.log('📝 Tracked opponent move for notation:', { moveCount: currentTurnMoves.current.length, from: data.move.from, to: data.move.to });
-          }
-
           // Capture current game state before update for dice tracking
           const gameBeforeUpdate = game;
 
           setGame(prevGame => {
             if (!prevGame) return null;
+
+            // Track move for notation (opponent moves) - INSIDE setGame to access prevGame.dice
+            if (data.move && !isOurMove) {
+              const diceToUse = data.state?.dice || prevGame.dice;
+              if (diceToUse) {
+                const move: GameMove = {
+                  playerId: data.playerId,
+                  from: data.move.from,
+                  to: data.move.to,
+                  timestamp: new Date(data.timestamp || Date.now()),
+                  dice: diceToUse,
+                  hit: data.move.hit || false
+                };
+                currentTurnMoves.current.push(move);
+                console.log('📝 Tracked opponent move for notation:', {
+                  moveCount: currentTurnMoves.current.length,
+                  from: data.move.from,
+                  to: data.move.to,
+                  dice: diceToUse
+                });
+              } else {
+                console.warn('⚠️ Could not track opponent move - no dice available');
+              }
+            }
 
             const ourIndex = (prevGame.players || []).findIndex(p => p.userId === user?.id);
 
@@ -547,6 +555,73 @@ const Game: React.FC = () => {
       };
     }
   }, [gameId]);
+
+  const loadOfflineGame = () => {
+    try {
+      setIsLoading(true);
+      const importedData = localStorage.getItem('importedNotation');
+
+      if (!importedData) {
+        setError('No imported notation found');
+        setIsLoading(false);
+        return;
+      }
+
+      const { notations, metadata } = JSON.parse(importedData);
+
+      // Create a mock game state for offline viewing
+      const offlineGame: GameType = {
+        id: 'offline-imported',
+        players: [
+          {
+            userId: 'player1',
+            username: metadata.player1,
+            color: 'white' as any,
+            rating: 1500,
+            isReady: true
+          },
+          {
+            userId: 'player2',
+            username: metadata.player2,
+            color: 'black' as any,
+            rating: 1500,
+            isReady: true
+          }
+        ] as [any, any],
+        gameState: GameStateEnum.FINISHED,
+        gameType: 'not-ranked' as any,
+        gamePeriod: metadata.type || 'STANDARD',
+        currentPlayer: 0,
+        dice: null,
+        board: {
+          points: Array(24).fill([]).map(() => []),
+          bar: [0, 0],
+          off: [0, 0]
+        },
+        startTime: metadata.date ? new Date(metadata.date) : new Date(),
+        endTime: new Date(),
+        winner: undefined,
+        moves: [],
+        notation: notations,
+        spectators: [],
+        chatMessages: []
+      } as any;
+
+      setGame(offlineGame);
+      setTurnNotations(notations);
+      setError(null);
+      setIsLoading(false);
+
+      // Clear localStorage after loading
+      localStorage.removeItem('importedNotation');
+
+      toast.success(`Loaded offline game: ${metadata.player1} vs ${metadata.player2}`);
+    } catch (err) {
+      console.error('Error loading offline game:', err);
+      setError('Failed to load imported notation');
+      setIsLoading(false);
+    }
+  };
 
   const loadGame = async (retryCount = 0) => {
     if (!gameId) return
@@ -1857,7 +1932,7 @@ const Game: React.FC = () => {
 
         {/* Game Notation (Mobile) */}
         <div className="flex-shrink-0">
-          <GameNotation game={game} notations={turnNotations} onImport={handleNotationImport} />
+          <GameNotation game={game} notations={turnNotations} />
         </div>
       </div>
 
@@ -1978,7 +2053,7 @@ const Game: React.FC = () => {
           </div>
 
           {/* Game Notation */}
-          <GameNotation game={game} notations={turnNotations} onImport={handleNotationImport} />
+          <GameNotation game={game} notations={turnNotations} />
         </div>
       </div>
     </div>

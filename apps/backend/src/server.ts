@@ -87,15 +87,18 @@ const io = new SocketIOServer(server, {
     credentials: true
   },
   // Connection settings to prevent premature disconnections
-  pingTimeout: 60000, // 60 seconds - how long to wait for pong before considering connection dead
-  pingInterval: 25000, // 25 seconds - how often to send ping packets
+  // Render Hobby plan should not spin down, but network can still have issues
+  pingTimeout: 120000, // 120 seconds (2 min) - increased to handle slow networks
+  pingInterval: 20000, // 20 seconds - more frequent pings to keep connection alive
   upgradeTimeout: 30000, // 30 seconds - time to wait for upgrade to complete
   maxHttpBufferSize: 1e6, // 1MB - max message size
   transports: ['websocket', 'polling'], // Allow both transports
   allowUpgrades: true, // Allow transport upgrades
   perMessageDeflate: false, // Disable compression for better performance
   httpCompression: true, // Enable HTTP compression
-  connectTimeout: 45000 // 45 seconds - connection timeout
+  connectTimeout: 45000, // 45 seconds - connection timeout
+  // Allow EIO v3 for better compatibility
+  allowEIO3: true
 });
 
 // Setup logging - production-friendly configuration
@@ -267,10 +270,16 @@ app.use((req, res, next) => {
 
 // Health check endpoint
 app.get('/health', (req, res) => {
+  const memUsage = process.memoryUsage();
   res.status(200).json({
     status: 'OK',
     timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+    uptime: process.uptime(),
+    memory: {
+      rss: `${Math.round(memUsage.rss / 1024 / 1024)}MB`,
+      heapUsed: `${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`,
+      heapTotal: `${Math.round(memUsage.heapTotal / 1024 / 1024)}MB`
+    }
   });
 });
 

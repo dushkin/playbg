@@ -6,6 +6,7 @@ import { gamesAPI } from '../services/api'
 import toast from 'react-hot-toast'
 import LoadingSpinner from '../components/UI/LoadingSpinner'
 import { socketService } from '../services/socketService'
+import NotationImporter from '../components/NotationImporter'
 
 interface GameItem {
   _id: string
@@ -413,6 +414,11 @@ const Dashboard: React.FC = () => {
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* Notation Importer */}
+          <div className="mb-8">
+            <NotationImporter />
           </div>
 
           {/* Game Lists */}

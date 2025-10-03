@@ -726,8 +726,13 @@ export const setupSocketHandlers = (io: SocketIOServer): void => {
     });
 
     // Handle disconnection
-    socket.on('disconnect', async () => {
-      logger.info('User disconnected', { username: socket.username, socketId: socket.id });
+    socket.on('disconnect', async (reason) => {
+      logger.info('User disconnected', {
+        username: socket.username,
+        socketId: socket.id,
+        reason: reason, // Capture disconnect reason for debugging
+        transport: socket.conn?.transport?.name // Capture transport type
+      });
       
       try {
         if (socket.userId) {
