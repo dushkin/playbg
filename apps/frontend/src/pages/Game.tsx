@@ -125,74 +125,74 @@ const Game: React.FC = () => {
                 optimisticMoveRef.current = null
               }
 
-              // Track our own move for notation
-              if (data.move) {
-                // Use current game dice if state dice is null (happens on subsequent moves in same turn)
-                const diceToUse = data.state?.dice || game?.dice;
-                if (diceToUse) {
-                  const move: GameMove = {
-                    playerId: data.playerId,
-                    from: data.move.from,
-                    to: data.move.to,
-                    timestamp: new Date(data.timestamp || Date.now()),
-                    dice: diceToUse,
-                    hit: data.move.hit || false
-                  };
-                  currentTurnMoves.current.push(move);
-                  console.log('📝 Tracked our move for notation:', {
-                    moveCount: currentTurnMoves.current.length,
-                    from: data.move.from,
-                    to: data.move.to,
-                    dice: diceToUse,
-                    dataStateDice: data.state?.dice,
-                    gameDice: game?.dice
-                  });
-                } else {
-                  console.warn('⚠️ Could not track move - no dice available:', { dataStateDice: data.state?.dice, gameDice: game?.dice });
-                }
-              }
-
-              // Check if turn is ending (optimistic path)
-              const prevPlayer = game?.currentPlayer;
-              const newPlayer = data.state?.currentPlayer;
-              const turnIsEnding = prevPlayer !== undefined && newPlayer !== undefined && prevPlayer !== newPlayer;
-
-              console.log('🔍 Turn change check:', { prevPlayer, newPlayer, turnIsEnding, movesCount: currentTurnMoves.current.length });
-
-              if (turnIsEnding && currentTurnMoves.current.length > 0) {
-                const firstMove = currentTurnMoves.current[0];
-                if (firstMove.dice && game?.players) {
-                  console.log('🎯 [Optimistic] Finalizing notation for completed turn:', {
-                    moveCount: currentTurnMoves.current.length,
-                    playerId: firstMove.playerId,
-                    dice: firstMove.dice,
-                    prevPlayer,
-                    newPlayer
-                  });
-                  const turnNotation: TurnNotation = {
-                    turnNumber: currentTurnNumber.current++,
-                    playerId: firstMove.playerId,
-                    dice: firstMove.dice,
-                    moves: currentTurnMoves.current.map(m => {
-                      const playerIndex = game.players.findIndex((p: any) => p.userId === m.playerId);
-                      let startPos = m.from === -1 ? 'bar' : String(playerIndex === 0 ? m.from + 1 : 24 - m.from);
-                      let endPos = m.to === 25 ? 'off' : String(playerIndex === 0 ? m.to + 1 : 24 - m.to);
-                      return `${startPos}/${endPos}${m.hit ? '*' : ''}`;
-                    }),
-                    timestamp: firstMove.timestamp
-                  };
-                  setTurnNotations(prev => [...prev, turnNotation]);
-                  currentTurnMoves.current = [];
-                }
-              }
-
               // Just update turn state for our confirmed moves, keep board as-is
               setGame(prevGame => {
                 if (!prevGame) return null;
+
+                const prevPlayer = prevGame.currentPlayer;
+                const newPlayer = data.state?.currentPlayer !== undefined ? data.state.currentPlayer : prevGame.currentPlayer;
+                const newDice = data.state?.dice || prevGame.dice;
+
+                // Track our own move for notation
+                if (data.move) {
+                  const diceToUse = data.state?.dice || prevGame.dice;
+                  if (diceToUse) {
+                    const move: GameMove = {
+                      playerId: data.playerId,
+                      from: data.move.from,
+                      to: data.move.to,
+                      timestamp: new Date(data.timestamp || Date.now()),
+                      dice: diceToUse,
+                      hit: data.move.hit || false
+                    };
+                    currentTurnMoves.current.push(move);
+                    console.log('📝 Tracked our move for notation:', {
+                      moveCount: currentTurnMoves.current.length,
+                      from: data.move.from,
+                      to: data.move.to,
+                      dice: diceToUse
+                    });
+                  } else {
+                    console.warn('⚠️ Could not track move - no dice available');
+                  }
+                }
+
+                // Check if turn is ending (optimistic path)
+                const turnIsEnding = prevPlayer !== undefined && newPlayer !== undefined && prevPlayer !== newPlayer;
+
+                console.log('🔍 Turn change check:', { prevPlayer, newPlayer, turnIsEnding, movesCount: currentTurnMoves.current.length });
+
+                if (turnIsEnding && currentTurnMoves.current.length > 0) {
+                  const firstMove = currentTurnMoves.current[0];
+                  if (firstMove.dice && prevGame.players) {
+                    console.log('🎯 [Optimistic] Finalizing notation for completed turn:', {
+                      moveCount: currentTurnMoves.current.length,
+                      playerId: firstMove.playerId,
+                      dice: firstMove.dice,
+                      prevPlayer,
+                      newPlayer
+                    });
+                    const turnNotation: TurnNotation = {
+                      turnNumber: currentTurnNumber.current++,
+                      playerId: firstMove.playerId,
+                      dice: firstMove.dice,
+                      moves: currentTurnMoves.current.map(m => {
+                        const playerIndex = prevGame.players.findIndex((p: any) => p.userId === m.playerId);
+                        let startPos = m.from === -1 ? 'bar' : String(playerIndex === 0 ? m.from + 1 : 24 - m.from);
+                        let endPos = m.to === 25 ? 'off' : String(playerIndex === 0 ? m.to + 1 : 24 - m.to);
+                        return `${startPos}/${endPos}${m.hit ? '*' : ''}`;
+                      }),
+                      timestamp: firstMove.timestamp
+                    };
+                    setTurnNotations(prev => [...prev, turnNotation]);
+                    currentTurnMoves.current = [];
+                  }
+                }
+
                 return {
                   ...prevGame,
-                  currentPlayer: data.state?.currentPlayer !== undefined ? data.state.currentPlayer : prevGame.currentPlayer,
-                  dice: data.state?.dice || prevGame.dice,
+                  currentPlayer: newPlayer,
+                  dice: newDice,
                 };
               });
 
