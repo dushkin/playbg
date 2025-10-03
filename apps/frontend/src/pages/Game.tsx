@@ -31,6 +31,8 @@ const Game: React.FC = () => {
   const [turnNotations, setTurnNotations] = useState<TurnNotation[]>([])
   const currentTurnMoves = useRef<GameMove[]>([])
   const currentTurnNumber = useRef(1)
+  const pendingDiceRoll = useRef(false)
+  const isSubmittingMoves = useRef(false)
 
   useEffect(() => {
     if (gameId) {
@@ -185,9 +187,10 @@ const Game: React.FC = () => {
                     setTurnNotations(prev => [...prev, turnNotation]);
                     currentTurnMoves.current = [];
                   }
-                } else if (!turnIsEnding && prevPlayer === newPlayer) {
+                } else if (!turnIsEnding && prevPlayer === newPlayer && !isSubmittingMoves.current) {
                   // Turn is NOT ending (e.g., doubles with more moves to make)
                   // Reset turnSubmitted and movesMadeThisTurn to allow more moves
+                  // But ONLY if we're not currently in the middle of submitting moves
                   console.log('🔄 Turn continues - resetting submission state for more moves');
                   setTurnSubmitted(false);
                   setMovesMadeThisTurn([]);
@@ -534,6 +537,23 @@ const Game: React.FC = () => {
           console.log('🔄 Reconnected to game - reloading state');
           // Reload the game to get fresh state from server
           loadGame();
+
+          // Retry pending dice roll if there was one
+          if (pendingDiceRoll.current && gameId) {
+            console.log('🔄 Retrying pending dice roll after reconnection');
+            pendingDiceRoll.current = false;
+            setIsRollingDice(true);
+
+            socketService.rollDice(gameId)
+              .then((response) => {
+                console.log('🎲 ✅ Dice roll acknowledged after reconnection:', response);
+              })
+              .catch((error) => {
+                console.error('🎲 ❌ Dice roll failed after reconnection:', error);
+                setIsRollingDice(false);
+                toast.error('Failed to roll dice. Please try again.');
+              });
+          }
         }
       };
 
@@ -1099,6 +1119,7 @@ const Game: React.FC = () => {
         socketService.rollDice(gameId)
           .then((response) => {
             console.log('🎲 ✅ Dice roll acknowledged:', response);
+            pendingDiceRoll.current = false;
             // The actual dice values will come through the 'game:dice_roll' event
             // This just confirms the server received and processed the request
           })
@@ -1107,8 +1128,11 @@ const Game: React.FC = () => {
             setIsRollingDice(false);
 
             if (!socketService.isConnected()) {
-              toast.error('Connection lost. Please check your connection and try again.');
+              // Mark dice roll as pending for retry after reconnection
+              pendingDiceRoll.current = true;
+              toast.error('Connection lost. Reconnecting and will retry...', { duration: 4000 });
             } else {
+              pendingDiceRoll.current = false;
               toast.error('Failed to roll dice. Please try again.');
             }
           });
@@ -1132,6 +1156,7 @@ const Game: React.FC = () => {
 
     console.log('📡 Submitting moves:', movesMadeThisTurn)
     setTurnSubmitted(true)
+    isSubmittingMoves.current = true
 
     try {
       // Send moves one at a time, waiting for acknowledgment
@@ -1165,6 +1190,8 @@ const Game: React.FC = () => {
 
       // Clear pending optimistic moves on error
       pendingOptimisticMoves.current.clear()
+    } finally {
+      isSubmittingMoves.current = false
     }
   };
 
