@@ -33,10 +33,8 @@ class SocketService {
       reconnectionDelayMax: 15000, // Max 15s between attempts for server wake-up
       timeout: 60000, // Increased to 60s for Render free tier wake-up
       forceNew: false,
-      // Try websocket first since it's more stable once connected
-      // Falls back to polling automatically if websocket fails
-      transports: ['websocket', 'polling'],
-      upgrade: false, // Disable upgrade - stay on the initial transport
+      // Start with polling so Render cold starts don't drop reconnects, then upgrade to websocket
+      transports: ['polling', 'websocket'],
       // Add ack timeout to prevent hanging on slow networks
       ackTimeout: 15000, // 15 seconds for acknowledgments (server wake-up)
       // Ensure connection stays alive with proper ping/pong
