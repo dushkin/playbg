@@ -1,6 +1,6 @@
 {
   "name": "playbg-platform",
-  "version": "1.0.240",
+  "version": "1.0.241",
   "description": "Online Backgammon Platform - Full-stack application with real-time gameplay",
   "private": true,
   "workspaces": [
@@ -23,8 +23,10 @@
     "start:backend": "npm run start --workspace=apps/backend"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2",
+    "@playwright/test": "^1.55.1",
     "@types/node": "^20.10.0",
+    "concurrently": "^8.2.2",
+    "mongodb": "^6.20.0",
     "typescript": "^5.3.0"
   },
   "engines": {

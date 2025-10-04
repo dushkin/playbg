@@ -134,3 +134,6 @@ Run typecheck following code changes if relevant.
 - ✅ **Scripts should commit and push changes** as part of their normal workflow
 - ✅ **User executing a script implies intent to deploy** those changes
 - The user running build.sh or similar scripts expects them to push to origin as part of the build process
+
+**Other
+- Even if I write to you in Hebrew - answer me in English.
